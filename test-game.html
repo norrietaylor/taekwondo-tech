@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Test</title>
+    <style>
+        body {
+            margin: 20px;
+            font-family: Arial, sans-serif;
+            background: #2c5f5d;
+            color: white;
+        }
+        canvas {
+            border: 2px solid #1a3d3b;
+        }
+        #status {
+            background: #000;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">Initializing...</div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <script>
+        const status = document.getElementById('status');
+        function updateStatus(msg) {
+            status.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + msg;
+            console.log(msg);
+        }
+        
+        // Simple test scene
+        class TestMenuScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'TestMenuScene' });
+                updateStatus('TestMenuScene constructor called');
+            }
+
+            create() {
+                updateStatus('TestMenuScene create() called');
+                
+                // Create simple background
+                this.add.rectangle(512, 288, 1024, 576, 0x2c5f5d);
+                
+                // Create title
+                this.add.text(512, 200, '🥋 TAEKWONDO ROBOT BUILDER', {
+                    fontSize: '32px',
+                    fill: '#ffffff',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+                
+                // Create start button
+                const startButton = this.add.text(512, 300, 'START GAME', {
+                    fontSize: '24px',
+                    fill: '#ffffff',
+                    backgroundColor: '#4a9eff',
+                    padding: { x: 20, y: 10 }
+                }).setOrigin(0.5);
+                
+                // Make button interactive
+                startButton.setInteractive({ useHandCursor: true });
+                
+                startButton.on('pointerdown', () => {
+                    updateStatus('Start button clicked!');
+                    this.add.text(512, 400, 'Button works! Game would start here.', {
+                        fontSize: '18px',
+                        fill: '#00ff00'
+                    }).setOrigin(0.5);
+                });
+                
+                startButton.on('pointerover', () => {
+                    startButton.setTint(0xcccccc);
+                });
+                
+                startButton.on('pointerout', () => {
+                    startButton.clearTint();
+                });
+                
+                updateStatus('TestMenuScene setup complete');
+            }
+        }
+        
+        // Simple game config
+        const config = {
+            type: Phaser.AUTO,
+            width: 1024,
+            height: 576,
+            parent: document.body,
+            backgroundColor: '#2c5f5d',
+            scene: TestMenuScene
+        };
+        
+        updateStatus('Creating Phaser game...');
+        
+        try {
+            const game = new Phaser.Game(config);
+            updateStatus('Phaser game created successfully');
+        } catch (error) {
+            updateStatus('ERROR: ' + error.message);
+            updateStatus('Stack: ' + error.stack);
+        }
+    </script>
+</body>
+</html>

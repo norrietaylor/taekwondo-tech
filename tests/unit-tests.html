@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Unit Tests - Game Classes</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #2a2a2a;
+        }
+        .test-pass {
+            background: #0f4f0f;
+            border-color: #0f8f0f;
+        }
+        .test-fail {
+            background: #4f0f0f;
+            border-color: #8f0f0f;
+        }
+        .test-running {
+            background: #4f4f0f;
+            border-color: #8f8f0f;
+        }
+        .console {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        canvas {
+            border: 1px solid #333;
+            margin: 10px 0;
+        }
+        h1, h2 { color: #4a9eff; }
+        .summary {
+            background: #333;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .error-details {
+            background: #2a0a0a;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #ff4444;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Unit Tests - Game Classes Instantiation</h1>
+        
+        <div class="summary" id="summary">
+            <h2>📊 Test Summary</h2>
+            <div id="test-stats">Running tests...</div>
+        </div>
+        
+        <div class="console" id="console">
+            <div>🚀 Starting unit tests...<br></div>
+        </div>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <!-- Load Phaser -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <!-- Load Game Classes -->
+    <script src="../js/utils/Controls.js"></script>
+    <script src="../js/utils/SaveSystem.js"></script>
+    <script src="../js/entities/Player.js"></script>
+    <script src="../js/entities/Enemy.js"></script>
+    <script src="../js/entities/Collectible.js"></script>
+    <script src="../js/scenes/MenuScene.js"></script>
+    <script src="../js/scenes/GameScene.js"></script>
+    <script src="../js/scenes/CraftScene.js"></script>
+    <script src="../js/game.js"></script>
+
+    <script>
+        // Test Framework
+        class TestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = {
+                    total: 0,
+                    passed: 0,
+                    failed: 0,
+                    errors: []
+                };
+                this.consoleEl = document.getElementById('console');
+                this.resultsEl = document.getElementById('test-results');
+                this.summaryEl = document.getElementById('test-stats');
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const color = {
+                    'info': '#00ff00',
+                    'error': '#ff4444',
+                    'warn': '#ffaa00',
+                    'pass': '#44ff44',
+                    'fail': '#ff6666'
+                }[type] || '#00ff00';
+                
+                console.log(`[${timestamp}] ${message}`);
+                this.consoleEl.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span><br>`;
+                this.consoleEl.scrollTop = this.consoleEl.scrollHeight;
+            }
+
+            test(name, testFunc) {
+                this.tests.push({ name, testFunc });
+            }
+
+            async runTests() {
+                this.log(`🧪 Running ${this.tests.length} tests...`, 'info');
+                
+                for (const test of this.tests) {
+                    await this.runSingleTest(test);
+                }
+                
+                this.showSummary();
+            }
+
+            async runSingleTest(test) {
+                const testSection = document.createElement('div');
+                testSection.className = 'test-section test-running';
+                testSection.innerHTML = `
+                    <h3>🔄 ${test.name}</h3>
+                    <div class="test-status">Running...</div>
+                `;
+                this.resultsEl.appendChild(testSection);
+
+                this.results.total++;
+                
+                try {
+                    this.log(`Testing: ${test.name}`, 'info');
+                    await test.testFunc();
+                    
+                    testSection.className = 'test-section test-pass';
+                    testSection.querySelector('.test-status').innerHTML = '✅ PASSED';
+                    testSection.querySelector('h3').innerHTML = `✅ ${test.name}`;
+                    
+                    this.results.passed++;
+                    this.log(`✅ PASSED: ${test.name}`, 'pass');
+                    
+                } catch (error) {
+                    testSection.className = 'test-section test-fail';
+                    testSection.querySelector('.test-status').innerHTML = '❌ FAILED';
+                    testSection.querySelector('h3').innerHTML = `❌ ${test.name}`;
+                    
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-details';
+                    errorDiv.textContent = `Error: ${error.message}\n\nStack:\n${error.stack}`;
+                    testSection.appendChild(errorDiv);
+                    
+                    this.results.failed++;
+                    this.results.errors.push({ test: test.name, error: error.message, stack: error.stack });
+                    this.log(`❌ FAILED: ${test.name} - ${error.message}`, 'fail');
+                }
+                
+                this.updateSummary();
+            }
+
+            updateSummary() {
+                const { total, passed, failed } = this.results;
+                const percentage = total > 0 ? Math.round((passed / total) * 100) : 0;
+                
+                this.summaryEl.innerHTML = `
+                    <div>📊 Tests: ${total} | ✅ Passed: ${passed} | ❌ Failed: ${failed} | 📈 Success Rate: ${percentage}%</div>
+                `;
+            }
+
+            showSummary() {
+                this.log(`\n🏁 Test Summary:`, 'info');
+                this.log(`📊 Total tests: ${this.results.total}`, 'info');
+                this.log(`✅ Passed: ${this.results.passed}`, 'pass');
+                this.log(`❌ Failed: ${this.results.failed}`, 'fail');
+                
+                if (this.results.failed > 0) {
+                    this.log(`\n🚨 Failed Tests:`, 'error');
+                    this.results.errors.forEach(err => {
+                        this.log(`- ${err.test}: ${err.error}`, 'error');
+                    });
+                } else {
+                    this.log(`\n🎉 All tests passed!`, 'pass');
+                }
+            }
+        }
+
+        // Initialize test framework
+        const testFramework = new TestFramework();
+
+        // Mock scene for testing
+        class MockScene {
+            constructor() {
+                this.add = {
+                    rectangle: (x, y, w, h, color) => new MockSprite(x, y, w, h, color, 'rectangle'),
+                    circle: (x, y, radius, color) => new MockSprite(x, y, radius*2, radius*2, color, 'circle'),
+                    text: (x, y, text, style) => new MockText(x, y, text, style),
+                    star: (x, y, points, innerRadius, outerRadius, color) => new MockSprite(x, y, outerRadius*2, outerRadius*2, color, 'star'),
+                    container: (x, y) => new MockContainer(x, y)
+                };
+                this.physics = {
+                    add: {
+                        existing: (sprite, isStatic = false) => {
+                            sprite.body = new MockBody();
+                            return sprite;
+                        },
+                        collider: () => {},
+                        overlap: () => {}
+                    },
+                    world: {
+                        setBounds: () => {}
+                    }
+                };
+                this.cameras = {
+                    main: {
+                        setBounds: () => {},
+                        startFollow: () => {},
+                        setZoom: () => {},
+                        centerX: 512,
+                        centerY: 288
+                    }
+                };
+                this.input = {
+                    keyboard: {
+                        addKeys: () => ({})
+                    }
+                };
+                this.scene = {
+                    start: () => {},
+                    get: () => this
+                };
+                this.tweens = {
+                    add: () => {}
+                };
+            }
+        }
+
+        class MockSprite {
+            constructor(x, y, w, h, color, type = 'rectangle') {
+                this.x = x;
+                this.y = y;
+                this.width = w;
+                this.height = h;
+                this.color = color;
+                this.type = type;
+                this.scaleX = 1;
+                this.scaleY = 1;
+            }
+            
+            setFillStyle(color) {
+                this.color = color;
+                return this;
+            }
+            
+            setTint(color) {
+                // This should NOT be called on rectangles!
+                if (this.type === 'rectangle') {
+                    throw new Error(`setTint() called on rectangle sprite! Use setFillStyle() instead.`);
+                }
+                this.tint = color;
+                return this;
+            }
+            
+            clearTint() {
+                // This should NOT be called on rectangles!
+                if (this.type === 'rectangle') {
+                    throw new Error(`clearTint() called on rectangle sprite! Use setFillStyle() with original color instead.`);
+                }
+                this.tint = null;
+                return this;
+            }
+            
+            setStrokeStyle() { return this; }
+            setOrigin() { return this; }
+            setInteractive() { return this; }
+            on() { return this; }
+            setDepth() { return this; }
+            setScale() { return this; }
+            clearTint() { return this; }
+            destroy() {}
+        }
+
+        class MockText extends MockSprite {
+            constructor(x, y, text, style) {
+                super(x, y, 100, 30, 0xffffff, 'text');
+                this.text = text;
+                this.style = style;
+            }
+            
+            setTint(color) {
+                // Text objects CAN use setTint
+                this.tint = color;
+                return this;
+            }
+        }
+
+        class MockContainer {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.children = [];
+            }
+            add(items) {
+                this.children = this.children.concat(Array.isArray(items) ? items : [items]);
+            }
+            setScale() { return this; }
+            setInteractive() { return this; }
+            on() { return this; }
+        }
+
+        class MockBody {
+            constructor() {
+                this.velocity = { x: 0, y: 0 };
+                this.acceleration = { x: 0, y: 0 };
+                this.bounce = { x: 0, y: 0 };
+                this.setCollideWorldBounds = () => this;
+                this.setGravityY = () => this;
+                this.setDragX = () => this;
+            }
+        }
+
+        // Mock game instance
+        window.gameInstance = {
+            gameData: {
+                currentLevel: 1,
+                score: 0,
+                lives: 3,
+                robotParts: [],
+                collectedParts: [],
+                outfits: {
+                    current: 'default',
+                    unlocked: ['default']
+                }
+            },
+            controls: new Controls(),
+            saveSystem: new SaveSystem()
+        };
+
+        // Tests
+        testFramework.test('Controls Class Instantiation', async () => {
+            const controls = new Controls();
+            if (!controls) throw new Error('Controls failed to instantiate');
+            if (typeof controls.setupKeyboardControls !== 'function') {
+                throw new Error('Controls missing setupKeyboardControls method');
+            }
+        });
+
+        testFramework.test('SaveSystem Class Instantiation', async () => {
+            const saveSystem = new SaveSystem();
+            if (!saveSystem) throw new Error('SaveSystem failed to instantiate');
+            if (typeof saveSystem.save !== 'function') {
+                throw new Error('SaveSystem missing save method');
+            }
+        });
+
+        testFramework.test('Player Class Instantiation', async () => {
+            const scene = new MockScene();
+            const player = new Player(scene, 100, 100);
+            if (!player) throw new Error('Player failed to instantiate');
+            if (!player.sprite) throw new Error('Player sprite not created');
+            if (typeof player.update !== 'function') {
+                throw new Error('Player missing update method');
+            }
+        });
+
+        testFramework.test('Player Visual Updates (setFillStyle)', async () => {
+            const scene = new MockScene();
+            const player = new Player(scene, 100, 100);
+            
+            // Test that updateVisuals doesn't throw setTint errors
+            try {
+                player.updateVisuals();
+            } catch (error) {
+                if (error.message.includes('setTint')) {
+                    throw new Error('Player still using setTint() instead of setFillStyle()');
+                }
+                throw error;
+            }
+        });
+
+        testFramework.test('Enemy Class Instantiation', async () => {
+            const scene = new MockScene();
+            const enemy = new Enemy(scene, 200, 200, 'titan');
+            if (!enemy) throw new Error('Enemy failed to instantiate');
+            if (!enemy.sprite) throw new Error('Enemy sprite not created');
+            if (typeof enemy.update !== 'function') {
+                throw new Error('Enemy missing update method');
+            }
+        });
+
+        testFramework.test('Enemy Visual Updates (setFillStyle)', async () => {
+            const scene = new MockScene();
+            const enemy = new Enemy(scene, 200, 200, 'titan');
+            
+            // Test that updateVisuals doesn't throw setTint errors
+            try {
+                enemy.updateVisuals();
+            } catch (error) {
+                if (error.message.includes('setTint')) {
+                    throw new Error('Enemy still using setTint() instead of setFillStyle()');
+                }
+                throw error;
+            }
+        });
+
+        testFramework.test('Collectible Class Instantiation', async () => {
+            const scene = new MockScene();
+            const collectible = new Collectible(scene, 300, 300, 'robotPart', 'arm');
+            if (!collectible) throw new Error('Collectible failed to instantiate');
+            if (!collectible.sprite) throw new Error('Collectible sprite not created');
+            if (typeof collectible.collect !== 'function') {
+                throw new Error('Collectible missing collect method');
+            }
+        });
+
+        testFramework.test('MenuScene Class Instantiation', async () => {
+            const menuScene = new MenuScene();
+            if (!menuScene) throw new Error('MenuScene failed to instantiate');
+            if (typeof menuScene.create !== 'function') {
+                throw new Error('MenuScene missing create method');
+            }
+        });
+
+        testFramework.test('GameScene Class Instantiation', async () => {
+            const gameScene = new GameScene();
+            if (!gameScene) throw new Error('GameScene failed to instantiate');
+            if (typeof gameScene.create !== 'function') {
+                throw new Error('GameScene missing create method');
+            }
+        });
+
+        testFramework.test('CraftScene Class Instantiation', async () => {
+            const craftScene = new CraftScene();
+            if (!craftScene) throw new Error('CraftScene failed to instantiate');
+            if (typeof craftScene.create !== 'function') {
+                throw new Error('CraftScene missing create method');
+            }
+        });
+
+        testFramework.test('Game Class Instantiation', async () => {
+            const game = new TaekwondoRobotBuilder();
+            if (!game) throw new Error('TaekwondoRobotBuilder failed to instantiate');
+            if (typeof game.init !== 'function') {
+                throw new Error('TaekwondoRobotBuilder missing init method');
+            }
+        });
+
+        testFramework.test('setTint vs setFillStyle Detection', async () => {
+            const scene = new MockScene();
+            
+            // Create a rectangle sprite (what our game uses)
+            const rectSprite = scene.add.rectangle(0, 0, 32, 48, 0x4a9eff);
+            
+            // This should work (correct method for rectangles)
+            rectSprite.setFillStyle(0x00ff00);
+            
+            // This should throw an error (wrong method for rectangles)
+            try {
+                rectSprite.setTint(0xff0000);
+                throw new Error('Expected setTint() to throw error on rectangle, but it did not');
+            } catch (error) {
+                if (!error.message.includes('setTint() called on rectangle')) {
+                    throw error; // Re-throw if it's not our expected error
+                }
+                // Expected error, test passes
+            }
+        });
+
+        testFramework.test('clearTint vs setFillStyle Detection', async () => {
+            const scene = new MockScene();
+            
+            // Create a rectangle sprite (what our game uses)
+            const rectSprite = scene.add.rectangle(0, 0, 32, 48, 0x4a9eff);
+            
+            // This should work (correct method for rectangles)
+            rectSprite.setFillStyle(0x00ff00);
+            
+            // This should throw an error (wrong method for rectangles)
+            try {
+                rectSprite.clearTint();
+                throw new Error('Expected clearTint() to throw error on rectangle, but it did not');
+            } catch (error) {
+                if (!error.message.includes('clearTint() called on rectangle')) {
+                    throw error; // Re-throw if it's not our expected error
+                }
+                // Expected error, test passes
+            }
+        });
+
+        // Run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testFramework.runTests();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taekwondo Robot Builder</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2c5f5d, #3e8084);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        canvas {
+            border: 2px solid #1a3d3b;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #a8d5d1;
+            font-size: 24px;
+            text-align: center;
+        }
+        
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .control-pad {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+        }
+        
+        .joystick {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            touch-action: none;
+        }
+        
+        .joystick-knob {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        .action-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: block;
+            }
+        }
+        
+        @media (orientation: landscape) and (max-height: 500px) {
+            body {
+                overflow: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div>🥋 Loading Taekwondo Robot Builder...</div>
+        <div style="font-size: 14px; margin-top: 10px;">Preparing your martial arts adventure</div>
+    </div>
+    
+    <div class="mobile-controls" id="mobileControls">
+        <div class="control-pad">
+            <div class="joystick" id="joystick">
+                <div class="joystick-knob" id="joystickKnob"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" id="jumpBtn">↑</button>
+                <button class="action-btn" id="kickBtn">🦵</button>
+                <button class="action-btn" id="punchBtn">👊</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phaser.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <!-- Game Scripts -->
+    <script src="js/utils/Controls.js"></script>
+    <script src="js/utils/SaveSystem.js"></script>
+    <script src="js/entities/Player.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/entities/Collectible.js"></script>
+    <script src="js/scenes/MenuScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <script src="js/scenes/CraftScene.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
