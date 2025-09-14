@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Controls Debug - iPad Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #2c5f5d;
+            color: white;
+        }
+        
+        #debug {
+            background: #000;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        canvas {
+            border: 2px solid #1a3d3b;
+            border-radius: 8px;
+        }
+        
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            z-index: 1000;
+            border: 2px solid red; /* Debug border */
+        }
+        
+        .control-pad {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+        }
+        
+        .joystick {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .joystick-knob {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .action-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        
+        /* Force mobile controls on touch devices */
+        @media (pointer: coarse) {
+            .mobile-controls {
+                display: block !important;
+            }
+        }
+        
+        /* Also show on wider screens for tablets */
+        @media (max-width: 1024px) {
+            .mobile-controls {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🥋 Mobile Controls Debug - iPad Test</h1>
+    
+    <div id="debug">
+        <div id="log">Starting mobile controls test...</div>
+    </div>
+    
+    <div class="mobile-controls" id="mobileControls">
+        <div class="control-pad">
+            <div class="joystick" id="joystick">
+                <div class="joystick-knob" id="joystickKnob"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" id="jumpBtn">↑</button>
+                <button class="action-btn" id="kickBtn">🦵</button>
+                <button class="action-btn" id="punchBtn">👊</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/Controls.js"></script>
+    <script>
+        const debugLog = document.getElementById('log');
+        function log(message) {
+            debugLog.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+            console.log(message);
+        }
+        
+        // Test device detection
+        log('User Agent: ' + navigator.userAgent);
+        log('Window dimensions: ' + window.innerWidth + 'x' + window.innerHeight);
+        log('Touch support: ontouchstart=' + ('ontouchstart' in window) + ', maxTouchPoints=' + navigator.maxTouchPoints);
+        log('Pointer type: ' + (window.matchMedia('(pointer: coarse)').matches ? 'coarse' : 'fine'));
+        
+        // Direct touch event testing on elements
+        function setupDirectTouchTests() {
+            log('Setting up direct touch event tests...');
+            
+            const joystick = document.getElementById('joystick');
+            const jumpBtn = document.getElementById('jumpBtn');
+            const kickBtn = document.getElementById('kickBtn');
+            const punchBtn = document.getElementById('punchBtn');
+            
+            // Test joystick directly
+            if (joystick) {
+                log('Joystick element found, adding direct event listeners');
+                
+                joystick.addEventListener('touchstart', (e) => {
+                    log('JOYSTICK TOUCHSTART: touches=' + e.touches.length + ', clientX=' + e.touches[0].clientX + ', clientY=' + e.touches[0].clientY);
+                    e.preventDefault();
+                }, { passive: false });
+                
+                joystick.addEventListener('touchmove', (e) => {
+                    log('JOYSTICK TOUCHMOVE: active movement detected');
+                    e.preventDefault();
+                }, { passive: false });
+                
+                joystick.addEventListener('touchend', (e) => {
+                    log('JOYSTICK TOUCHEND: touch released');
+                    e.preventDefault();
+                }, { passive: false });
+                
+                // Also test pointer events as fallback
+                joystick.addEventListener('pointerdown', (e) => {
+                    log('JOYSTICK POINTERDOWN: pointerType=' + e.pointerType);
+                    e.preventDefault();
+                });
+            }
+            
+            // Test buttons directly
+            [
+                {elem: jumpBtn, name: 'JUMP'},
+                {elem: kickBtn, name: 'KICK'},
+                {elem: punchBtn, name: 'PUNCH'}
+            ].forEach(({elem, name}) => {
+                if (elem) {
+                    log(`${name} button element found, adding direct event listeners`);
+                    
+                    elem.addEventListener('touchstart', (e) => {
+                        log(`${name} BUTTON TOUCHSTART: button pressed!`);
+                        e.preventDefault();
+                        elem.style.backgroundColor = 'rgba(255, 255, 255, 0.6)'; // Visual feedback
+                    }, { passive: false });
+                    
+                    elem.addEventListener('touchend', (e) => {
+                        log(`${name} BUTTON TOUCHEND: button released!`);
+                        e.preventDefault();
+                        elem.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; // Reset visual
+                    }, { passive: false });
+                    
+                    // Fallback pointer events
+                    elem.addEventListener('pointerdown', (e) => {
+                        log(`${name} BUTTON POINTERDOWN: pointerType=${e.pointerType}`);
+                        e.preventDefault();
+                    });
+                    
+                    // Fallback click events
+                    elem.addEventListener('click', (e) => {
+                        log(`${name} BUTTON CLICK: fallback click event`);
+                    });
+                }
+            });
+        }
+        
+        // Test Controls class
+        try {
+            const controls = new Controls();
+            log('Controls instance created');
+            log('Is mobile detected: ' + controls.isMobile);
+            log('Mobile controls element exists: ' + !!document.getElementById('mobileControls'));
+            
+            const mobileControlsElement = document.getElementById('mobileControls');
+            if (mobileControlsElement) {
+                const styles = getComputedStyle(mobileControlsElement);
+                log('Mobile controls display: ' + styles.display);
+                log('Mobile controls visibility: ' + styles.visibility);
+                log('Mobile controls position: ' + styles.position);
+                log('Mobile controls z-index: ' + styles.zIndex);
+            }
+            
+            // Set up direct touch tests
+            setupDirectTouchTests();
+            
+            // Test controls debug info with more frequent updates for touch testing
+            setInterval(() => {
+                const debugInfo = controls.getDebugInfo();
+                if (debugInfo.horizontal !== 0 || debugInfo.vertical !== 0 || 
+                    Object.keys(debugInfo.keys).length > 0 || 
+                    debugInfo.mobile.buttons.jump || debugInfo.mobile.buttons.kick || debugInfo.mobile.buttons.punch ||
+                    debugInfo.mobile.joystick.active) {
+                    log('CONTROLS ACTIVE: ' + JSON.stringify(debugInfo));
+                }
+            }, 500);
+            
+        } catch (error) {
+            log('ERROR creating controls: ' + error.message);
+            log('Stack: ' + error.stack);
+        }
+        
+        // CSS media query tests
+        log('Media query (max-width: 768px): ' + window.matchMedia('(max-width: 768px)').matches);
+        log('Media query (max-width: 1024px): ' + window.matchMedia('(max-width: 1024px)').matches);
+        log('Media query (pointer: coarse): ' + window.matchMedia('(pointer: coarse)').matches);
+        log('Media query (orientation: landscape): ' + window.matchMedia('(orientation: landscape)').matches);
+        
+        // Test for any event conflicts
+        document.addEventListener('touchstart', (e) => {
+            log('DOCUMENT TOUCHSTART: global touch detected on ' + e.target.tagName + ' id=' + e.target.id);
+        }, true); // Use capture to see if events are being intercepted
+    </script>
+</body>
+</html>

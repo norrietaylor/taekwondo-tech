@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPad Controls Integration Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #2c5f5d;
+            color: white;
+        }
+        
+        #status {
+            background: #000;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            z-index: 1000;
+            border: 3px solid lime; /* High visibility border */
+        }
+        
+        .control-pad {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+        }
+        
+        .joystick {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .joystick-knob {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .action-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .action-btn:active {
+            background: rgba(255, 255, 255, 0.6);
+            transform: scale(0.9);
+        }
+        
+        .game-state {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .controls-active {
+            color: lime;
+            font-weight: bold;
+        }
+        
+        .controls-inactive {
+            color: orange;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 iPad Controls Integration Test</h1>
+    
+    <div class="game-state" id="gameState">
+        <div>Joystick: <span id="joystickState" class="controls-inactive">Inactive</span></div>
+        <div>Jump: <span id="jumpState" class="controls-inactive">Ready</span></div>
+        <div>Kick: <span id="kickState" class="controls-inactive">Ready</span></div>
+        <div>Punch: <span id="punchState" class="controls-inactive">Ready</span></div>
+        <div>Movement: <span id="movementState">H: 0.0, V: 0.0</span></div>
+    </div>
+    
+    <div id="status">
+        <div id="log">Testing iPad Controls Integration...</div>
+    </div>
+    
+    <div class="mobile-controls" id="mobileControls">
+        <div class="control-pad">
+            <div class="joystick" id="joystick">
+                <div class="joystick-knob" id="joystickKnob"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" id="jumpBtn">↑</button>
+                <button class="action-btn" id="kickBtn">🦵</button>
+                <button class="action-btn" id="punchBtn">👊</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/Controls.js"></script>
+    <script>
+        const statusLog = document.getElementById('log');
+        const gameState = {
+            joystick: document.getElementById('joystickState'),
+            jump: document.getElementById('jumpState'),
+            kick: document.getElementById('kickState'),
+            punch: document.getElementById('punchState'),
+            movement: document.getElementById('movementState')
+        };
+        
+        function log(message) {
+            statusLog.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+            console.log(message);
+        }
+        
+        function updateGameState(controls) {
+            const debugInfo = controls.getDebugInfo();
+            
+            // Update joystick state
+            if (debugInfo.mobile.joystick.active) {
+                gameState.joystick.textContent = 'ACTIVE';
+                gameState.joystick.className = 'controls-active';
+            } else {
+                gameState.joystick.textContent = 'Inactive';
+                gameState.joystick.className = 'controls-inactive';
+            }
+            
+            // Update button states
+            gameState.jump.textContent = debugInfo.mobile.buttons.jump ? 'PRESSED' : 'Ready';
+            gameState.jump.className = debugInfo.mobile.buttons.jump ? 'controls-active' : 'controls-inactive';
+            
+            gameState.kick.textContent = debugInfo.mobile.buttons.kick ? 'PRESSED' : 'Ready';
+            gameState.kick.className = debugInfo.mobile.buttons.kick ? 'controls-active' : 'controls-inactive';
+            
+            gameState.punch.textContent = debugInfo.mobile.buttons.punch ? 'PRESSED' : 'Ready';
+            gameState.punch.className = debugInfo.mobile.buttons.punch ? 'controls-active' : 'controls-inactive';
+            
+            // Update movement values
+            const h = debugInfo.horizontal.toFixed(2);
+            const v = debugInfo.vertical.toFixed(2);
+            gameState.movement.textContent = `H: ${h}, V: ${v}`;
+            gameState.movement.className = (Math.abs(debugInfo.horizontal) > 0.1 || Math.abs(debugInfo.vertical) > 0.1) ? 'controls-active' : 'controls-inactive';
+        }
+        
+        // Initialize controls
+        try {
+            log('Creating Controls instance...');
+            const controls = new Controls();
+            
+            log('Controls created successfully!');
+            log('Mobile detected: ' + controls.isMobile);
+            
+            // Check if controls are visible
+            const mobileControlsElement = document.getElementById('mobileControls');
+            if (mobileControlsElement) {
+                const styles = getComputedStyle(mobileControlsElement);
+                log('Mobile controls display: ' + styles.display);
+                
+                if (styles.display === 'block') {
+                    log('✅ SUCCESS: Mobile controls are visible!');
+                } else {
+                    log('❌ PROBLEM: Mobile controls are hidden');
+                    log('TRYING FORCE ENABLE...');
+                    mobileControlsElement.style.display = 'block';
+                    log('Force enabled mobile controls');
+                }
+            }
+            
+            // Real-time state monitoring
+            setInterval(() => {
+                updateGameState(controls);
+            }, 100);
+            
+            log('✅ Integration test ready - try using the controls!');
+            
+        } catch (error) {
+            log('❌ ERROR: ' + error.message);
+            log('Stack: ' + error.stack);
+        }
+    </script>
+</body>
+</html>
