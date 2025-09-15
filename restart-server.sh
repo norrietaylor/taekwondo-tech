@@ -9,6 +9,7 @@ echo "Stopping existing server..."
 pkill -f "python3 -m http.server 8000" 2>/dev/null
 sleep 1
 
+
 # Start fresh server
 echo "Starting new server on port 8000..."
 python3 -m http.server 8000 &

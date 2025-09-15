@@ -51,7 +51,7 @@ A side-scrolling platformer game where a taekwondo expert collects robot parts t
 - **Save System**: Local browser storage
 - **Scoring**: Points for coins (10 pts) and robot parts (50-200 pts)
 
-## **📋 Development Timeline - COMPLETED**
+## **📋 POC - COMPLETED**
 
 ### **Phase 1: Foundation ✅ COMPLETE**
 - [x] Project Setup with Phaser.js

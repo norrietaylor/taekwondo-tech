@@ -1,4 +1,4 @@
-# 🥋 Taekwondo Robot Builder
+# 🥋 Taekwondo Tech
 
 A dynamic side-scrolling action game where players use taekwondo martial arts to fight titans, collect robot parts, and build the ultimate fighting robot. Built with Phaser.js for cross-platform compatibility on desktop and mobile browsers.
 
@@ -6,7 +6,7 @@ A dynamic side-scrolling action game where players use taekwondo martial arts to
 
 ## 🎮 Quick Start
 
-**Play Now**: Open [http://localhost:8000](http://localhost:8000) in your browser
+**Play Now**: Open [Taekwondo Tech](https://norrietaylor.github.io/taekwondo-tech/) in your browser
 
 The game is **already running** on your local server and ready to play!
 
@@ -71,44 +71,7 @@ taekwondo-tech/
 - **Memory Usage**: < 100MB peak usage
 - **Browser Support**: Chrome, Firefox, Safari, Mobile browsers
 
-## 🧪 Testing
-
-### Automated Testing
-```bash
-# Install dependencies
-npm install
-npx playwright install
-
-# Run complete test suite
-npm test
-
-# Run tests with visible browser
-npm run test:headed
-
-# Debug mode (step-by-step)
-npm run test:debug
-
-# Start local development server
-npm start
-```
-
-### Test Coverage
-- **📋 Menu Operations**: Navigation, settings, save/load, keyboard controls
-- **🎮 Game Flow**: Complete gameplay scenarios, scene transitions, combat
-- **📱 Mobile Controls**: Touch interaction validation and responsiveness
-- **⚡ Performance**: Frame rate monitoring and memory leak detection
-- **🌐 Cross-Browser**: Chrome, Firefox, Safari, Mobile Chrome/Safari
-- **🚨 Error Monitoring**: Real-time JavaScript error detection
-
-### Manual Testing Checklist
-- [ ] Player movement and combat (WASD, X/Z keys)
-- [ ] Mobile touch controls (joystick, action buttons)  
-- [ ] Collection system (robot parts, coins, score updates)
-- [ ] Scene transitions (Menu → Game → Craft → Victory)
-- [ ] Save/load functionality and progress persistence
-- [ ] Cross-browser compatibility testing
-
-## 📖 Development Documentation
+### 📖 Development Documentation
 
 ### Core Documentation
 - **[📋 Project Plan](docs/project-plan.md)**: Complete game specifications, mechanics, and development timeline
@@ -123,33 +86,9 @@ npm start
 
 ## 🤝 Collaboration Process
 
-### Development Workflow
-
-#### 1. Project Planning Phase
-- **📋 Update Project Plan**: Before starting any new feature or significant change
-  - Review and modify [docs/project-plan.md](docs/project-plan.md)
-  - Update technical specifications, timelines, or requirements
-  - Document any architectural decisions or changes in approach
-  - Add new features to the roadmap with priority and complexity estimates
-
-#### 2. Development Phase
-- **📝 Work Log Updates**: Document all development work in [docs/work-log.md](docs/work-log.md)
-  - Create new session entry with date, duration, and focus area
-  - Log completed tasks with time estimates and technical details
-  - Document architectural decisions and reasoning behind choices
-  - Record any challenges encountered and solutions implemented
-  - Include file changes and new features added
-
-#### 3. Testing & Quality Assurance
-- **🧪 Testing Documentation**: Update [docs/testing-guide.md](docs/testing-guide.md)
-  - Add new test cases for features implemented
-  - Update manual testing checklists with new functionality
-  - Document any new testing tools or procedures
-  - Record known issues and their current status
-
 ### Collaboration Guidelines
 
-#### For New Contributors
+#### For ALL Contributors
 1. **Read Documentation First**
    - Review the [Project Plan](docs/project-plan.md) for game vision and technical specs
    - Check the [Work Log](docs/work-log.md) for development history and context
@@ -178,31 +117,30 @@ npm start
 - **Testing Guide**: Current procedures for validating functionality
 - **Code Comments**: Inline documentation for complex logic and architectural decisions
 
-#### Version Control Best Practices
-```bash
-# Before starting work
-git pull origin main
-npm test  # Ensure all tests pass
+### Development Workflow
 
-# Document your work plan
-# Update docs/project-plan.md with new features/changes
-# Create new session in docs/work-log.md
+#### 1. Project Planning Phase
+- **📋 Update Project Plan**: Before starting any new feature or significant change
+  - Review and modify [docs/project-plan.md](docs/project-plan.md)
+  - Update technical specifications, timelines, or requirements
+  - Document any architectural decisions or changes in approach
+  - Add new features to the roadmap with priority and complexity estimates
 
-# During development
-git add -A
-git commit -m "feat: [feature] - brief description
+#### 2. Development Phase
+- **📝 Work Log Updates**: Document all development work in [docs/work-log.md](docs/work-log.md)
+  - Create new session entry with date, duration, and focus area
+  - Log completed tasks with time estimates and technical details
+  - Document architectural decisions and reasoning behind choices
+  - Record any challenges encountered and solutions implemented
+  - Include file changes and new features added
 
-- Detailed bullet points of changes
-- Reference to Work Log session number
-- Any breaking changes or migration notes"
+#### 3. Testing & Quality Assurance
+- **🧪 Testing Documentation**: Update [docs/testing-guide.md](docs/testing-guide.md)
+  - Add new test cases for features implemented
+  - Update manual testing checklists with new functionality
+  - Document any new testing tools or procedures
+  - Record known issues and their current status
 
-# After completing work
-# Update Work Log with completion status and results
-# Run full test suite: npm test
-# Update README.md if user-facing changes
-
-git push origin main
-```
 
 #### Communication & Review Process
 1. **Technical Decisions**: Document in Work Log with rationale and alternatives considered
@@ -210,11 +148,6 @@ git push origin main
 3. **Bug Reports**: Include browser, steps to reproduce, expected vs actual behavior
 4. **Performance Issues**: Document with specific metrics and testing methodology
 
-### Maintenance Schedule
-- **Daily**: Update Work Log for any development work performed
-- **Weekly**: Review and update Project Plan for scope or priority changes  
-- **Monthly**: Comprehensive testing across all browsers and devices
-- **Release**: Update all documentation and create comprehensive change summary
 
 ## 🚀 Getting Started (Development)
 
@@ -223,53 +156,6 @@ git push origin main
 - Modern web browser (Chrome, Firefox, Safari)
 - Local web server (included with npm start)
 
-### Installation
-```bash
-# Clone the repository
-git clone [repository-url]
-cd taekwondo-tech
-
-# Install development dependencies
-npm install
-
-# Install browser testing tools
-npx playwright install
-
-# Start local development server
-npm start
-# Game available at http://localhost:8000
-```
-
-### Development Commands
-```bash
-npm start          # Start development server
-npm test           # Run automated test suite  
-npm run test:headed # Run tests with visible browser
-npm run test:debug  # Debug mode with step-by-step execution
-```
-
-## 🎯 Project Status
-
-**Current Status**: ✅ **COMPLETE** - Fully playable game with all planned features
-
-### Completed Features (100%)
-- ✅ **Core Gameplay**: Movement, combat, physics, level progression
-- ✅ **Enemy System**: Titan AI with combat mechanics and visual indicators
-- ✅ **Collection System**: Robot parts, coins, rarity system, magnetic attraction
-- ✅ **Power-Up System**: 5 special abilities with visual effects and cooldowns
-- ✅ **Craft Mode**: Complete robot assembly with drag-and-drop interface
-- ✅ **Save System**: Local storage with continue functionality
-- ✅ **Mobile Support**: Touch controls with virtual joystick and action buttons
-- ✅ **Testing Framework**: Comprehensive automated test suite with 20+ test cases
-- ✅ **Cross-Platform**: Desktop and mobile browser compatibility
-- ✅ **Documentation**: Complete project plan, testing guide, and development log
-
-### Performance Metrics
-- **Frame Rate**: Stable 30 FPS on mobile devices, 60 FPS on desktop
-- **Load Time**: < 2 seconds on broadband connections
-- **Memory Usage**: ~50MB peak usage during gameplay
-- **Test Coverage**: 20+ automated test cases across 3 test files
-
 ---
 
-**🎮 Ready to play? Visit [http://localhost:8000](http://localhost:8000) and start your taekwondo robot building adventure!**
+**🎮 Ready to play? Visit [Taekwondo Tech](https://norrietaylor.github.io/taekwondo-tech/) and start your taekwondo robot building adventure!**

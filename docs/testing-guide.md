@@ -165,10 +165,7 @@ Our comprehensive automated test suite covers:
 ## **Known Issues & Limitations**
 
 ### **Current Limitations**
-- **Enemies**: Not yet implemented (placeholder system in place)
-- **Power-ups**: Basic framework only
-- **Audio**: Minimal implementation
-- **Advanced Animations**: Simple geometric shapes used
+- POC phase only complete
 
 ### **Performance Notes**
 - Target: 30fps on medium complexity
