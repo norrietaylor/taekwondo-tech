@@ -26,9 +26,11 @@ The game is **already running** on your local server and ready to play!
 
 ### Combat & Enemies
 - **⚔️ Titan Battles**: Greek mythology-inspired enemies with distinctive red line indicators
+- **🦶 Mario-Style Stomping**: Jump on enemy heads to instantly defeat them with satisfying bounce effects
 - **🧠 Smart AI**: Dynamic enemy behavior with patrol, chase, attack, and stun states
 - **🔥 Special Abilities**: Fire Breath (directional), Ultra Blast (360°), and Fly Mode
 - **💪 Power-Ups**: Speed Boost, Invincibility, and various combat enhancements
+- **🎯 Combo System**: Chain consecutive enemy stomps for increasing score bonuses (up to 5x multiplier)
 
 ### Collection & Progression
 - **⭐ Robot Parts**: Collect Common, Rare, and Epic parts with rarity-based visual effects

@@ -247,7 +247,7 @@ class Enemy {
         console.log(`Enemy state changed to: ${newState}`);
     }
 
-    takeDamage(amount) {
+    takeDamage(amount, damageType = 'combat') {
         this.health = Math.max(0, this.health - amount);
         
         // Show health bar when damaged
@@ -258,32 +258,52 @@ class Enemy {
         this.isFlashing = true;
         this.flashTimer = 200;
         
-        // Stun briefly when hit
+        // Stun briefly when hit (less for stomps since they usually kill)
+        const stunDuration = damageType === 'stomp' ? 100 : 500;
         this.changeState('stunned');
         
-        console.log(`Enemy took ${amount} damage. Health: ${this.health}/${this.maxHealth}`);
+        console.log(`Enemy took ${amount} ${damageType} damage. Health: ${this.health}/${this.maxHealth}`);
         
         // Create damage effect
-        this.createDamageEffect();
+        this.createDamageEffect(damageType);
+        
+        // Check if this kills the enemy
+        if (this.health <= 0) {
+            this.die(damageType);
+        }
     }
 
-    createDamageEffect() {
+    createDamageEffect(damageType = 'combat') {
+        let text, color, fontSize;
+        
+        if (damageType === 'stomp') {
+            text = 'STOMP!';
+            color = '#ffff00';
+            fontSize = '20px';
+        } else {
+            text = '-20';
+            color = '#ff0000';
+            fontSize = '16px';
+        }
+        
         const damageText = this.scene.add.text(
             this.sprite.x, 
             this.sprite.y - 20, 
-            '-20', 
+            text, 
             {
-                fontSize: '16px',
-                fill: '#ff0000',
-                fontWeight: 'bold'
+                fontSize: fontSize,
+                fill: color,
+                fontWeight: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
             }
         ).setOrigin(0.5);
         
         this.scene.tweens.add({
             targets: damageText,
-            y: damageText.y - 30,
+            y: damageText.y - 40,
             alpha: 0,
-            duration: 800,
+            duration: damageType === 'stomp' ? 1000 : 800,
             onComplete: () => damageText.destroy()
         });
     }
@@ -352,23 +372,93 @@ class Enemy {
         }
     }
 
-    die() {
-        console.log('Enemy defeated!');
+    die(deathType = 'combat') {
+        console.log(`Enemy defeated by ${deathType}!`);
         
-        // Award points to player
-        window.gameInstance.addScore(100);
+        // Award points to player (stomp points are handled in GameScene)
+        if (deathType !== 'stomp') {
+            window.gameInstance.addScore(100);
+        }
         
-        // Death effect
-        this.createDeathEffect();
+        // Different death effects based on death type
+        if (deathType === 'stomp') {
+            this.createStompDeathEffect();
+        } else {
+            this.createDeathEffect();
+        }
         
         // Remove from scene after effect
-        this.scene.time.delayedCall(500, () => {
+        const delayTime = deathType === 'stomp' ? 800 : 500;
+        this.scene.time.delayedCall(delayTime, () => {
             this.destroy();
         });
     }
 
+    createStompDeathEffect() {
+        // Flatten animation - make the enemy appear squashed
+        this.sprite.setScale(1.5, 0.2); // Wide and flat
+        this.sprite.setFillStyle(0x996666); // Darker color to show defeated
+        
+        // Create "poof" effect for stomp death
+        const poofColor = 0xdddddd;
+        
+        // Main poof cloud
+        for (let i = 0; i < 6; i++) {
+            const poof = this.scene.add.circle(
+                this.sprite.x + (Math.random() - 0.5) * 30,
+                this.sprite.y - 10,
+                8 + Math.random() * 6,
+                poofColor,
+                0.7
+            );
+            
+            this.scene.tweens.add({
+                targets: poof,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 600,
+                delay: i * 50,
+                ease: 'Power1',
+                onComplete: () => poof.destroy()
+            });
+        }
+        
+        // Stars effect (cartoon-style)
+        for (let i = 0; i < 4; i++) {
+            const star = this.scene.add.star(
+                this.sprite.x + (Math.random() - 0.5) * 40,
+                this.sprite.y - 20 - Math.random() * 20,
+                5, // points
+                8, // inner radius
+                16, // outer radius
+                0xffff00, // yellow
+                0.8
+            );
+            
+            this.scene.tweens.add({
+                targets: star,
+                y: star.y - 30,
+                rotation: Math.PI * 2,
+                alpha: 0,
+                duration: 800,
+                delay: i * 100,
+                ease: 'Power1',
+                onComplete: () => star.destroy()
+            });
+        }
+        
+        // Fade out the flattened enemy
+        this.scene.tweens.add({
+            targets: this.sprite,
+            alpha: 0,
+            duration: 600,
+            delay: 200
+        });
+    }
+
     createDeathEffect() {
-        // Explosion effect
+        // Explosion effect (regular combat death)
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
             const particle = this.scene.add.circle(

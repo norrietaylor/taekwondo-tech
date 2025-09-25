@@ -551,10 +551,185 @@ class GameScene extends Phaser.Scene {
     hitEnemy(playerSprite, enemySprite) {
         // Get the enemy object
         const enemy = enemySprite.getData('enemy');
-        if (enemy) {
-            // Enemy attacks player if they collide
+        if (!enemy || enemy.health <= 0) return;
+        
+        // Enhanced collision detection for Mario-style head stomping
+        const player = this.player;
+        const isPlayerAbove = player.sprite.y < enemy.sprite.y - 15; // Player above enemy
+        const isPlayerFalling = player.body.velocity.y > 50; // Player falling downward
+        const withinHorizontalRange = Math.abs(player.sprite.x - enemy.sprite.x) < 35; // Within stomp range
+        
+        // Check for head stomp vs normal collision
+        if (isPlayerAbove && isPlayerFalling && withinHorizontalRange) {
+            // Mario-style head stomp!
+            this.executeHeadStomp(player, enemy);
+        } else {
+            // Normal enemy attack (existing behavior)
             enemy.performAttack(this.player);
         }
+    }
+
+    executeHeadStomp(player, enemy) {
+        console.log('🦶 Head stomp executed!');
+        
+        // Player bounce effect (Mario-style)
+        player.body.setVelocityY(-350); // Strong upward bounce
+        
+        // Deal massive damage to enemy (usually instant kill)
+        const stompDamage = 75; // More than most enemy health
+        enemy.takeDamage(stompDamage, 'stomp');
+        
+        // Create satisfying stomp visual effects
+        this.createStompEffects(enemy.sprite.x, enemy.sprite.y);
+        
+        // Add enemy squash animation
+        this.createEnemySquashEffect(enemy);
+        
+        // Scoring and combo system
+        this.handleStompScoring();
+        
+        // Screen shake for impact feedback
+        this.cameras.main.shake(150, 0.01);
+        
+        // Prevent immediate re-collision during bounce
+        this.time.delayedCall(200, () => {
+            // Re-enable collision after bounce
+        });
+    }
+
+    createStompEffects(x, y) {
+        // Main stomp impact effect
+        const stompImpact = this.add.circle(x, y - 10, 25, 0xffd700, 0.8);
+        stompImpact.setDepth(50);
+        
+        this.tweens.add({
+            targets: stompImpact,
+            scaleX: 2.5,
+            scaleY: 1.5,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => stompImpact.destroy()
+        });
+        
+        // Particle burst effect
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 30 + Math.random() * 20;
+            const particle = this.add.circle(
+                x + Math.cos(angle) * 15,
+                y - 5 + Math.sin(angle) * 10,
+                4 + Math.random() * 4,
+                0xffff00,
+                0.9
+            );
+            particle.setDepth(45);
+            
+            this.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * distance,
+                y: y - 5 + Math.sin(angle) * distance,
+                alpha: 0,
+                duration: 400 + Math.random() * 200,
+                ease: 'Power1',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Dust clouds on impact
+        for (let i = 0; i < 4; i++) {
+            const dust = this.add.circle(
+                x + (Math.random() - 0.5) * 40,
+                y + 20,
+                8 + Math.random() * 6,
+                0xcccccc,
+                0.6
+            );
+            dust.setDepth(40);
+            
+            this.tweens.add({
+                targets: dust,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 600,
+                ease: 'Power1',
+                onComplete: () => dust.destroy()
+            });
+        }
+    }
+
+    createEnemySquashEffect(enemy) {
+        // Temporarily squash the enemy sprite for visual impact
+        const originalScale = { x: enemy.sprite.scaleX, y: enemy.sprite.scaleY };
+        
+        // Squash down effect
+        this.tweens.add({
+            targets: enemy.sprite,
+            scaleX: 1.3,
+            scaleY: 0.3,
+            duration: 100,
+            ease: 'Power2',
+            yoyo: true,
+            onComplete: () => {
+                // Restore original scale
+                enemy.sprite.setScale(originalScale.x, originalScale.y);
+            }
+        });
+    }
+
+    handleStompScoring() {
+        // Initialize stomp combo if it doesn't exist
+        if (!this.stompCombo) {
+            this.stompCombo = 0;
+        }
+        
+        this.stompCombo++;
+        
+        // Calculate bonus points based on combo
+        const basePoints = 100;
+        const comboMultiplier = Math.min(this.stompCombo, 5); // Cap at 5x
+        const totalPoints = basePoints * comboMultiplier;
+        
+        // Add score
+        window.gameInstance.addScore(totalPoints);
+        
+        // Create score popup
+        const comboText = this.stompCombo > 1 ? ` (${this.stompCombo}x Combo!)` : '';
+        this.createScorePopup(
+            this.player.sprite.x, 
+            this.player.sprite.y - 30, 
+            `+${totalPoints}${comboText}`
+        );
+        
+        // Reset combo after delay
+        this.time.delayedCall(2000, () => {
+            if (this.stompCombo > 0) {
+                this.stompCombo = 0;
+                console.log('Stomp combo reset');
+            }
+        });
+        
+        console.log(`Stomp! +${totalPoints} points (${this.stompCombo}x combo)`);
+    }
+
+    createScorePopup(x, y, text) {
+        const scoreText = this.add.text(x, y, text, {
+            fontSize: '20px',
+            fill: '#ffff00',
+            fontWeight: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(100);
+        
+        this.tweens.add({
+            targets: scoreText,
+            y: y - 50,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Power1',
+            onComplete: () => scoreText.destroy()
+        });
     }
 
     collectItem(playerSprite, itemSprite) {

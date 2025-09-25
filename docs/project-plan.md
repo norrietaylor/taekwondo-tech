@@ -22,6 +22,7 @@ A side-scrolling platformer game where a taekwondo expert collects robot parts t
 ### **Character Abilities**
 - **Basic Movement**: Run, jump
 - **Combat**: Kick, punch (taekwondo moves)
+- **Mario-Style Stomping**: Jump on enemy heads for instant defeat with bounce effect
 - **Special Powers**: Breathing fire, ultra-blast, fly mode
 - **Power-ups**: Temporary ability enhancements
 
@@ -44,6 +45,9 @@ A side-scrolling platformer game where a taekwondo expert collects robot parts t
 - **Enemies**: Titans inspired by Greek mythology
 - **Visual Indicator**: Red lines above enemy heads
 - **Combat System**: Taekwondo moves + special abilities from power-ups
+- **Head Stomping**: Mario-style jumping on enemy heads for instant defeat
+- **Combat Choice**: Players can choose between ground combat (kick/punch) or aerial stomps
+- **Combo Scoring**: Consecutive enemy stomps provide increasing point bonuses (100-500 points)
 
 ### **Progression & Customization**
 - **Outfit Changes**: Between levels only
@@ -187,6 +191,7 @@ taekwando-tech/
 ## **🏆 Scoring System**
 - **Coins**: 10 points each
 - **Robot Parts**: 50-200 points (based on rarity)
+- **Enemy Stomps**: 100-500 points (based on consecutive combo multiplier)
 - **Combat Bonuses**: Style points for combo moves
 - **Time Bonuses**: Fast level completion rewards
 - **Perfect Level**: Bonus for collecting all items

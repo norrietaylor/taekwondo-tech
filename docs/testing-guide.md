@@ -23,6 +23,9 @@ Your game is **already running** at: **http://localhost:8000**
   - X key triggers kick attack (red effect)
   - Z key triggers punch attack (green effect)
   - Player faces correct direction when moving
+  - **Mario-Style Stomping**: Jump and land on enemy heads to defeat them
+  - **Player Bounce**: Player bounces upward after successful head stomp
+  - **Stomp vs Combat**: Side collisions trigger enemy attacks, head stomps defeat enemies
 
 - [ ] **Game Physics**
   - Player falls with gravity
@@ -41,6 +44,40 @@ Your game is **already running** at: **http://localhost:8000**
   - Parts counter shows progress
   - Health bar reflects player status
   - Level indicator shows current level
+
+### **🦶 Mario-Style Stomping Mechanics**
+- [ ] **Basic Stomp Functionality**
+  - Jump on enemy heads while falling to execute stomp
+  - Enemy is instantly defeated by head stomp
+  - Player bounces upward after successful stomp
+  - Golden impact effects appear at stomp location
+  - Screen shakes briefly on impact for feedback
+
+- [ ] **Collision Detection**
+  - Head stomps only work when player is above and falling
+  - Side collisions still trigger normal enemy attacks
+  - Proper detection range (player must be close enough)
+  - No double-collision during player bounce
+
+- [ ] **Visual Effects**
+  - Golden impact burst at stomp location
+  - Particle explosion radiating outward
+  - Dust clouds appear on ground impact
+  - Enemy temporarily squashes during stomp
+  - "STOMP!" text appears above defeated enemy
+
+- [ ] **Combo Scoring System**
+  - First stomp: +100 points
+  - Consecutive stomps: +200, +300, +400, +500 points (max 5x)
+  - Score popup shows points and combo multiplier
+  - Combo resets after 2 seconds of no stomps
+  - Score integrates properly with existing scoring system
+
+- [ ] **Enemy Death Animations**
+  - Stomp deaths: Enemy flattens with stars and poof clouds
+  - Combat deaths: Original explosion effect (preserved)
+  - Proper timing differences between death types
+  - Visual differentiation between defeat methods
 
 ### **📱 Mobile Testing**
 - [ ] **Touch Controls** (test on mobile device or browser dev tools)
@@ -180,6 +217,14 @@ Our comprehensive automated test suite covers:
 1. Load game → Start new game → Move around → Collect items → Complete level → Craft robot
 2. Use mobile controls → Test touch responsiveness
 3. Save game → Reload → Continue from save
+4. **Mario-Style Stomping**: Jump on enemy heads → Build combo chains → Mix with ground combat
+
+### **Stomp-Specific Testing Scenarios**
+1. **Basic Stomp**: Jump and land directly on enemy head
+2. **Combo Chain**: Defeat 3+ enemies in succession with stomps
+3. **Mixed Combat**: Alternate between stomps and kick/punch attacks
+4. **Edge Cases**: Try stomping at edge of collision range
+5. **Timing Test**: Test combo reset after 2-second delay
 
 ### **Edge Case Testing**
 1. **Rapid Input**: Mash keys quickly
