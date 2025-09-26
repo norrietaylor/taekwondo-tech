@@ -1,4 +1,5 @@
 // Main gameplay scene
+console.log('🎮 GameScene.js loading...');
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
@@ -20,6 +21,8 @@ class GameScene extends Phaser.Scene {
         this.levelWidth = 2048;
         this.levelHeight = 576;
         this.currentLevel = 1;
+        this.finishLine = null;
+        this.finishLineZone = null;
         
         // Game state
         this.gameStarted = false;
@@ -31,6 +34,13 @@ class GameScene extends Phaser.Scene {
         this.coinsCollected = 0;
         this.totalRobotParts = 0;
         this.totalCoins = 0;
+        this.enemiesDefeated = 0;
+        this.totalEnemies = 0;
+        
+        // Star rating system
+        this.levelStartTime = 0;
+        this.damageTaken = 0;
+        this.starsEarned = 0;
     }
 
     create() {
@@ -81,6 +91,11 @@ class GameScene extends Phaser.Scene {
             console.log('Creating UI...');
             this.createUI();
             console.log('✅ UI created');
+            
+            // Create finish line
+            console.log('Creating finish line...');
+            this.createFinishLine();
+            console.log('✅ Finish line created');
             
             // Set up collision detection
             console.log('Setting up collisions...');
@@ -307,14 +322,28 @@ class GameScene extends Phaser.Scene {
     }
 
     createRobotParts() {
-        // Generate robot parts based on level
-        const partLocations = this.getRobotPartLocations();
-        
-        partLocations.forEach(location => {
-            const part = this.createRobotPart(location.x, location.y, location.type, location.rarity);
-            this.collectibles.add(part);
-            this.totalRobotParts++;
-        });
+        try {
+            console.log('🔧 Creating robot parts...');
+            // Generate robot parts based on level
+            const partLocations = this.getRobotPartLocations();
+            console.log('Part locations:', partLocations);
+            
+            if (!Array.isArray(partLocations)) {
+                console.error('❌ partLocations is not an array:', partLocations);
+                return;
+            }
+            
+            partLocations.forEach((location, index) => {
+                console.log(`Creating part ${index}:`, location);
+                const collectible = this.createRobotPart(location.x, location.y, location.type, location.rarity);
+                // Note: Don't add to physics group again - collectible constructor already handles physics
+                this.totalRobotParts++;
+                console.log(`✅ Created robot part: ${location.type} at (${location.x}, ${location.y})`);
+            });
+            console.log(`🎯 Total robot parts created: ${this.totalRobotParts}`);
+        } catch (error) {
+            console.error('❌ Error in createRobotParts:', error);
+        }
     }
 
     getRobotPartLocations() {
@@ -331,19 +360,70 @@ class GameScene extends Phaser.Scene {
     }
 
     createRobotPart(x, y, type, rarity) {
-        const collectible = new Collectible(this, x, y, 'robotPart', rarity);
-        return collectible.sprite;
+        // Create collectible with part type as rarity parameter (will be processed in constructor)
+        const collectible = new Collectible(this, x, y, 'robotPart', type);
+        // Set the actual rarity if provided
+        if (rarity && rarity !== type) {
+            collectible.rarity = rarity;
+        }
+        
+        // Add to collectibles group and let it handle physics
+        this.collectibles.add(collectible.sprite);
+        
+        // Force physics body creation if it doesn't exist
+        if (!collectible.sprite.body) {
+            console.log('🔧 No physics body found, creating manually...');
+            this.physics.add.existing(collectible.sprite);
+        }
+        
+        // Configure physics after ensuring body exists
+        if (collectible.sprite.body) {
+            collectible.sprite.body.setImmovable(true);
+            // Try multiple ways to disable gravity
+            collectible.sprite.body.setGravityY(0);
+            if (collectible.sprite.body.setIgnoreGravity) {
+                collectible.sprite.body.setIgnoreGravity(true);
+            }
+            collectible.sprite.body.setVelocity(0, 0);
+            collectible.sprite.body.setSize(16, 16); // Set collision size
+            
+            // Force disable all physics movement
+            collectible.sprite.body.setMaxVelocity(0, 0);
+            collectible.sprite.body.setDrag(1000, 1000); // High drag to stop movement
+            
+            console.log(`⚙️ Configured physics for robot part at (${collectible.sprite.x}, ${collectible.sprite.y})`);
+            console.log(`   - Gravity Y: ${collectible.sprite.body.gravity.y}`);
+            console.log(`   - Immovable: ${collectible.sprite.body.immovable}`);
+        } else {
+            console.error('❌ Still no physics body found for robot part!');
+        }
+        
+        return collectible;
     }
 
     createCoins() {
-        // Create coins throughout the level
-        const coinLocations = this.getCoinLocations();
-        
-        coinLocations.forEach(location => {
-            const coin = this.createCoin(location.x, location.y);
-            this.collectibles.add(coin);
-            this.totalCoins++;
-        });
+        try {
+            console.log('🪙 Creating coins...');
+            // Create coins throughout the level
+            const coinLocations = this.getCoinLocations();
+            console.log('Coin locations:', coinLocations);
+            
+            if (!Array.isArray(coinLocations)) {
+                console.error('❌ coinLocations is not an array:', coinLocations);
+                return;
+            }
+            
+            coinLocations.forEach((location, index) => {
+                console.log(`Creating coin ${index}:`, location);
+                const collectible = this.createCoin(location.x, location.y);
+                // Note: Don't add to physics group again - collectible constructor already handles physics
+                this.totalCoins++;
+                console.log(`✅ Created coin at (${location.x}, ${location.y})`);
+            });
+            console.log(`🎯 Total coins created: ${this.totalCoins}`);
+        } catch (error) {
+            console.error('❌ Error in createCoins:', error);
+        }
     }
 
     getCoinLocations() {
@@ -364,17 +444,60 @@ class GameScene extends Phaser.Scene {
 
     createCoin(x, y) {
         const collectible = new Collectible(this, x, y, 'coin');
-        return collectible.sprite;
+        
+        // Add to collectibles group and let it handle physics
+        this.collectibles.add(collectible.sprite);
+        
+        // Force physics body creation if it doesn't exist
+        if (!collectible.sprite.body) {
+            console.log('🔧 No physics body found, creating manually...');
+            this.physics.add.existing(collectible.sprite);
+        }
+        
+        // Configure physics after ensuring body exists
+        if (collectible.sprite.body) {
+            collectible.sprite.body.setImmovable(true);
+            // Try multiple ways to disable gravity
+            collectible.sprite.body.setGravityY(0);
+            if (collectible.sprite.body.setIgnoreGravity) {
+                collectible.sprite.body.setIgnoreGravity(true);
+            }
+            collectible.sprite.body.setVelocity(0, 0);
+            collectible.sprite.body.setSize(16, 16); // Set collision size
+            
+            // Force disable all physics movement
+            collectible.sprite.body.setMaxVelocity(0, 0);
+            collectible.sprite.body.setDrag(1000, 1000); // High drag to stop movement
+            
+            console.log(`⚙️ Configured physics for coin at (${collectible.sprite.x}, ${collectible.sprite.y})`);
+        } else {
+            console.error('❌ Still no physics body found for coin!');
+        }
+        
+        return collectible;
     }
 
     createPowerUps() {
-        // Create power-ups based on level
-        const powerUpLocations = this.getPowerUpLocations();
-        
-        powerUpLocations.forEach(location => {
-            const powerUp = this.createPowerUp(location.x, location.y, location.type);
-            this.collectibles.add(powerUp);
-        });
+        try {
+            console.log('⚡ Creating power-ups...');
+            // Create power-ups based on level
+            const powerUpLocations = this.getPowerUpLocations();
+            console.log('Power-up locations:', powerUpLocations);
+            
+            if (!Array.isArray(powerUpLocations)) {
+                console.error('❌ powerUpLocations is not an array:', powerUpLocations);
+                return;
+            }
+            
+            powerUpLocations.forEach((location, index) => {
+                console.log(`Creating power-up ${index}:`, location);
+                const collectible = this.createPowerUp(location.x, location.y, location.type);
+                // Note: Don't add to physics group again - collectible constructor already handles physics
+                console.log(`✅ Created power-up: ${location.type} at (${location.x}, ${location.y})`);
+            });
+        } catch (error) {
+            console.error('❌ Error in createPowerUps:', error);
+        }
     }
 
     getPowerUpLocations() {
@@ -402,7 +525,37 @@ class GameScene extends Phaser.Scene {
 
     createPowerUp(x, y, powerType) {
         const collectible = new Collectible(this, x, y, 'powerUp', powerType);
-        return collectible.sprite;
+        
+        // Add to collectibles group and let it handle physics
+        this.collectibles.add(collectible.sprite);
+        
+        // Force physics body creation if it doesn't exist
+        if (!collectible.sprite.body) {
+            console.log('🔧 No physics body found, creating manually...');
+            this.physics.add.existing(collectible.sprite);
+        }
+        
+        // Configure physics after ensuring body exists
+        if (collectible.sprite.body) {
+            collectible.sprite.body.setImmovable(true);
+            // Try multiple ways to disable gravity
+            collectible.sprite.body.setGravityY(0);
+            if (collectible.sprite.body.setIgnoreGravity) {
+                collectible.sprite.body.setIgnoreGravity(true);
+            }
+            collectible.sprite.body.setVelocity(0, 0);
+            collectible.sprite.body.setSize(16, 16); // Set collision size
+            
+            // Force disable all physics movement
+            collectible.sprite.body.setMaxVelocity(0, 0);
+            collectible.sprite.body.setDrag(1000, 1000); // High drag to stop movement
+            
+            console.log(`⚙️ Configured physics for power-up at (${collectible.sprite.x}, ${collectible.sprite.y})`);
+        } else {
+            console.error('❌ Still no physics body found for power-up!');
+        }
+        
+        return collectible;
     }
 
     createEnemies() {
@@ -410,6 +563,7 @@ class GameScene extends Phaser.Scene {
         
         // Create level-specific enemies
         const enemyPositions = this.getEnemyPositions();
+        this.totalEnemies = enemyPositions.length;
         
         enemyPositions.forEach(pos => {
             let enemy;
@@ -431,7 +585,7 @@ class GameScene extends Phaser.Scene {
             this.enemies.add(enemy.sprite);
         });
         
-        console.log(`Created ${enemyPositions.length} enemies for level ${this.currentLevel}`);
+        console.log(`Created ${this.totalEnemies} enemies for level ${this.currentLevel}`);
     }
 
     getEnemyPositions() {
@@ -507,6 +661,14 @@ class GameScene extends Phaser.Scene {
             backgroundColor: '#000000',
             padding: { x: 10, y: 5 }
         }).setScrollFactor(0).setDepth(100);
+        
+        // Finish line indicator
+        this.finishLineIndicator = this.add.text(20, 180, '🏁 Reach the finish line!', {
+            fontSize: '16px',
+            fill: '#FFD700',
+            backgroundColor: '#000000',
+            padding: { x: 10, y: 5 }
+        }).setScrollFactor(0).setDepth(100);
     }
 
     createHealthBar() {
@@ -546,6 +708,9 @@ class GameScene extends Phaser.Scene {
         
         // Player vs enemies
         this.physics.add.overlap(this.player.sprite, this.enemies, this.hitEnemy, null, this);
+        
+        // Player vs finish line
+        this.physics.add.overlap(this.player.sprite, this.finishLineZone, this.reachFinishLine, null, this);
     }
 
     hitEnemy(playerSprite, enemySprite) {
@@ -733,11 +898,14 @@ class GameScene extends Phaser.Scene {
     }
 
     collectItem(playerSprite, itemSprite) {
+        console.log('💫 Collection triggered!', itemSprite);
         // Get the collectible object
         const collectible = itemSprite.getData('collectible');
         if (collectible) {
+            console.log('✅ Found collectible object, calling collect...');
             collectible.collect(this.player);
         } else {
+            console.log('⚠️ No collectible object found, using fallback...');
             // Fallback for old collectibles
             if (itemSprite.getData('isRobotPart')) {
                 this.collectRobotPart(itemSprite);
@@ -807,37 +975,315 @@ class GameScene extends Phaser.Scene {
 
     startGame() {
         this.gameStarted = true;
+        this.levelStartTime = Date.now();
+        this.damageTaken = 0;
+        this.enemiesDefeated = 0;
         console.log(`Level ${this.currentLevel} started!`);
     }
 
-    checkLevelComplete() {
-        if (this.robotPartsCollected >= this.totalRobotParts) {
+    createFinishLine() {
+        const finishX = this.levelWidth - 100; // Near the right edge
+        const finishY = this.levelHeight / 2;
+        
+        // Create visual finish line with animated flag
+        this.finishLine = this.add.container(finishX, finishY);
+        
+        // Flag pole
+        const pole = this.add.rectangle(0, 0, 8, 200, 0x8B4513);
+        pole.setOrigin(0.5, 1);
+        
+        // Animated flag
+        const flag = this.add.rectangle(4, -150, 60, 40, 0xFF6B35);
+        flag.setOrigin(0, 0.5);
+        
+        // Flag pattern (checkered)
+        const pattern = this.add.rectangle(34, -150, 30, 40, 0xFFFFFF);
+        pattern.setOrigin(0, 0.5);
+        
+        // "FINISH" text
+        const finishText = this.add.text(0, -200, 'FINISH', {
+            fontSize: '20px',
+            fill: '#FFD700',
+            fontWeight: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        this.finishLine.add([pole, flag, pattern, finishText]);
+        this.finishLine.setDepth(50);
+        
+        // Create invisible collision zone for finish line
+        this.finishLineZone = this.add.rectangle(finishX, this.levelHeight - 100, 80, this.levelHeight, 0x00FF00, 0);
+        this.physics.add.existing(this.finishLineZone, true);
+        
+        // Animate flag waving
+        this.tweens.add({
+            targets: flag,
+            scaleX: 0.9,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        console.log(`🏁 Finish line created at x: ${finishX}`);
+    }
+
+    reachFinishLine(playerSprite, finishZone) {
+        if (!this.levelComplete) {
+            console.log('🏁 Player reached finish line!');
             this.levelComplete = true;
+            this.calculateStarRating();
             this.completeLevel();
         }
     }
 
-    completeLevel() {
-        console.log(`Level ${this.currentLevel} completed!`);
+    checkLevelComplete() {
+        // Level completion is now handled by reaching the finish line
+        // This method can be used for other completion checks if needed
+        console.log(`📊 Progress: Parts ${this.robotPartsCollected}/${this.totalRobotParts}, Coins ${this.coinsCollected}/${this.totalCoins}`);
+    }
+
+    showCompletionChoice() {
+        // Create completion choice UI
+        if (this.completionChoiceShown) return; // Don't show multiple times
+        this.completionChoiceShown = true;
         
-        // Show completion message
-        const completionText = this.add.text(
+        const overlay = this.add.rectangle(
             this.cameras.main.centerX, 
+            this.cameras.main.centerY, 
+            400, 
+            200, 
+            0x000000, 
+            0.8
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(300);
+        
+        const titleText = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 40,
+            'Minimum Requirements Met!',
+            {
+                fontSize: '24px',
+                fill: '#ffffff',
+                fontWeight: 'bold'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(301);
+        
+        const instructionText = this.add.text(
+            this.cameras.main.centerX,
             this.cameras.main.centerY,
-            'Level Complete!\nGoing to Craft Mode...', 
+            `Parts: ${this.robotPartsCollected}/${this.totalRobotParts}\nCollect more for better rating?`,
+            {
+                fontSize: '16px',
+                fill: '#cccccc',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(301);
+        
+        // Complete Now button
+        const completeButton = this.add.text(
+            this.cameras.main.centerX - 80,
+            this.cameras.main.centerY + 50,
+            'Complete Now',
+            {
+                fontSize: '18px',
+                fill: '#ffffff',
+                backgroundColor: '#4169e1',
+                padding: { x: 15, y: 8 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(301).setInteractive();
+        
+        // Continue button
+        const continueButton = this.add.text(
+            this.cameras.main.centerX + 80,
+            this.cameras.main.centerY + 50,
+            'Keep Playing',
+            {
+                fontSize: '18px',
+                fill: '#ffffff',
+                backgroundColor: '#228b22',
+                padding: { x: 15, y: 8 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(301).setInteractive();
+        
+        // Button handlers
+        completeButton.on('pointerdown', () => {
+            this.levelComplete = true;
+            this.calculateStarRating();
+            this.completeLevel();
+            // Clean up UI
+            [overlay, titleText, instructionText, completeButton, continueButton].forEach(obj => obj.destroy());
+        });
+        
+        continueButton.on('pointerdown', () => {
+            // Clean up UI and continue playing
+            [overlay, titleText, instructionText, completeButton, continueButton].forEach(obj => obj.destroy());
+            this.completionChoiceShown = false; // Allow showing again if they collect more
+        });
+        
+        // Store UI elements for cleanup
+        this.completionUI = [overlay, titleText, instructionText, completeButton, continueButton];
+    }
+
+    calculateStarRating() {
+        const levelDuration = (Date.now() - this.levelStartTime) / 1000; // seconds
+        const partsPercent = this.robotPartsCollected / this.totalRobotParts;
+        const coinsPercent = this.coinsCollected / this.totalCoins;
+        const enemiesPercent = this.enemiesDefeated / this.totalEnemies;
+        
+        let stars = 1; // Default: basic completion
+        
+        // 2 Star criteria (Good Performance) - achievable without 100% collection
+        if (partsPercent >= 0.6 && // 60% of parts (minimum for meaningful progress)
+            coinsPercent >= 0.5 && // 50% of coins  
+            levelDuration <= 180 && // Under 3 minutes
+            this.damageTaken < 50) { // Less than 50 damage
+            stars = 2;
+        }
+        
+        // 3 Star criteria (Perfect Performance) - still challenging but achievable
+        if (partsPercent >= 0.8 && // 80% of parts (high but not impossible)
+            coinsPercent >= 0.8 && // 80% of coins
+            enemiesPercent >= 0.7 && // 70% enemies defeated
+            levelDuration <= 120 && // Under 2 minutes
+            this.damageTaken < 25) { // Less than 25 damage
+            stars = 3;
+        }
+        
+        this.starsEarned = stars;
+        
+        // Save star rating to game data
+        this.saveLevelStars(stars);
+        
+        console.log(`Level ${this.currentLevel} completed with ${stars} stars!`);
+        console.log(`Stats - Parts: ${Math.round(partsPercent*100)}%, Coins: ${Math.round(coinsPercent*100)}%, Enemies: ${Math.round(enemiesPercent*100)}%, Time: ${Math.round(levelDuration)}s, Damage: ${this.damageTaken}`);
+    }
+
+    saveLevelStars(stars) {
+        if (!window.gameInstance.gameData.levelStars) {
+            window.gameInstance.gameData.levelStars = {};
+        }
+        
+        // Only save if this is better than previous attempt
+        const previousStars = window.gameInstance.gameData.levelStars[this.currentLevel] || 0;
+        if (stars > previousStars) {
+            window.gameInstance.gameData.levelStars[this.currentLevel] = stars;
+            window.gameInstance.saveGameData();
+        }
+    }
+
+    completeLevel() {
+        console.log(`Level ${this.currentLevel} completed with ${this.starsEarned} stars!`);
+        
+        // Create star display
+        this.createStarDisplay();
+        
+        // Transition to craft scene after delay
+        this.time.delayedCall(4000, () => {
+            window.gameInstance.nextLevel();
+        });
+    }
+
+    createStarDisplay() {
+        // Create completion overlay
+        const overlay = this.add.rectangle(
+            this.cameras.main.centerX, 
+            this.cameras.main.centerY, 
+            400, 
+            300, 
+            0x000000, 
+            0.8
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+        
+        // Level completed text
+        const titleText = this.add.text(
+            this.cameras.main.centerX, 
+            this.cameras.main.centerY - 80,
+            'Level Complete!', 
             {
                 fontSize: '32px',
                 fill: '#ffffff',
-                backgroundColor: '#000000',
-                padding: { x: 20, y: 10 },
+                fontWeight: 'bold'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+        
+        // Star display
+        const starY = this.cameras.main.centerY - 20;
+        for (let i = 0; i < 3; i++) {
+            const starX = this.cameras.main.centerX - 40 + (i * 40);
+            const earned = i < this.starsEarned;
+            const star = this.add.star(
+                starX, starY, 5, 10, 20, 
+                earned ? 0xffd700 : 0x444444
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+            
+            // Animate stars being earned
+            if (earned) {
+                star.setScale(0);
+                this.tweens.add({
+                    targets: star,
+                    scaleX: 1,
+                    scaleY: 1,
+                    duration: 300,
+                    delay: i * 200,
+                    ease: 'Back.easeOut'
+                });
+            }
+        }
+        
+        // Performance stats
+        const statsText = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 40,
+            this.getPerformanceText(),
+            {
+                fontSize: '14px',
+                fill: '#cccccc',
                 align: 'center'
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(201);
         
-        // Transition to craft scene after delay
-        this.time.delayedCall(2000, () => {
-            window.gameInstance.nextLevel();
+        // Continue text
+        const continueText = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 100,
+            'Going to Craft Mode...',
+            {
+                fontSize: '18px',
+                fill: '#ffffff'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+    }
+
+    getPerformanceText() {
+        const levelDuration = (Date.now() - this.levelStartTime) / 1000;
+        const partsPercent = Math.round((this.robotPartsCollected / this.totalRobotParts) * 100);
+        const coinsPercent = Math.round((this.coinsCollected / this.totalCoins) * 100);
+        const enemiesPercent = Math.round((this.enemiesDefeated / this.totalEnemies) * 100);
+        
+        return `Parts: ${partsPercent}% • Coins: ${coinsPercent}% • Enemies: ${enemiesPercent}%\nTime: ${Math.round(levelDuration)}s • Damage Taken: ${this.damageTaken}`;
+    }
+
+    checkEnemyDefeats() {
+        // Count defeated enemies
+        let currentDefeated = 0;
+        this.enemies.children.entries.forEach(enemySprite => {
+            const enemy = enemySprite.getData('enemy');
+            if (enemy && enemy.health <= 0) {
+                currentDefeated++;
+            }
         });
+        
+        // Update count if increased
+        if (currentDefeated > this.enemiesDefeated) {
+            this.enemiesDefeated = currentDefeated;
+        }
+    }
+
+    // Called by Player when taking damage (for star rating tracking)
+    onPlayerDamage(amount) {
+        this.damageTaken += amount;
+        console.log(`Player took ${amount} damage. Total damage: ${this.damageTaken}`);
     }
 
     update(time, delta) {
@@ -870,6 +1316,9 @@ class GameScene extends Phaser.Scene {
         
         // Update UI
         this.updateUI();
+        
+        // Check for enemy defeats
+        this.checkEnemyDefeats();
         
         // Check for game over conditions
         this.checkGameOver();
@@ -931,3 +1380,4 @@ class GameScene extends Phaser.Scene {
         this.physics.resume();
     }
 }
+console.log('✅ GameScene class defined:', typeof GameScene);
