@@ -639,6 +639,11 @@ class Player {
         
         this.health = Math.max(0, this.health - amount);
         
+        // Track damage for star rating system
+        if (this.scene && this.scene.onPlayerDamage) {
+            this.scene.onPlayerDamage(amount);
+        }
+        
         // Flash red when taking damage
         this.sprite.setFillStyle(0xff0000);
         setTimeout(() => {

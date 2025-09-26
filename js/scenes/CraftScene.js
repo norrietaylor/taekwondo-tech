@@ -18,13 +18,16 @@ class CraftScene extends Phaser.Scene {
         this.robotPreview = null;
         this.craftButton = null;
         
-        // Layout
-        this.inventoryArea = { x: 100, y: 150, width: 300, height: 400 };
-        this.craftArea = { x: 500, y: 150, width: 400, height: 400 };
+        // Layout - will be set in create() when cameras are available
+        this.inventoryArea = null;
+        this.craftArea = null;
     }
 
     create() {
         console.log('CraftScene created');
+        
+        // Set up responsive layout now that cameras are available
+        this.setupLayout();
         
         // Get robot parts from game data
         this.robotParts = window.gameInstance.gameData.robotParts;
@@ -126,33 +129,64 @@ class CraftScene extends Phaser.Scene {
         ).setStrokeStyle(2, 0x4a9eff);
     }
 
+    setupLayout() {
+        // Set up responsive layout now that cameras are available
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+        
+        this.inventoryArea = { 
+            x: 50, 
+            y: 120, 
+            width: Math.max(400, screenWidth * 0.4), // At least 400px or 40% of screen
+            height: screenHeight - 200 // Use most of screen height
+        };
+        this.craftArea = { 
+            x: this.inventoryArea.x + this.inventoryArea.width + 50, 
+            y: 120, 
+            width: Math.max(350, screenWidth * 0.35), 
+            height: screenHeight - 200 
+        };
+        
+        console.log(`📐 Layout setup: Screen ${screenWidth}x${screenHeight}, Inventory ${this.inventoryArea.width}x${this.inventoryArea.height}`);
+    }
+
     createInventory() {
         let yOffset = 0;
         const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
+        
+        console.log(`📦 Creating inventory with area: ${this.inventoryArea.width}x${this.inventoryArea.height}`);
         
         partTypes.forEach(partType => {
             const parts = this.robotParts[partType] || [];
             
             if (parts.length > 0) {
-                // Section header
+                // Compact section header
                 const header = this.add.text(
-                    this.inventoryArea.x + 20,
-                    this.inventoryArea.y + 20 + yOffset,
-                    `${partType.toUpperCase()} (${parts.length})`,
+                    this.inventoryArea.x + 10,
+                    this.inventoryArea.y + 10 + yOffset,
+                    `${partType.toUpperCase().slice(0,4)} (${parts.length})`,
                     {
-                        fontSize: '18px',
-                        fill: '#ffffff',
+                        fontSize: '12px',
+                        fill: '#ffff00',
                         fontWeight: 'bold'
                     }
                 );
                 
-                yOffset += 30;
+                yOffset += 18;
                 
-                // Display parts
+                // Ultra compact grid - very small parts, minimal padding
+                const partSize = 35; // Further reduced to 35 to fit more parts
+                const padding = 3; // Minimal padding
+                const availableWidth = this.inventoryArea.width - 40; // Leave smaller margins
+                const partsPerRow = Math.floor(availableWidth / (partSize + padding));
+                
                 parts.forEach((part, index) => {
+                    const row = Math.floor(index / partsPerRow);
+                    const col = index % partsPerRow;
+                    
                     const partItem = this.createPartItem(
-                        this.inventoryArea.x + 30 + (index % 3) * 80,
-                        this.inventoryArea.y + 20 + yOffset + Math.floor(index / 3) * 60,
+                        this.inventoryArea.x + 20 + col * (partSize + padding),
+                        this.inventoryArea.y + 20 + yOffset + row * (partSize + padding),
                         part,
                         partType
                     );
@@ -160,7 +194,8 @@ class CraftScene extends Phaser.Scene {
                     this.partsInventory.push(partItem);
                 });
                 
-                yOffset += Math.ceil(parts.length / 3) * 60 + 10;
+                const rowsUsed = Math.ceil(parts.length / partsPerRow);
+                yOffset += rowsUsed * (partSize + padding) + 10; // Reduced spacing between sections
             }
         });
         
@@ -176,6 +211,21 @@ class CraftScene extends Phaser.Scene {
                     align: 'center'
                 }
             ).setOrigin(0.5);
+        } else {
+            console.log(`✅ Created inventory with ${this.partsInventory.length} parts`);
+        }
+        
+        // Add scroll hint if inventory is tall
+        if (yOffset > this.inventoryArea.height - 50) {
+            this.add.text(
+                this.inventoryArea.x + this.inventoryArea.width - 20,
+                this.inventoryArea.y + this.inventoryArea.height - 30,
+                '↕ Scroll to see more',
+                {
+                    fontSize: '14px',
+                    fill: '#888888'
+                }
+            ).setOrigin(1, 0.5);
         }
     }
 
@@ -189,31 +239,41 @@ class CraftScene extends Phaser.Scene {
         // Part container
         const container = this.add.container(x, y);
         
-        // Part icon (simplified representation)
-        const icon = this.add.star(0, 0, 5, 8, 16, colors[part.rarity], 1);
+        // Part icon background (rectangle instead of star to avoid setTint issues)
+        const icon = this.add.rectangle(0, 0, 24, 24, colors[part.rarity]);
         
-        // Part label
-        const label = this.add.text(0, 20, partType.charAt(0).toUpperCase(), {
+        // Part label (part type initial)
+        const label = this.add.text(0, 0, partType.charAt(0).toUpperCase(), {
             fontSize: '12px',
-            fill: '#ffffff'
+            fill: '#ffffff',
+            fontWeight: 'bold'
         }).setOrigin(0.5);
         
-        container.add([icon, label]);
+        // Part type indicator (small text below)
+        const typeLabel = this.add.text(0, 14, partType.slice(0,4), {
+            fontSize: '7px',
+            fill: '#cccccc'
+        }).setOrigin(0.5);
+        
+        container.add([icon, label, typeLabel]);
         
         // Make interactive
-        icon.setInteractive({ useHandCursor: true });
+        container.setSize(30, 30);
+        container.setInteractive({ useHandCursor: true });
         
-        icon.on('pointerover', () => {
-            icon.setTint(0xcccccc);
+        container.on('pointerover', () => {
+            icon.setFillStyle(0xffffff);
+            label.setColor('#000000');
             container.setScale(1.1);
         });
         
-        icon.on('pointerout', () => {
-            icon.clearTint();
+        container.on('pointerout', () => {
+            icon.setFillStyle(colors[part.rarity]);
+            label.setColor('#ffffff');
             container.setScale(1.0);
         });
         
-        icon.on('pointerdown', () => {
+        container.on('pointerdown', () => {
             this.selectPart(part, partType);
         });
         
