@@ -31,7 +31,13 @@ class TaekwondoRobotBuilder {
                 pixelArt: false,
                 antialias: true
             },
-            scene: [MenuScene, GameScene, CraftScene]
+            scene: (() => {
+                console.log('🔍 Checking scene classes...');
+                console.log('MenuScene:', typeof MenuScene);
+                console.log('GameScene:', typeof GameScene);
+                console.log('CraftScene:', typeof CraftScene);
+                return [MenuScene, GameScene, CraftScene];
+            })()
         };
 
         // Game state
