@@ -6,23 +6,31 @@ class Collectible {
         this.rarity = rarity;
         this.collected = false;
         
+        // For robot parts, store the specific part type (head, body, arms, legs, powerCore)
+        this.partType = null;
+        if (type === 'robotPart' && typeof rarity === 'string') {
+            // Check if rarity is actually a part type
+            const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
+            if (partTypes.includes(rarity)) {
+                this.partType = rarity;
+                this.rarity = 'common'; // Default rarity if not specified
+            }
+        }
+        
         // Create sprite based on type
         this.sprite = this.createSprite(x, y);
         
-        // Physics body
-        scene.physics.add.existing(this.sprite);
-        this.sprite.body.setSize(16, 16);
-        this.sprite.body.setImmovable(true);
-        
-        // Store collectible data
+        // Store collectible data BEFORE adding physics
         this.sprite.setData('collectible', this);
+        
+        // Let the scene handle physics - DON'T create physics body manually
         
         // Animation properties
         this.floatOffset = Math.random() * Math.PI * 2;
         this.rotationSpeed = 0.02;
         this.pulseSpeed = 0.005;
         
-        // Start animations
+        // Re-enable animations but ONLY safe ones (no position changes)
         this.startAnimations();
         
         console.log(`Collectible created: ${type} (${rarity}) at`, x, y);
@@ -117,17 +125,17 @@ class Collectible {
     }
 
     startAnimations() {
-        // Floating animation
-        this.scene.tweens.add({
-            targets: this.sprite,
-            y: this.sprite.y - 15,
-            duration: 2000 + Math.random() * 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        // REMOVED: Floating animation (conflicts with physics position control)
+        // this.scene.tweens.add({
+        //     targets: this.sprite,
+        //     y: this.sprite.y - 15,
+        //     duration: 2000 + Math.random() * 1000,
+        //     yoyo: true,
+        //     repeat: -1,
+        //     ease: 'Sine.easeInOut'
+        // });
         
-        // Rotation animation
+        // Rotation animation (safe - doesn't affect physics)
         this.scene.tweens.add({
             targets: this.sprite,
             rotation: Math.PI * 2,
@@ -136,7 +144,7 @@ class Collectible {
             ease: 'Linear'
         });
         
-        // Pulse animation for special items
+        // Pulse animation for special items (safe - doesn't affect physics)
         if (this.rarity === 'epic' || this.type === 'powerUp') {
             this.scene.tweens.add({
                 targets: this.sprite,
@@ -220,12 +228,27 @@ class Collectible {
     }
 
     collectRobotPart() {
-        // Determine which robot part this is
-        const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
-        const partType = partTypes[Math.floor(Math.random() * partTypes.length)];
+        // Use stored part type or determine randomly if not specified
+        let partType = this.partType;
+        if (!partType) {
+            const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
+            partType = partTypes[Math.floor(Math.random() * partTypes.length)];
+        }
         
-        // Add to game data
+        // Add to game data with inventory animation
         window.gameInstance.addRobotPart(partType, this.rarity);
+        
+        // Increment the GameScene counter
+        if (this.scene && this.scene.robotPartsCollected !== undefined) {
+            this.scene.robotPartsCollected++;
+            console.log(`Robot parts collected: ${this.scene.robotPartsCollected}/${this.scene.totalRobotParts}`);
+            
+            // Update progress (no longer auto-completes level)
+            this.scene.checkLevelComplete();
+        }
+        
+        // Create special "stowing" animation for robot parts
+        this.createInventoryStowAnimation();
         
         console.log(`Collected ${this.rarity} ${partType} part!`);
     }
@@ -234,6 +257,12 @@ class Collectible {
         // Award coins and score
         const coinValue = 10;
         window.gameInstance.addScore(coinValue);
+        
+        // Increment the GameScene counter
+        if (this.scene && this.scene.coinsCollected !== undefined) {
+            this.scene.coinsCollected++;
+            console.log(`Coins collected: ${this.scene.coinsCollected}/${this.scene.totalCoins}`);
+        }
         
         console.log(`Collected coin! +${coinValue} points`);
     }
@@ -384,6 +413,77 @@ class Collectible {
             this.sprite.x += dx * attraction;
             this.sprite.y += dy * attraction;
         }
+    }
+
+    createInventoryStowAnimation() {
+        // Create a visual representation of the part being "stowed" in inventory
+        const stowSprite = this.scene.add.star(
+            this.sprite.x, 
+            this.sprite.y, 
+            5, 
+            8, 
+            16, 
+            this.rarity === 'epic' ? 0x9932cc : (this.rarity === 'rare' ? 0x4169e1 : 0x888888)
+        );
+        stowSprite.setDepth(100);
+        
+        // Get player position for targeting
+        const player = this.scene.player;
+        const targetX = player ? player.sprite.x : this.sprite.x;
+        const targetY = player ? player.sprite.y - 40 : this.sprite.y - 40; // Above player head
+        
+        // Animated "sucking into inventory" effect
+        this.scene.tweens.add({
+            targets: stowSprite,
+            x: targetX,
+            y: targetY,
+            scaleX: 0.3,
+            scaleY: 0.3,
+            alpha: 0.8,
+            duration: 600,
+            ease: 'Cubic.easeIn',
+            onComplete: () => {
+                // Final flash effect at player location
+                const flash = this.scene.add.circle(targetX, targetY, 15, 0xffffff, 0.8);
+                flash.setDepth(100);
+                
+                this.scene.tweens.add({
+                    targets: flash,
+                    scaleX: 2,
+                    scaleY: 2,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: () => {
+                        flash.destroy();
+                        stowSprite.destroy();
+                    }
+                });
+            }
+        });
+        
+        // Add text showing what was collected
+        const partText = this.partType ? this.partType.toUpperCase() : 'PART';
+        const collectionText = this.scene.add.text(
+            this.sprite.x, 
+            this.sprite.y - 30, 
+            `${partText} COLLECTED!`, 
+            {
+                fontSize: '16px',
+                fill: '#ffff00',
+                fontWeight: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5).setDepth(100);
+        
+        this.scene.tweens.add({
+            targets: collectionText,
+            y: collectionText.y - 40,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Cubic.easeOut',
+            onComplete: () => collectionText.destroy()
+        });
     }
 
     destroy() {
