@@ -27,7 +27,7 @@ class Player {
         
         // Player properties
         this.speed = 200;
-        this.jumpPower = 400;
+        this.jumpPower = 800; // Doubled from 400 for higher jumps
         this.health = 100;
         this.maxHealth = 100;
         
@@ -38,6 +38,11 @@ class Player {
         this.jumpCooldown = 0;
         this.lastGroundTime = 0;
         this.coyoteTime = 150; // ms
+        
+        // Double jump system
+        this.hasDoubleJumped = false;
+        this.canDoubleJump = true;
+        this.doubleJumpPower = 600; // Slightly less than regular jump
         
         // Combat properties
         this.isAttacking = false;
@@ -227,13 +232,24 @@ class Player {
     tryJump() {
         const canCoyoteJump = (Date.now() - this.lastGroundTime) < this.coyoteTime;
         
+        // Regular jump (when grounded or within coyote time)
         if ((this.isGrounded || canCoyoteJump) && this.jumpCooldown <= 0) {
             this.body.setVelocityY(-this.jumpPower);
             this.isGrounded = false;
             this.jumpCooldown = 100; // Prevent multi-jumping
+            this.hasDoubleJumped = false; // Reset double jump when doing regular jump
             this.createJumpEffect();
             
             console.log('Player jumped!');
+        }
+        // Double jump (when in air and haven't used double jump yet)
+        else if (!this.isGrounded && !this.hasDoubleJumped && this.canDoubleJump && this.jumpCooldown <= 0) {
+            this.body.setVelocityY(-this.doubleJumpPower);
+            this.hasDoubleJumped = true;
+            this.jumpCooldown = 100; // Prevent multi-jumping
+            this.createDoubleJumpEffect();
+            
+            console.log('Player double jumped!');
         }
     }
 
@@ -329,6 +345,44 @@ class Player {
         });
     }
 
+    createDoubleJumpEffect() {
+        // Create a more distinctive effect for double jump
+        const effect1 = this.scene.add.circle(this.sprite.x, this.sprite.y, 12, 0xffd700, 0.8);
+        const effect2 = this.scene.add.circle(this.sprite.x, this.sprite.y, 8, 0xffffff, 0.9);
+        
+        this.scene.tweens.add({
+            targets: [effect1, effect2],
+            scaleX: 2.5,
+            scaleY: 2.5,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => {
+                effect1.destroy();
+                effect2.destroy();
+            }
+        });
+        
+        // Add some sparkle particles
+        for (let i = 0; i < 6; i++) {
+            const sparkle = this.scene.add.circle(
+                this.sprite.x + (Math.random() - 0.5) * 30,
+                this.sprite.y + (Math.random() - 0.5) * 30,
+                2,
+                0xffd700,
+                0.8
+            );
+            
+            this.scene.tweens.add({
+                targets: sparkle,
+                y: sparkle.y - 20,
+                alpha: 0,
+                duration: 600 + i * 50,
+                delay: i * 30,
+                onComplete: () => sparkle.destroy()
+            });
+        }
+    }
+
     createKickEffect() {
         const effectX = this.sprite.x + (this.facingRight ? 20 : -20);
         const effect = this.scene.add.rectangle(effectX, this.sprite.y, 8, 20, 0xff6b6b, 0.8);
@@ -416,6 +470,7 @@ class Player {
         if (!wasGrounded && this.isGrounded) {
             // Just landed
             this.lastGroundTime = Date.now();
+            this.hasDoubleJumped = false; // Reset double jump when landing
             this.createLandingEffect();
         }
     }

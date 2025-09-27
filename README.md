@@ -19,7 +19,8 @@ The game is **already running** on your local server and ready to play!
 
 ### Core Gameplay
 - **🥋 Taekwondo Combat System**: Authentic martial arts moves with kick/punch combinations
-- **🏃‍♂️ Fluid Movement**: Responsive physics-based movement with precise jumping mechanics
+- **🏃‍♂️ Fluid Movement**: Responsive physics-based movement with enhanced jumping mechanics
+- **🚀 Double Jump System**: Air-based double jumping with golden visual effects and strategic timing
 - **📱 Cross-Platform**: Full desktop keyboard and mobile touch control support
 - **🌍 3 Themed Levels**: Ice World, Fire World, and Ultimate Power Bomb environments
 - **💾 Save System**: Automatic progress saving with continue functionality
