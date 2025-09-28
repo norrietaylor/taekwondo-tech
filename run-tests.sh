@@ -50,6 +50,12 @@ echo "     - Scene transitions"
 echo "     - Performance testing"
 echo "     - Cross-platform validation"
 echo ""
+echo "  4. Level Completion (level-completion.spec.js)"
+echo "     - Level 1, 2, and 3 completion testing"
+echo "     - Finish line positioning validation"
+echo "     - Level progression verification"
+echo "     - Collision detection testing"
+echo ""
 
 # Check if server is running
 if curl -s http://localhost:8000 > /dev/null; then

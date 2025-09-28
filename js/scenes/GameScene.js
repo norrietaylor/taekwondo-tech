@@ -47,6 +47,9 @@ class GameScene extends Phaser.Scene {
         try {
             console.log('GameScene create() started');
             
+            // Reset level completion state for new level
+            this.levelComplete = false;
+            
             // Get current level from game instance
             console.log('Getting current level...');
             this.currentLevel = window.gameInstance ? window.gameInstance.gameData.currentLevel : 1;
@@ -982,7 +985,25 @@ class GameScene extends Phaser.Scene {
     }
 
     createFinishLine() {
-        const finishX = this.levelWidth - 100; // Near the right edge
+        // Position finish line on the last platform for accessibility
+        let finishX, platformY;
+        switch (this.currentLevel) {
+            case 1: // Ice level - last platform at x: 1800, y: 350
+                finishX = 1800;
+                platformY = 350;
+                break;
+            case 2: // Fire level - last platform at x: 1850, y: 400
+                finishX = 1850;
+                platformY = 400;
+                break;
+            case 3: // Power bomb level - last platform at x: 1850, y: 450
+                finishX = 1850;
+                platformY = 450;
+                break;
+            default:
+                finishX = this.levelWidth - 200; // Fallback
+                platformY = this.levelHeight - 100;
+        }
         const finishY = this.levelHeight / 2;
         
         // Create visual finish line with animated flag
@@ -1012,9 +1033,13 @@ class GameScene extends Phaser.Scene {
         this.finishLine.add([pole, flag, pattern, finishText]);
         this.finishLine.setDepth(50);
         
-        // Create invisible collision zone for finish line
-        this.finishLineZone = this.add.rectangle(finishX, this.levelHeight - 100, 80, this.levelHeight, 0x00FF00, 0);
+        // Create invisible collision zone for finish line positioned relative to the platform
+        // Position it slightly above the platform to ensure proper collision detection
+        const collisionZoneY = platformY - 50; // 50 pixels above the platform
+        const collisionZoneHeight = this.levelHeight - platformY + 100; // From above platform to bottom of level
+        this.finishLineZone = this.add.rectangle(finishX, collisionZoneY, 80, collisionZoneHeight, 0x00FF00, 0); // Invisible collision zone
         this.physics.add.existing(this.finishLineZone, true);
+        
         
         // Animate flag waving
         this.tweens.add({

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Level Debug - Taekwondo Tech</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-panel { background: #f0f0f0; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px; margin: 5px; }
+        .current { background: #90EE90; }
+    </style>
+</head>
+<body>
+    <h1>Level Progression Debug</h1>
+    
+    <div class="debug-panel">
+        <h3>Current Game State</h3>
+        <div id="gameState">Loading...</div>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>Level Controls</h3>
+        <button onclick="setLevel(1)">Set Level 1</button>
+        <button onclick="setLevel(2)">Set Level 2</button>
+        <button onclick="setLevel(3)">Set Level 3</button>
+        <button onclick="setLevel(4)">Set Level 4 (Completed)</button>
+        <br>
+        <button onclick="clearSave()">Clear Save Data</button>
+        <button onclick="refreshState()">Refresh State</button>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>Game Navigation</h3>
+        <button onclick="goToGame()">Go to Game Scene</button>
+        <button onclick="goToCraft()">Go to Craft Scene</button>
+        <button onclick="goToMenu()">Go to Menu Scene</button>
+    </div>
+    
+    <div class="debug-panel">
+        <h3>Console Log</h3>
+        <div id="console" style="background: black; color: green; padding: 10px; height: 200px; overflow-y: scroll; font-family: monospace;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script src="js/utils/SaveSystem.js"></script>
+    <script src="js/utils/Controls.js"></script>
+    <script src="js/entities/Player.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/entities/Collectible.js"></script>
+    <script src="js/scenes/MenuScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <script src="js/scenes/CraftScene.js"></script>
+    <script src="js/game.js"></script>
+    
+    <script>
+        // Initialize game instance
+        window.gameInstance = new TaekwondoRobotBuilder();
+        
+        // Hijack console.log to show in our debug panel
+        const originalLog = console.log;
+        const consoleDiv = document.getElementById('console');
+        console.log = function(...args) {
+            originalLog.apply(console, arguments);
+            const message = args.join(' ');
+            consoleDiv.innerHTML += message + '\n';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+        
+        function refreshState() {
+            const gameData = window.gameInstance.gameData;
+            document.getElementById('gameState').innerHTML = `
+                <strong>Current Level:</strong> ${gameData.currentLevel}<br>
+                <strong>Score:</strong> ${gameData.score}<br>
+                <strong>Level Stars:</strong> ${JSON.stringify(gameData.levelStars || {})}<br>
+                <strong>Robot Parts:</strong> ${Object.values(gameData.robotParts).flat().length} total<br>
+                <strong>Current Outfit:</strong> ${gameData.outfits.current}<br>
+                <strong>Raw Data:</strong> <pre style="background: #ddd; padding: 10px;">${JSON.stringify(gameData, null, 2)}</pre>
+            `;
+        }
+        
+        function setLevel(level) {
+            window.gameInstance.gameData.currentLevel = level;
+            window.gameInstance.saveGameData();
+            console.log(`Set level to ${level}`);
+            refreshState();
+        }
+        
+        function clearSave() {
+            window.gameInstance.resetGameData();
+            console.log('Save data cleared');
+            refreshState();
+        }
+        
+        function goToGame() {
+            console.log('Starting GameScene...');
+            window.gameInstance.game.scene.start('GameScene');
+        }
+        
+        function goToCraft() {
+            console.log('Starting CraftScene...');
+            window.gameInstance.game.scene.start('CraftScene');
+        }
+        
+        function goToMenu() {
+            console.log('Starting MenuScene...');
+            window.gameInstance.game.scene.start('MenuScene');
+        }
+        
+        // Initialize display
+        refreshState();
+        console.log('Level Debug Tool Ready');
+    </script>
+</body>
+</html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Finish Line - Taekwondo Robot Builder</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            font-size: 12px;
+            max-width: 300px;
+        }
+        #game-container {
+            margin-top: 20px;
+        }
+        .debug-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .debug-button:hover {
+            background: #45a049;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #a8d5d1;
+            font-size: 24px;
+            text-align: center;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏁 Finish Line Debug Tool</h1>
+    <div>
+        <button class="debug-button" onclick="teleportToFinish()">Teleport to Finish Line</button>
+        <button class="debug-button" onclick="showFinishZone()">Show Finish Zone</button>
+        <button class="debug-button" onclick="manualTrigger()">Manual Trigger</button>
+        <button class="debug-button" onclick="checkCollisions()">Check Collisions</button>
+        <button class="debug-button" onclick="initializeLevel()">Initialize Level</button>
+        <button class="debug-button" onclick="forceComplete()">Force Complete Level</button>
+    </div>
+    
+    <div id="debug-info">
+        <strong>Debug Info:</strong><br>
+        <div id="debug-output">Loading...</div>
+    </div>
+    
+    <div class="loading" id="loading">
+        🎮 Loading Taekwondo Robot Builder...
+        <br><small>Debug Mode</small>
+    </div>
+    
+    <div id="game-container"></div>
+
+    <!-- Game scripts -->
+    <script src="js/utils/Controls.js"></script>
+    <script src="js/entities/Player.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/entities/Collectible.js"></script>
+    <script src="js/utils/SaveSystem.js"></script>
+    <script src="js/scenes/MenuScene.js"></script>
+    <script src="js/scenes/CraftScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <script src="js/game.js"></script>
+
+    <script>
+        let debugOutput = document.getElementById('debug-output');
+        
+        function updateDebugInfo() {
+            if (window.gameInstance && window.gameInstance.game) {
+                const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+                if (gameScene) {
+                    const info = [];
+                    info.push(`Level: ${gameScene.currentLevel}`);
+                    info.push(`Level Complete: ${gameScene.levelComplete}`);
+                    
+                    if (gameScene.player) {
+                        info.push(`Player: x=${Math.round(gameScene.player.sprite.x)}, y=${Math.round(gameScene.player.sprite.y)}`);
+                    }
+                    
+                    if (gameScene.finishLine) {
+                        info.push(`Finish Line: x=${Math.round(gameScene.finishLine.x)}, y=${Math.round(gameScene.finishLine.y)}`);
+                    }
+                    
+                    if (gameScene.finishLineZone) {
+                        info.push(`Finish Zone: x=${Math.round(gameScene.finishLineZone.x)}, y=${Math.round(gameScene.finishLineZone.y)}`);
+                        info.push(`Zone Size: ${gameScene.finishLineZone.width}x${gameScene.finishLineZone.height}`);
+                        
+                        // Show zone bounds
+                        const zoneLeft = gameScene.finishLineZone.x - gameScene.finishLineZone.width/2;
+                        const zoneRight = gameScene.finishLineZone.x + gameScene.finishLineZone.width/2;
+                        const zoneTop = gameScene.finishLineZone.y - gameScene.finishLineZone.height/2;
+                        const zoneBottom = gameScene.finishLineZone.y + gameScene.finishLineZone.height/2;
+                        info.push(`Zone Bounds: ${Math.round(zoneLeft)}-${Math.round(zoneRight)} x ${Math.round(zoneTop)}-${Math.round(zoneBottom)}`);
+                        
+                        // Check if player is in zone
+                        if (gameScene.player) {
+                            const px = gameScene.player.sprite.x;
+                            const py = gameScene.player.sprite.y;
+                            const inZoneX = px >= zoneLeft && px <= zoneRight;
+                            const inZoneY = py >= zoneTop && py <= zoneBottom;
+                            info.push(`Player in zone: X=${inZoneX}, Y=${inZoneY}, Both=${inZoneX && inZoneY}`);
+                        }
+                    }
+                    
+                    // Show last platform info for current level
+                    if (gameScene.currentLevel === 2) {
+                        info.push(`Level 2 last platform: x=1850, y=400`);
+                        info.push(`Player should be around y=380 when on platform`);
+                    }
+                    
+                    debugOutput.innerHTML = info.join('<br>');
+                } else {
+                    debugOutput.innerHTML = 'GameScene not found';
+                }
+            } else {
+                debugOutput.innerHTML = 'Game not loaded';
+            }
+        }
+        
+        function teleportToFinish() {
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (gameScene && gameScene.player && gameScene.finishLine) {
+                gameScene.player.sprite.setPosition(gameScene.finishLine.x - 50, gameScene.levelHeight - 150);
+                console.log('🚀 Player teleported to finish line area');
+                updateDebugInfo();
+            }
+        }
+        
+        function showFinishZone() {
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (gameScene && gameScene.finishLineZone) {
+                // Make the finish zone visible temporarily
+                gameScene.finishLineZone.setFillStyle(0x00FF00, 0.3);
+                console.log('👁️ Finish zone made visible (green overlay)');
+                
+                // Hide it again after 3 seconds
+                setTimeout(() => {
+                    gameScene.finishLineZone.setFillStyle(0x00FF00, 0);
+                }, 3000);
+            }
+        }
+        
+        function manualTrigger() {
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (gameScene && gameScene.player && gameScene.finishLineZone) {
+                console.log('🔧 Manually triggering finish line collision');
+                console.log('Before trigger - levelComplete:', gameScene.levelComplete);
+                console.log('Current level:', gameScene.currentLevel);
+                console.log('Level start time:', gameScene.levelStartTime);
+                console.log('Total robot parts:', gameScene.totalRobotParts);
+                console.log('Robot parts collected:', gameScene.robotPartsCollected);
+                
+                // Call the method and track results
+                gameScene.reachFinishLine(gameScene.player.sprite, gameScene.finishLineZone);
+                
+                console.log('After trigger - levelComplete:', gameScene.levelComplete);
+                console.log('Stars earned:', gameScene.starsEarned);
+                
+                // Check if completeLevel was called by looking for star display
+                setTimeout(() => {
+                    const hasStarDisplay = gameScene.children.list.some(child => 
+                        child.type === 'Rectangle' && child.fillColor === 0x000000
+                    );
+                    console.log('Star display created:', hasStarDisplay);
+                }, 100);
+                
+                updateDebugInfo();
+            }
+        }
+        
+        function checkCollisions() {
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (gameScene && gameScene.player && gameScene.finishLineZone) {
+                const player = gameScene.player.sprite;
+                const zone = gameScene.finishLineZone;
+                
+                const distance = Math.abs(player.x - zone.x);
+                const verticalDistance = Math.abs(player.y - zone.y);
+                
+                console.log(`🔍 Collision Check:`);
+                console.log(`  Player: x=${player.x}, y=${player.y}`);
+                console.log(`  Zone: x=${zone.x}, y=${zone.y}`);
+                console.log(`  Horizontal distance: ${distance}`);
+                console.log(`  Vertical distance: ${verticalDistance}`);
+                console.log(`  Zone bounds: ${zone.width}x${zone.height}`);
+                
+                // Check if player is within zone bounds
+                const withinX = Math.abs(player.x - zone.x) < zone.width / 2;
+                const withinY = Math.abs(player.y - zone.y) < zone.height / 2;
+                console.log(`  Within X bounds: ${withinX}`);
+                console.log(`  Within Y bounds: ${withinY}`);
+                console.log(`  Should trigger: ${withinX && withinY}`);
+                
+                updateDebugInfo();
+            }
+        }
+        
+        function initializeLevel() {
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (gameScene) {
+                console.log('🔧 Initializing level properties');
+                gameScene.levelStartTime = Date.now();
+                gameScene.levelComplete = false;
+                gameScene.totalRobotParts = Math.max(1, gameScene.totalRobotParts || 3);
+                gameScene.totalCoins = Math.max(1, gameScene.totalCoins || 5);
+                gameScene.totalEnemies = Math.max(1, gameScene.totalEnemies || 2);
+                gameScene.robotPartsCollected = 0;
+                gameScene.coinsCollected = 0;
+                gameScene.enemiesDefeated = 0;
+                gameScene.damageTaken = 0;
+                
+                console.log('Level initialized with:');
+                console.log('- Start time:', gameScene.levelStartTime);
+                console.log('- Total parts:', gameScene.totalRobotParts);
+                console.log('- Total coins:', gameScene.totalCoins);
+                console.log('- Total enemies:', gameScene.totalEnemies);
+                updateDebugInfo();
+            }
+        }
+        
+        function forceComplete() {
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (gameScene) {
+                console.log('🚀 Force completing level');
+                
+                // Initialize if needed
+                if (!gameScene.levelStartTime) {
+                    initializeLevel();
+                }
+                
+                // Set some collection progress
+                gameScene.robotPartsCollected = Math.max(1, Math.floor(gameScene.totalRobotParts * 0.6));
+                gameScene.coinsCollected = Math.max(1, Math.floor(gameScene.totalCoins * 0.5));
+                
+                // Call complete level directly
+                gameScene.levelComplete = true;
+                gameScene.calculateStarRating();
+                gameScene.completeLevel();
+                
+                console.log('Level completion forced!');
+                updateDebugInfo();
+            }
+        }
+        
+        // Update debug info every second
+        setInterval(updateDebugInfo, 1000);
+        
+        // Initial update after game loads
+        setTimeout(updateDebugInfo, 2000);
+    </script>
+</body>
+</html>
