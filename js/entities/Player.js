@@ -27,7 +27,7 @@ class Player {
         
         // Player properties
         this.speed = 200;
-        this.jumpPower = 800; // Doubled from 400 for higher jumps
+        this.jumpPower = 600;
         this.health = 100;
         this.maxHealth = 100;
         
@@ -728,8 +728,25 @@ class Player {
 
     die() {
         console.log('Player died!');
-        // This will trigger game over screen
-        this.scene.scene.restart();
+        // Reset player health and position instead of restarting entire scene
+        this.health = this.maxHealth;
+        this.sprite.setPosition(100, this.scene.levelHeight - 200); // Reset to start position
+        
+        // Change color to red to show damage (since it's a rectangle, not a sprite)
+        const originalColor = this.sprite.fillColor;
+        this.sprite.setFillStyle(0xff0000); // Red color to show damage
+        
+        // Restore original color after a moment
+        this.scene.time.delayedCall(1000, () => {
+            this.sprite.setFillStyle(originalColor);
+        });
+        
+        // Add damage to scene counter for star rating
+        if (this.scene.damageTaken !== undefined) {
+            this.scene.damageTaken += 50; // Death penalty
+        }
+        
+        console.log('Player respawned at start position');
     }
 
     // Utility methods

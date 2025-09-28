@@ -160,14 +160,20 @@ class TaekwondoRobotBuilder {
     }
 
     nextLevel() {
+        console.log('🚀 nextLevel() called!');
+        console.log('Current level before increment:', this.gameData.currentLevel);
+        
         this.gameData.currentLevel++;
+        console.log('Current level after increment:', this.gameData.currentLevel);
+        
         this.saveGameData();
+        console.log('Game data saved');
         
         if (this.gameData.currentLevel > 3) {
-            // Game completed!
+            console.log('🎊 Game completed! All levels finished');
             this.completeGame();
         } else {
-            // Go to craft scene between levels
+            console.log('🎨 Starting CraftScene for level', this.gameData.currentLevel);
             this.game.scene.start('CraftScene');
         }
     }
