@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦅 Dragon Wings Debug - Taekwondo Robot Builder</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #2c5f5d, #1a3d3b);
+            font-family: 'Arial', sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 2px solid #1a3d3b;
+            border-radius: 8px;
+        }
+        #debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        #debug-info h3 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+        }
+        #debug-info p {
+            margin: 5px 0;
+        }
+        .costume-btn {
+            background: #4a9eff;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .costume-btn:hover {
+            background: #3a7eff;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" style="display: none;">Loading...</div>
+    
+    <div id="debug-info">
+        <h3>🦅 Dragon Wings Debug</h3>
+        <p><strong>Current Costume:</strong> <span id="current-costume">Loading...</span></p>
+        <p><strong>Has Wings:</strong> <span id="has-wings">...</span></p>
+        <p><strong>Wings Visible:</strong> <span id="wings-visible">...</span></p>
+        <p><strong>Wing Color:</strong> <span id="wing-color">...</span></p>
+        <hr>
+        <p><strong>Test Costumes:</strong></p>
+        <button class="costume-btn" onclick="setCostume('default')">🥋 Default</button>
+        <button class="costume-btn" onclick="setCostume('fire')">🔥 Fire</button>
+        <button class="costume-btn" onclick="setCostume('ice')">❄️ Ice</button>
+        <button class="costume-btn" onclick="setCostume('lightning')">⚡ Lightning</button>
+        <button class="costume-btn" onclick="setCostume('shadow')">🌙 Shadow</button>
+        <hr>
+        <p style="font-size: 11px; color: #888;">
+            Press SPACE to jump<br>
+            Arrow keys to move<br>
+            Watch the wings animate!
+        </p>
+    </div>
+
+    <!-- Phaser.js -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <!-- Game scripts with cache busting -->
+    <script>
+        const cacheBuster = Date.now();
+        const scripts = [
+            'js/utils/Controls.js',
+            'js/utils/SaveSystem.js',
+            'js/entities/Player.js',
+            'js/entities/Enemy.js',
+            'js/entities/Collectible.js',
+            'js/scenes/MenuScene.js',
+            'js/scenes/GameScene.js',
+            'js/scenes/CraftScene.js',
+            'js/game.js'
+        ];
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = `${src}?v=${cacheBuster}`;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function loadAllScripts() {
+            console.log('🔄 Loading scripts with cache buster:', cacheBuster);
+            
+            for (const scriptSrc of scripts) {
+                try {
+                    await loadScript(scriptSrc);
+                    console.log('✅ Loaded:', scriptSrc);
+                } catch (error) {
+                    console.error('❌ Failed to load:', scriptSrc, error);
+                }
+            }
+            
+            console.log('🎮 All scripts loaded, initializing game...');
+            
+            // Initialize game with debug settings
+            setTimeout(() => {
+                try {
+                    const game = new TaekwondoRobotBuilder();
+                    
+                    // Unlock all dragon costumes for testing
+                    game.gameData.outfits.unlocked = ['default', 'fire', 'ice', 'lightning', 'shadow'];
+                    
+                    // Start with Fire Dragon to see wings immediately
+                    game.gameData.outfits.current = 'fire';
+                    
+                    game.init();
+                    
+                    // Auto-start the game scene
+                    setTimeout(() => {
+                        game.game.scene.start('GameScene');
+                        console.log('✅ Game scene started with Fire Dragon costume');
+                        
+                        // Start debug info updates
+                        setInterval(updateDebugInfo, 100);
+                    }, 1000);
+                    
+                    console.log('✅ Game initialized successfully');
+                } catch (error) {
+                    console.error('💥 Game initialization failed:', error);
+                }
+            }, 100);
+        }
+
+        function setCostume(costumeKey) {
+            if (window.gameInstance) {
+                window.gameInstance.setOutfit(costumeKey);
+                
+                // Get the player and update wings
+                const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+                if (gameScene && gameScene.player) {
+                    gameScene.player.recreateWings();
+                    console.log('🐉 Switched to costume:', costumeKey);
+                }
+                
+                updateDebugInfo();
+            }
+        }
+
+        function updateDebugInfo() {
+            if (!window.gameInstance) return;
+            
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (!gameScene || !gameScene.player) return;
+            
+            const player = gameScene.player;
+            const costume = player.getDragonCostume();
+            
+            document.getElementById('current-costume').textContent = costume.name + ' ' + costume.icon;
+            document.getElementById('has-wings').textContent = costume.hasWings ? '✅ Yes' : '❌ No';
+            document.getElementById('wings-visible').textContent = 
+                (player.leftWing && player.leftWing.visible) ? '✅ Visible' : '❌ Hidden';
+            
+            if (costume.hasWings) {
+                document.getElementById('wing-color').textContent = 
+                    '#' + costume.wingColor.toString(16).padStart(6, '0');
+            } else {
+                document.getElementById('wing-color').textContent = 'N/A';
+            }
+        }
+
+        // Load scripts when page is ready
+        window.addEventListener('load', loadAllScripts);
+    </script>
+</body>
+</html>
+

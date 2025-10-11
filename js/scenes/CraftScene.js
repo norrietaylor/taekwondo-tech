@@ -526,154 +526,404 @@ class CraftScene extends Phaser.Scene {
     }
 
     showOutfitSelection() {
-        // Create outfit selection overlay
+        // Check for new unlocks before showing UI
+        const newUnlocks = window.gameInstance.checkDragonUnlocks();
+        
+        // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
             this.cameras.main.centerX,
             this.cameras.main.centerY,
+            700,
             500,
-            400,
-            0x000000,
-            0.8
-        );
+            0x0a0a0a,
+            0.95
+        ).setDepth(100);
+        
+        overlay.setStrokeStyle(3, 0x8b4513);
         
         const title = this.add.text(
             this.cameras.main.centerX,
-            this.cameras.main.centerY - 150,
-            '👕 OUTFIT SELECTION',
+            this.cameras.main.centerY - 210,
+            '🐉 DRAGON COSTUME SELECTION 🐉',
             {
-                fontSize: '28px',
-                fill: '#ffffff',
-                fontWeight: 'bold'
+                fontSize: '32px',
+                fill: '#ffd700',
+                fontWeight: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
             }
-        ).setOrigin(0.5);
+        ).setOrigin(0.5).setDepth(101);
         
-        // Available outfits
-        const outfits = [
-            { name: 'default', label: 'Default Gi', color: 0x4a9eff, unlocked: true },
-            { name: 'halloween', label: '🎃 Halloween', color: 0xff4500, unlocked: this.isOutfitUnlocked('halloween') },
-            { name: 'christmas', label: '🎄 Christmas', color: 0x228b22, unlocked: this.isOutfitUnlocked('christmas') },
-            { name: 'master', label: '🥇 Master', color: 0xffd700, unlocked: this.isOutfitUnlocked('master') }
-        ];
+        // Available dragon costumes
+        const dragonCostumes = ['default', 'fire', 'ice', 'lightning', 'shadow'];
         
-        const outfitElements = [];
+        const outfitElements = [overlay, title];
         
-        outfits.forEach((outfit, index) => {
-            const y = this.cameras.main.centerY - 80 + (index * 50);
+        dragonCostumes.forEach((costumeKey, index) => {
+            const costume = window.gameInstance.getDragonCostume(costumeKey);
+            const isUnlocked = this.isDragonUnlocked(costumeKey);
+            const isCurrent = window.gameInstance.gameData.outfits.current === costumeKey;
+            const isNewlyUnlocked = newUnlocks.includes(costumeKey);
             
-            // Outfit preview
-            const preview = this.add.rectangle(
-                this.cameras.main.centerX - 150,
-                y,
-                30,
-                40,
-                outfit.color,
-                outfit.unlocked ? 1 : 0.3
-            );
+            const y = this.cameras.main.centerY - 150 + (index * 80);
             
-            // Outfit name
-            const nameText = this.add.text(
-                this.cameras.main.centerX - 100,
+            // Dragon costume preview (larger, with both colors)
+            const previewBg = this.add.rectangle(
+                this.cameras.main.centerX - 250,
                 y,
-                outfit.label,
+                60,
+                70,
+                isUnlocked ? costume.primaryColor : 0x333333,
+                isUnlocked ? 1 : 0.3
+            ).setDepth(101);
+            
+            previewBg.setStrokeStyle(2, isUnlocked ? costume.beltColor : 0x666666);
+            
+            // Secondary color accent
+            const accentRect = this.add.rectangle(
+                this.cameras.main.centerX - 240,
+                y,
+                20,
+                70,
+                isUnlocked ? costume.secondaryColor : 0x222222,
+                isUnlocked ? 0.8 : 0.3
+            ).setDepth(102);
+            
+            // Dragon icon
+            const icon = this.add.text(
+                this.cameras.main.centerX - 250,
+                y - 25,
+                costume.icon,
                 {
-                    fontSize: '20px',
-                    fill: outfit.unlocked ? '#ffffff' : '#666666'
+                    fontSize: '24px'
                 }
-            ).setOrigin(0, 0.5);
+            ).setOrigin(0.5).setDepth(103).setAlpha(isUnlocked ? 1 : 0.3);
+            
+            // "NEW!" badge for newly unlocked costumes
+            if (isNewlyUnlocked) {
+                const newBadge = this.add.text(
+                    this.cameras.main.centerX - 220,
+                    y - 35,
+                    'NEW!',
+                    {
+                        fontSize: '14px',
+                        fill: '#ffff00',
+                        backgroundColor: '#ff0000',
+                        padding: { x: 5, y: 2 },
+                        fontWeight: 'bold'
+                    }
+                ).setOrigin(0.5).setDepth(104);
+                
+                // Pulse animation for NEW badge
+                this.tweens.add({
+                    targets: newBadge,
+                    scale: 1.2,
+                    duration: 500,
+                    yoyo: true,
+                    repeat: -1
+                });
+                
+                outfitElements.push(newBadge);
+            }
+            
+            // Dragon costume name
+            const nameText = this.add.text(
+                this.cameras.main.centerX - 170,
+                y - 20,
+                costume.name,
+                {
+                    fontSize: '22px',
+                    fill: isUnlocked ? '#ffffff' : '#666666',
+                    fontWeight: 'bold'
+                }
+            ).setOrigin(0, 0.5).setDepth(101);
+            
+            // Description
+            const descText = this.add.text(
+                this.cameras.main.centerX - 170,
+                y + 5,
+                costume.description,
+                {
+                    fontSize: '14px',
+                    fill: isUnlocked ? '#aaaaaa' : '#444444',
+                    fontStyle: 'italic'
+                }
+            ).setOrigin(0, 0.5).setDepth(101);
+            
+            // Unlock condition / progress
+            const conditionText = this.add.text(
+                this.cameras.main.centerX - 170,
+                y + 25,
+                this.getUnlockProgressText(costumeKey),
+                {
+                    fontSize: '12px',
+                    fill: isUnlocked ? '#00ff00' : '#ff8800'
+                }
+            ).setOrigin(0, 0.5).setDepth(101);
             
             // Status/Select button
             let button;
-            if (!outfit.unlocked) {
+            if (!isUnlocked) {
                 button = this.add.text(
-                    this.cameras.main.centerX + 100,
+                    this.cameras.main.centerX + 220,
                     y,
-                    'LOCKED',
+                    '🔒 LOCKED',
                     {
                         fontSize: '16px',
                         fill: '#666666',
                         backgroundColor: '#333333',
-                        padding: { x: 10, y: 5 }
+                        padding: { x: 12, y: 8 }
                     }
-                ).setOrigin(0.5);
-            } else if (window.gameInstance.gameData.outfits.current === outfit.name) {
+                ).setOrigin(0.5).setDepth(101);
+            } else if (isCurrent) {
                 button = this.add.text(
-                    this.cameras.main.centerX + 100,
+                    this.cameras.main.centerX + 220,
                     y,
-                    'CURRENT',
+                    '✓ EQUIPPED',
                     {
                         fontSize: '16px',
                         fill: '#ffffff',
                         backgroundColor: '#4a9eff',
-                        padding: { x: 10, y: 5 }
+                        padding: { x: 12, y: 8 }
                     }
-                ).setOrigin(0.5);
+                ).setOrigin(0.5).setDepth(101);
             } else {
                 button = this.add.text(
-                    this.cameras.main.centerX + 100,
+                    this.cameras.main.centerX + 220,
                     y,
-                    'SELECT',
+                    'EQUIP',
                     {
                         fontSize: '16px',
                         fill: '#ffffff',
                         backgroundColor: '#00aa00',
-                        padding: { x: 10, y: 5 }
+                        padding: { x: 12, y: 8 }
                     }
-                ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+                ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(101);
+                
+                button.on('pointerover', () => {
+                    button.setStyle({ backgroundColor: '#00dd00' });
+                });
+                
+                button.on('pointerout', () => {
+                    button.setStyle({ backgroundColor: '#00aa00' });
+                });
                 
                 button.on('pointerdown', () => {
-                    window.gameInstance.setOutfit(outfit.name);
+                    window.gameInstance.setOutfit(costumeKey);
                     this.closeOutfitSelection(outfitElements);
+                    
+                    // Show equipped notification
+                    this.showDragonEquippedNotification(costume);
                 });
             }
             
-            outfitElements.push(preview, nameText, button);
+            outfitElements.push(previewBg, accentRect, icon, nameText, descText, conditionText, button);
         });
         
         // Close button
         const closeButton = this.add.text(
             this.cameras.main.centerX,
-            this.cameras.main.centerY + 130,
+            this.cameras.main.centerY + 210,
             'Close',
             {
                 fontSize: '20px',
                 fill: '#ffffff',
                 backgroundColor: '#ff6b6b',
-                padding: { x: 15, y: 8 }
+                padding: { x: 20, y: 10 }
             }
-        ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(101);
         
-        closeButton.on('pointerdown', () => {
-            this.closeOutfitSelection([overlay, title, closeButton, ...outfitElements]);
+        closeButton.on('pointerover', () => {
+            closeButton.setScale(1.1);
         });
         
-        outfitElements.push(overlay, title, closeButton);
+        closeButton.on('pointerout', () => {
+            closeButton.setScale(1.0);
+        });
+        
+        closeButton.on('pointerdown', () => {
+            this.closeOutfitSelection(outfitElements);
+        });
+        
+        outfitElements.push(closeButton);
+        
+        // Show unlock notifications for newly unlocked costumes
+        if (newUnlocks.length > 0) {
+            this.time.delayedCall(500, () => {
+                newUnlocks.forEach((costumeKey, index) => {
+                    this.time.delayedCall(index * 800, () => {
+                        this.showDragonUnlockNotification(costumeKey);
+                    });
+                });
+            });
+        }
     }
 
-    isOutfitUnlocked(outfitName) {
+    isDragonUnlocked(costumeKey) {
         const gameData = window.gameInstance.gameData;
         
-        switch (outfitName) {
-            case 'halloween':
+        switch (costumeKey) {
+            case 'default':
+                return true;
+            case 'fire':
+                // Unlock after completing level 1
+                return gameData.currentLevel >= 2;
+            case 'ice':
+                // Unlock after collecting 5 robot parts
+                return window.gameInstance.getTotalPartsCollected() >= 5;
+            case 'lightning':
                 // Unlock after completing level 2
-                return gameData.currentLevel > 2;
-            case 'christmas':
-                // Unlock after collecting 10 robot parts
-                return this.getTotalPartsCollected() >= 10;
-            case 'master':
+                return gameData.currentLevel >= 3;
+            case 'shadow':
                 // Unlock after completing the game
-                return gameData.currentLevel > 3;
+                return gameData.currentLevel >= 4;
             default:
                 return false;
         }
     }
 
+    getUnlockProgressText(costumeKey) {
+        const gameData = window.gameInstance.gameData;
+        const costume = window.gameInstance.getDragonCostume(costumeKey);
+        
+        if (this.isDragonUnlocked(costumeKey)) {
+            return '✓ Unlocked';
+        }
+        
+        switch (costumeKey) {
+            case 'fire':
+                return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
+            case 'ice':
+                const parts = window.gameInstance.getTotalPartsCollected();
+                return `🔒 Collect 5 parts (${parts}/5)`;
+            case 'lightning':
+                return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
+            case 'shadow':
+                return `🔒 Complete the game`;
+            default:
+                return costume.unlockCondition;
+        }
+    }
+
     getTotalPartsCollected() {
-        const parts = window.gameInstance.gameData.robotParts;
-        let total = 0;
-        Object.keys(parts).forEach(type => {
-            total += parts[type].length;
+        return window.gameInstance.getTotalPartsCollected();
+    }
+
+    showDragonUnlockNotification(costumeKey) {
+        const costume = window.gameInstance.getDragonCostume(costumeKey);
+        
+        // Create unlock notification
+        const notification = this.add.container(this.cameras.main.centerX, -200);
+        notification.setDepth(200);
+        
+        // Background
+        const bg = this.add.rectangle(0, 0, 500, 150, 0x000000, 0.9);
+        bg.setStrokeStyle(4, costume.primaryColor);
+        
+        // Dragon icon (large)
+        const icon = this.add.text(0, -30, costume.icon, {
+            fontSize: '48px'
+        }).setOrigin(0.5);
+        
+        // Title
+        const title = this.add.text(0, 20, '🐉 DRAGON UNLOCKED! 🐉', {
+            fontSize: '24px',
+            fill: '#ffd700',
+            fontWeight: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        
+        // Dragon name
+        const name = this.add.text(0, 50, costume.name, {
+            fontSize: '20px',
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+        
+        notification.add([bg, icon, title, name]);
+        
+        // Slide down animation
+        this.tweens.add({
+            targets: notification,
+            y: 150,
+            duration: 800,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Hold for a moment
+                this.time.delayedCall(2500, () => {
+                    // Slide up
+                    this.tweens.add({
+                        targets: notification,
+                        y: -200,
+                        duration: 600,
+                        ease: 'Back.easeIn',
+                        onComplete: () => notification.destroy()
+                    });
+                });
+            }
         });
-        return total;
+        
+        // Add particle effect
+        for (let i = 0; i < 30; i++) {
+            this.time.delayedCall(i * 50, () => {
+                const x = this.cameras.main.centerX + (Math.random() - 0.5) * 400;
+                const y = 150 + (Math.random() - 0.5) * 100;
+                
+                const particle = this.add.circle(x, y, 4, costume.effectColor, 1);
+                particle.setDepth(199);
+                
+                this.tweens.add({
+                    targets: particle,
+                    y: y + 50,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 1000,
+                    onComplete: () => particle.destroy()
+                });
+            });
+        }
+    }
+
+    showDragonEquippedNotification(costume) {
+        // Create equipped notification (simpler, shorter)
+        const notification = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY);
+        notification.setDepth(200);
+        notification.setAlpha(0);
+        
+        // Background
+        const bg = this.add.rectangle(0, 0, 400, 100, costume.primaryColor, 0.95);
+        bg.setStrokeStyle(3, costume.beltColor);
+        
+        // Icon
+        const icon = this.add.text(-100, 0, costume.icon, {
+            fontSize: '36px'
+        }).setOrigin(0.5);
+        
+        // Text
+        const text = this.add.text(20, 0, `${costume.name} Equipped!`, {
+            fontSize: '22px',
+            fill: '#ffffff',
+            fontWeight: 'bold'
+        }).setOrigin(0, 0.5);
+        
+        notification.add([bg, icon, text]);
+        
+        // Fade in, hold, fade out
+        this.tweens.add({
+            targets: notification,
+            alpha: 1,
+            duration: 300,
+            onComplete: () => {
+                this.time.delayedCall(1500, () => {
+                    this.tweens.add({
+                        targets: notification,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => notification.destroy()
+                    });
+                });
+            }
+        });
     }
 
     closeOutfitSelection(elements) {

@@ -40,9 +40,14 @@ The game is **already running** on your local server and ready to play!
 - **🏆 Win Condition**: Build the super robot to complete your martial arts journey
 
 ### Customization
-- **👕 Outfit System**: 4 unlockable outfits including holiday themes
-- **🎃 Progressive Unlocks**: Halloween (level 2), Christmas (10 parts), Master (completion)
-- **🎨 Visual Effects**: Dynamic particle systems, animations, and combat feedback
+- **🐉 Dragon Costume System**: 5 unique dragon-themed martial arts uniforms
+  - **Default Gi**: Traditional blue uniform (always unlocked)
+  - **Fire Dragon** 🔥: Red/orange flames (unlock: complete Level 1)
+  - **Ice Dragon** ❄️: Light blue/white winter (unlock: collect 5 parts)
+  - **Lightning Dragon** ⚡: Gold/purple electric (unlock: complete Level 2)
+  - **Shadow Dragon** 🌙: Dark purple/black stealth (unlock: complete game)
+- **🎨 Visual Effects**: Dragon-specific particle systems, multi-color costumes, animated effects
+- **💾 Persistence**: Costume selection and unlocks saved automatically
 
 ## 🛠️ Technical Architecture
 

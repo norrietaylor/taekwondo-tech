@@ -79,6 +79,31 @@ Your game is **already running** at: **http://localhost:8000**
   - Proper timing differences between death types
   - Visual differentiation between defeat methods
 
+### **🐉 Dragon Costume System**
+- [ ] **Costume Selection**
+  - Open CraftScene and access Change Outfit button
+  - Verify all 5 dragon costumes display correctly
+  - Default Gi is unlocked and equipped
+  - Locked costumes show lock icon and requirements
+  
+- [ ] **Unlock Conditions**
+  - Fire Dragon unlocks after completing Level 1
+  - Ice Dragon unlocks after collecting 5 robot parts
+  - Lightning Dragon unlocks after completing Level 2
+  - Shadow Dragon unlocks after completing the game
+  - Unlock notifications display with animation
+  
+- [ ] **Visual Effects**
+  - Player color changes when costume is equipped
+  - Jump effects match dragon costume colors
+  - Footstep particles use costume colors
+  - Belt color updates with costume
+  
+- [ ] **Persistence**
+  - Equipped costume persists after page reload
+  - Unlocked costumes remain unlocked
+  - Save/load maintains costume selection
+
 ### **📱 Mobile Testing**
 - [ ] **Touch Controls** (test on mobile device or browser dev tools)
   - Virtual joystick responds to touch
@@ -196,6 +221,18 @@ Our comprehensive automated test suite covers:
 - ✅ **Visual Regression**: Screenshot comparison for UI consistency
 - ✅ **Error Handling**: Console error monitoring during gameplay
 - ✅ **Stress Testing**: Rapid key presses and user interactions
+
+#### **Dragon Costume System Testing** (`dragon-costume.spec.js`)
+- ✅ **Costume Definitions**: Validates all 5 dragon costumes exist and data structure
+- ✅ **Unlock Conditions**: Tests Fire (Level 1), Ice (5 parts), Lightning (Level 2), Shadow (Complete)
+- ✅ **Costume Selection**: Verifies costume switching and locked costume prevention
+- ✅ **Save Persistence**: Confirms costume selection survives page reload
+- ✅ **UI Integration**: Tests CraftScene costume selection interface
+- ✅ **Progress Display**: Validates unlock progress text generation
+- ✅ **Multi-Unlock**: Tests multiple simultaneous unlocks
+- ✅ **Visual Effects**: Validates dragon effects are applied to player
+- ✅ **Data Validation**: Comprehensive costume data structure validation
+- ✅ **Duplicate Prevention**: Ensures costumes don't unlock multiple times
 
 ---
 

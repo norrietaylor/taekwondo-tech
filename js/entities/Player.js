@@ -101,8 +101,160 @@ class Player {
         this.eye2 = this.scene.add.circle(this.sprite.x + 6, this.sprite.y - 8, 2, 0xffffff);
         this.belt = this.scene.add.rectangle(this.sprite.x, this.sprite.y + 8, 32, 4, 0x8b4513);
         
+        // Create dragon wings
+        this.createDragonWings();
+        
         // Group visual elements
         this.visualGroup = this.scene.add.group([this.eye1, this.eye2, this.belt]);
+        
+        // Wing animation state
+        this.wingFlapTime = 0;
+        this.wingFlapSpeed = 0.1;
+    }
+
+    createDragonWings() {
+        const costume = this.getDragonCostume();
+        
+        console.log('🦅 Creating wings for costume:', costume.name, 'hasWings:', costume.hasWings);
+        
+        // Create left wing
+        this.leftWing = this.scene.add.container(this.sprite.x, this.sprite.y);
+        this.leftWing.setDepth(50); // Higher depth to ensure visibility
+        
+        // Create right wing  
+        this.rightWing = this.scene.add.container(this.sprite.x, this.sprite.y);
+        this.rightWing.setDepth(50); // Higher depth to ensure visibility
+        
+        // Only create wing graphics if costume has wings
+        if (costume.hasWings) {
+            console.log('🦅 Adding wing segments with colors:', costume.wingColor.toString(16), costume.wingTipColor.toString(16));
+            // Left wing segments (3 segments for depth)
+            const leftWingSegments = [];
+            for (let i = 0; i < 3; i++) {
+                const segment = this.scene.add.triangle(
+                    0, 0,
+                    0, -10 - (i * 5),   // top point
+                    -15 - (i * 5), 5,   // bottom left
+                    -5 - (i * 3), 10,   // bottom right
+                    i === 2 ? costume.wingTipColor : costume.wingColor,
+                    1.0  // Full opacity for visibility
+                );
+                segment.setStrokeStyle(2, 0x000000, 1.0);  // Black border for visibility
+                leftWingSegments.push(segment);
+                this.leftWing.add(segment);
+                console.log(`  Left wing segment ${i} created at depth`, segment.depth);
+            }
+            
+            // Right wing segments (3 segments for depth)
+            const rightWingSegments = [];
+            for (let i = 0; i < 3; i++) {
+                const segment = this.scene.add.triangle(
+                    0, 0,
+                    0, -10 - (i * 5),   // top point
+                    15 + (i * 5), 5,    // bottom right
+                    5 + (i * 3), 10,    // bottom left
+                    i === 2 ? costume.wingTipColor : costume.wingColor,
+                    1.0  // Full opacity for visibility
+                );
+                segment.setStrokeStyle(2, 0x000000, 1.0);  // Black border for visibility
+                rightWingSegments.push(segment);
+                this.rightWing.add(segment);
+                console.log(`  Right wing segment ${i} created at depth`, segment.depth);
+            }
+            
+            this.leftWing.setVisible(true);
+            this.rightWing.setVisible(true);
+            console.log('✅ Wings created and visible!');
+        } else {
+            this.leftWing.setVisible(false);
+            this.rightWing.setVisible(false);
+            console.log('❌ No wings for this costume');
+        }
+    }
+
+    updateWings() {
+        if (!this.leftWing || !this.rightWing) {
+            console.warn('⚠️ Wings not created yet');
+            return;
+        }
+        
+        const costume = this.getDragonCostume();
+        
+        // Hide wings if costume doesn't have them
+        if (!costume.hasWings) {
+            this.leftWing.setVisible(false);
+            this.rightWing.setVisible(false);
+            return;
+        }
+        
+        this.leftWing.setVisible(true);
+        this.rightWing.setVisible(true);
+        
+        // Update wing positions
+        const wingOffsetX = this.facingRight ? -5 : 5;
+        const wingOffsetY = 0;
+        
+        this.leftWing.x = this.sprite.x + wingOffsetX;
+        this.leftWing.y = this.sprite.y + wingOffsetY;
+        this.rightWing.x = this.sprite.x + wingOffsetX;
+        this.rightWing.y = this.sprite.y + wingOffsetY;
+        
+        // Update wing animation based on movement state
+        this.wingFlapTime += this.wingFlapSpeed;
+        
+        let leftAngle = 0;
+        let rightAngle = 0;
+        
+        if (!this.isGrounded) {
+            // In air - flapping animation
+            const flapIntensity = Math.sin(this.wingFlapTime * 10) * 0.3;
+            
+            if (this.body.velocity.y < 0) {
+                // Jumping up - wings spread wide
+                leftAngle = -0.6 + flapIntensity;
+                rightAngle = 0.6 - flapIntensity;
+            } else {
+                // Falling - wings extended
+                leftAngle = -0.4 + flapIntensity;
+                rightAngle = 0.4 - flapIntensity;
+            }
+        } else if (Math.abs(this.body.velocity.x) > 50) {
+            // Running - gentle flutter
+            const flutter = Math.sin(this.wingFlapTime * 8) * 0.15;
+            leftAngle = -0.2 + flutter;
+            rightAngle = 0.2 - flutter;
+        } else {
+            // Idle - subtle breathing motion
+            const breathe = Math.sin(this.wingFlapTime * 3) * 0.1;
+            leftAngle = -0.15 + breathe;
+            rightAngle = 0.15 - breathe;
+        }
+        
+        // Apply angles
+        this.leftWing.setRotation(leftAngle);
+        this.rightWing.setRotation(rightAngle);
+        
+        // Flip wings based on facing direction
+        if (!this.facingRight) {
+            this.leftWing.setScale(-1, 1);
+            this.rightWing.setScale(-1, 1);
+        } else {
+            this.leftWing.setScale(1, 1);
+            this.rightWing.setScale(1, 1);
+        }
+    }
+
+    recreateWings() {
+        // Destroy old wings
+        if (this.leftWing) {
+            this.leftWing.destroy();
+        }
+        if (this.rightWing) {
+            this.rightWing.destroy();
+        }
+        
+        // Create new wings with current costume
+        this.createDragonWings();
     }
 
     setupInputHandlers() {
@@ -126,6 +278,9 @@ class Player {
         
         // Update visual elements
         this.updateVisuals();
+        
+        // Update dragon wings
+        this.updateWings();
         
         // Update grounded state
         this.updateGroundedState();
@@ -334,7 +489,8 @@ class Player {
     }
 
     createJumpEffect() {
-        const effect = this.scene.add.circle(this.sprite.x, this.sprite.y + 24, 16, 0x87ceeb, 0.6);
+        const costume = this.getDragonCostume();
+        const effect = this.scene.add.circle(this.sprite.x, this.sprite.y + 24, 16, costume.effectColor, 0.6);
         this.scene.tweens.add({
             targets: effect,
             scaleX: 2,
@@ -346,8 +502,9 @@ class Player {
     }
 
     createDoubleJumpEffect() {
-        // Create a more distinctive effect for double jump
-        const effect1 = this.scene.add.circle(this.sprite.x, this.sprite.y, 12, 0xffd700, 0.8);
+        // Create a more distinctive effect for double jump with dragon colors
+        const costume = this.getDragonCostume();
+        const effect1 = this.scene.add.circle(this.sprite.x, this.sprite.y, 12, costume.effectColor, 0.8);
         const effect2 = this.scene.add.circle(this.sprite.x, this.sprite.y, 8, 0xffffff, 0.9);
         
         this.scene.tweens.add({
@@ -362,13 +519,13 @@ class Player {
             }
         });
         
-        // Add some sparkle particles
+        // Add some dragon-colored sparkle particles
         for (let i = 0; i < 6; i++) {
             const sparkle = this.scene.add.circle(
                 this.sprite.x + (Math.random() - 0.5) * 30,
                 this.sprite.y + (Math.random() - 0.5) * 30,
                 2,
-                0xffd700,
+                costume.effectColor,
                 0.8
             );
             
@@ -411,12 +568,13 @@ class Player {
     }
 
     createFootstepEffect() {
+        const costume = this.getDragonCostume();
         const effect = this.scene.add.circle(
             this.sprite.x + (Math.random() - 0.5) * 10, 
             this.sprite.y + 24, 
             3, 
-            0xcccccc, 
-            0.5
+            costume.effectColor, 
+            0.3
         );
         
         this.scene.tweens.add({
@@ -429,11 +587,14 @@ class Player {
     }
 
     updateVisuals() {
-        // Update facing direction
+        // Get dragon costume colors
+        const costume = this.getDragonCostume();
+        
+        // Update facing direction with dragon colors
         if (this.facingRight) {
-            this.sprite.setFillStyle(0x4a9eff);
+            this.sprite.setFillStyle(costume.primaryColor);
         } else {
-            this.sprite.setFillStyle(0x3a7eff);
+            this.sprite.setFillStyle(costume.secondaryColor);
         }
         
         // Update visual elements positions
@@ -761,25 +922,62 @@ class Player {
 
     getOutfitColor() {
         const currentOutfit = window.gameInstance.gameData.outfits.current;
-        const outfitColors = {
-            'default': 0x4a9eff,
-            'halloween': 0xff4500,
-            'christmas': 0x228b22,
-            'master': 0xffd700
-        };
-        
-        return outfitColors[currentOutfit] || outfitColors.default;
+        const costume = window.gameInstance.getDragonCostume(currentOutfit);
+        return costume.primaryColor;
+    }
+
+    getDragonCostume() {
+        const currentOutfit = window.gameInstance.gameData.outfits.current;
+        return window.gameInstance.getDragonCostume(currentOutfit);
     }
 
     updateOutfitColor() {
-        // Update sprite color based on current outfit
-        const color = this.getOutfitColor();
-        this.sprite.setFillStyle(color);
+        // Update sprite color based on current dragon costume
+        const costume = this.getDragonCostume();
+        this.sprite.setFillStyle(costume.primaryColor);
+        
+        // Update belt color to match dragon costume
+        if (this.belt) {
+            this.belt.setFillStyle(costume.beltColor);
+        }
+        
+        // Recreate wings with new costume colors
+        this.recreateWings();
+    }
+
+    createDragonAura() {
+        // Create dragon-specific aura effect
+        const costume = this.getDragonCostume();
+        
+        const aura = this.scene.add.circle(
+            this.sprite.x,
+            this.sprite.y,
+            40,
+            costume.effectColor,
+            0.2
+        );
+        
+        aura.setDepth(5);
+        
+        this.scene.tweens.add({
+            targets: aura,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => aura.destroy()
+        });
     }
 
     destroy() {
         if (this.visualGroup) {
             this.visualGroup.destroy();
+        }
+        if (this.leftWing) {
+            this.leftWing.destroy();
+        }
+        if (this.rightWing) {
+            this.rightWing.destroy();
         }
         if (this.sprite) {
             this.sprite.destroy();
