@@ -1,6 +1,84 @@
 // Main Game Configuration
 class TaekwondoRobotBuilder {
     constructor() {
+        // Dragon Costume Definitions
+        this.dragonCostumes = {
+            'default': {
+                name: 'Default Gi',
+                icon: '🥋',
+                primaryColor: 0x4a9eff,
+                secondaryColor: 0x3a7eff,
+                beltColor: 0x8b4513,
+                description: 'Traditional martial arts uniform',
+                unlockCondition: 'Always available',
+                effectColor: 0x87ceeb,
+                unlocked: true,
+                hasWings: false,
+                wingColor: null,
+                wingStyle: 'none'
+            },
+            'fire': {
+                name: 'Fire Dragon',
+                icon: '🔥',
+                primaryColor: 0xff4500,
+                secondaryColor: 0xff6347,
+                beltColor: 0xff0000,
+                description: 'Harness the power of flames',
+                unlockCondition: 'Complete Level 1',
+                effectColor: 0xff8c00,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xff6347,
+                wingStyle: 'flame',
+                wingTipColor: 0xff0000
+            },
+            'ice': {
+                name: 'Ice Dragon',
+                icon: '❄️',
+                primaryColor: 0x87ceeb,
+                secondaryColor: 0xb0e0e6,
+                beltColor: 0x4682b4,
+                description: 'Channel the cold of winter',
+                unlockCondition: 'Collect 5 robot parts',
+                effectColor: 0xadd8e6,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xb0e0e6,
+                wingStyle: 'crystal',
+                wingTipColor: 0xffffff
+            },
+            'lightning': {
+                name: 'Lightning Dragon',
+                icon: '⚡',
+                primaryColor: 0xffd700,
+                secondaryColor: 0x9370db,
+                beltColor: 0x8b008b,
+                description: 'Strike with electric fury',
+                unlockCondition: 'Complete Level 2',
+                effectColor: 0xffff00,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xffd700,
+                wingStyle: 'electric',
+                wingTipColor: 0x9370db
+            },
+            'shadow': {
+                name: 'Shadow Dragon',
+                icon: '🌙',
+                primaryColor: 0x4b0082,
+                secondaryColor: 0x2f1b3c,
+                beltColor: 0x000000,
+                description: 'Master of darkness and stealth',
+                unlockCondition: 'Complete the game',
+                effectColor: 0x9400d3,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x2f1b3c,
+                wingStyle: 'shadow',
+                wingTipColor: 0x000000
+            }
+        };
+
         this.config = {
             type: Phaser.AUTO,
             width: 1024,
@@ -135,8 +213,58 @@ class TaekwondoRobotBuilder {
         if (!this.gameData.outfits.unlocked.includes(outfitName)) {
             this.gameData.outfits.unlocked.push(outfitName);
             this.saveGameData();
-            console.log(`Unlocked outfit: ${outfitName}`);
+            console.log(`🐉 Unlocked outfit: ${outfitName}`);
+            return true; // Return true if newly unlocked
         }
+        return false;
+    }
+
+    // Check and unlock dragon costumes based on current progress
+    checkDragonUnlocks() {
+        const newUnlocks = [];
+        
+        // Fire Dragon - Complete Level 1
+        if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('fire')) {
+            if (this.unlockOutfit('fire')) {
+                newUnlocks.push('fire');
+            }
+        }
+        
+        // Ice Dragon - Collect 5 robot parts
+        const totalParts = this.getTotalPartsCollected();
+        if (totalParts >= 5 && !this.gameData.outfits.unlocked.includes('ice')) {
+            if (this.unlockOutfit('ice')) {
+                newUnlocks.push('ice');
+            }
+        }
+        
+        // Lightning Dragon - Complete Level 2
+        if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('lightning')) {
+            if (this.unlockOutfit('lightning')) {
+                newUnlocks.push('lightning');
+            }
+        }
+        
+        // Shadow Dragon - Complete the game (level 4 or higher)
+        if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('shadow')) {
+            if (this.unlockOutfit('shadow')) {
+                newUnlocks.push('shadow');
+            }
+        }
+        
+        return newUnlocks;
+    }
+
+    getTotalPartsCollected() {
+        let total = 0;
+        Object.keys(this.gameData.robotParts).forEach(type => {
+            total += this.gameData.robotParts[type].length;
+        });
+        return total;
+    }
+
+    getDragonCostume(costumeKey) {
+        return this.dragonCostumes[costumeKey] || this.dragonCostumes['default'];
     }
 
     setOutfit(outfitName) {

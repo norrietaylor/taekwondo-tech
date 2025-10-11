@@ -50,9 +50,15 @@ A side-scrolling platformer game where a taekwondo expert collects robot parts t
 - **Combo Scoring**: Consecutive enemy stomps provide increasing point bonuses (100-500 points)
 
 ### **Progression & Customization**
-- **Outfit Changes**: Between levels only
-- **Holiday Themes**: Halloween, Christmas outfits
-- **Save System**: Local browser storage
+- **Dragon Costume System**: 5 unique dragon-themed martial arts uniforms
+  - **Default Gi**: Traditional blue uniform (always unlocked)
+  - **Fire Dragon**: Red/orange flames costume (unlock: complete Level 1)
+  - **Ice Dragon**: Light blue/white winter costume (unlock: collect 5 robot parts)
+  - **Lightning Dragon**: Gold/purple electric costume (unlock: complete Level 2)
+  - **Shadow Dragon**: Dark purple/black stealth costume (unlock: complete game)
+- **Outfit Changes**: Between levels only in Craft Scene
+- **Visual Effects**: Each dragon has unique particle effects and color schemes
+- **Save System**: Local browser storage with outfit persistence
 - **Scoring**: Points for coins (10 pts) and robot parts (50-200 pts)
 
 ## **📋 POC - COMPLETED**
@@ -203,7 +209,7 @@ taekwando-tech/
 
 ### **Automated Testing Framework**
 - **Tool**: Playwright for cross-browser automation
-- **Coverage**: 20+ test cases across 2 test files
+- **Coverage**: 40+ test cases across 5 test files
 - **Browsers**: Chrome, Firefox, Safari, Mobile Chrome, Mobile Safari
 
 ### **Test Categories**
@@ -223,6 +229,14 @@ taekwando-tech/
    - Mobile touch controls
    - Performance monitoring
    - Error detection during gameplay
+
+3. **Dragon Costume System** (`dragon-costume.spec.js`)
+   - Dragon costume definitions and data validation
+   - Unlock condition testing (level completion, parts collection)
+   - Costume selection and persistence
+   - Visual effects validation
+   - UI integration in CraftScene
+   - Multi-costume unlock scenarios
 
 ### **Running Tests**
 ```bash
