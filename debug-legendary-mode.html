@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- iOS Web App Capable -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Taekwondo Debug">
+    
+    <!-- Prevent iOS Safari from auto-zooming -->
+    <meta name="format-detection" content="telephone=no">
+    
+    <title>Debug - Legendary Mode Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border: 2px solid #ffd700;
+            border-radius: 8px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            background: #4a9eff;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #3a7eff;
+        }
+        button.legendary {
+            background: linear-gradient(45deg, #ff4500, #ffd700, #87ceeb, #4b0082);
+            font-weight: bold;
+        }
+        .info {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(74, 158, 255, 0.2);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug-panel">
+        <h2 style="margin-top:0; color: #ffd700;">🌟 Legendary Mode Debug</h2>
+        
+        <div class="info" id="status">
+            Status: Loading...
+        </div>
+        
+        <div class="info" id="parts-status">
+            Robot Parts: 0/5 types
+        </div>
+        
+        <div class="info" id="outfit-status">
+            Current Outfit: default
+        </div>
+        
+        <button onclick="collectAllParts()">
+            🤖 Collect All Robot Parts
+        </button>
+        
+        <button onclick="equipLegendary()" class="legendary">
+            ⚡ Equip Legendary Mode
+        </button>
+        
+        <button onclick="testFireballs()">
+            🔥 Test Fireballs (Auto-fire)
+        </button>
+        
+        <button onclick="restartGame()">
+            🔄 Restart Game
+        </button>
+        
+        <div style="margin-top: 15px; font-size: 12px; color: #888;">
+            <strong>Controls:</strong><br>
+            WASD/Arrows: Move<br>
+            Space: Jump<br>
+            J/Z: Punch (Fireball)<br>
+            K/X: Kick (Fireball)
+        </div>
+    </div>
+
+    <!-- Load game files -->
+    <script src="js/utils/SaveSystem.js"></script>
+    <script src="js/utils/Controls.js"></script>
+    <script src="js/entities/Player.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/entities/Collectible.js"></script>
+    <script src="js/scenes/MenuScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <script src="js/scenes/CraftScene.js"></script>
+    <script src="js/game.js"></script>
+
+    <script>
+        let autoFireInterval = null;
+
+        function updateStatus() {
+            if (!window.gameInstance) return;
+            
+            const parts = ['head', 'body', 'arms', 'legs', 'powerCore'];
+            const collectedTypes = parts.filter(type => 
+                window.gameInstance.gameData.robotParts[type]?.length > 0
+            ).length;
+            
+            const isLegendaryUnlocked = window.gameInstance.gameData.outfits.unlocked.includes('legendary');
+            const currentOutfit = window.gameInstance.gameData.outfits.current;
+            
+            document.getElementById('status').innerHTML = `
+                Status: ${isLegendaryUnlocked ? '✅ Legendary UNLOCKED!' : '❌ Not unlocked yet'}
+            `;
+            
+            document.getElementById('parts-status').innerHTML = `
+                Robot Parts: ${collectedTypes}/5 types collected
+            `;
+            
+            document.getElementById('outfit-status').innerHTML = `
+                Current Outfit: <strong>${currentOutfit}</strong>
+            `;
+        }
+
+        function collectAllParts() {
+            console.log('🤖 Collecting all robot parts...');
+            window.gameInstance.addRobotPart('head', 'epic');
+            window.gameInstance.addRobotPart('body', 'rare');
+            window.gameInstance.addRobotPart('arms', 'common');
+            window.gameInstance.addRobotPart('legs', 'rare');
+            window.gameInstance.addRobotPart('powerCore', 'epic');
+            
+            const newUnlocks = window.gameInstance.checkDragonUnlocks();
+            console.log('✨ New unlocks:', newUnlocks);
+            
+            updateStatus();
+            
+            if (newUnlocks.includes('legendary')) {
+                alert('🌟 LEGENDARY MODE UNLOCKED!\n\nAll 5 robot part types collected.\nClick "Equip Legendary Mode" to activate!');
+            }
+        }
+
+        function equipLegendary() {
+            if (!window.gameInstance.gameData.outfits.unlocked.includes('legendary')) {
+                alert('❌ Legendary Mode not unlocked yet!\n\nCollect all 5 robot part types first.');
+                return;
+            }
+            
+            console.log('⚡ Equipping Legendary Mode...');
+            console.log('Current outfit BEFORE:', window.gameInstance.gameData.outfits.current);
+            
+            // setOutfit now handles scene restart automatically
+            window.gameInstance.setOutfit('legendary');
+            
+            console.log('Current outfit AFTER:', window.gameInstance.gameData.outfits.current);
+            console.log('Is legendary?', window.gameInstance.getDragonCostume('legendary').isLegendary);
+            
+            updateStatus();
+            
+            // If GameScene is not running, start it
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (!gameScene || !gameScene.scene.isActive()) {
+                console.log('🎮 Starting GameScene...');
+                window.gameInstance.game.scene.start('GameScene');
+            }
+            
+            setTimeout(() => {
+                const player = window.gameInstance.game.scene.getScene('GameScene')?.player;
+                if (player) {
+                    const costume = player.getDragonCostume();
+                    console.log('🎨 Player costume:', costume.name, 'isLegendary:', costume.isLegendary);
+                }
+            }, 500);
+        }
+
+        function testFireballs() {
+            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+            if (!gameScene || !gameScene.player) {
+                alert('❌ Start the game first!');
+                return;
+            }
+            
+            const costume = gameScene.player.getDragonCostume();
+            if (!costume.isLegendary) {
+                alert('❌ Equip Legendary Mode first to use fireballs!');
+                return;
+            }
+            
+            // Auto-fire fireballs
+            if (autoFireInterval) {
+                clearInterval(autoFireInterval);
+                autoFireInterval = null;
+                console.log('🔥 Auto-fire stopped');
+            } else {
+                console.log('🔥 Auto-firing fireballs...');
+                let count = 0;
+                autoFireInterval = setInterval(() => {
+                    if (gameScene.player && count < 10) {
+                        // Simulate punch button press
+                        gameScene.player.shootFireball();
+                        count++;
+                    } else {
+                        clearInterval(autoFireInterval);
+                        autoFireInterval = null;
+                        console.log('🔥 Auto-fire completed');
+                    }
+                }, 500);
+            }
+        }
+
+        function restartGame() {
+            console.log('🔄 Restarting game...');
+            window.location.reload();
+        }
+
+        // Update status every second
+        setInterval(updateStatus, 1000);
+        
+        // Initial update after game loads
+        setTimeout(() => {
+            updateStatus();
+            console.log('📊 Debug panel initialized');
+        }, 2000);
+    </script>
+</body>
+</html>
+

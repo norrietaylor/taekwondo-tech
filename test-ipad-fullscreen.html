@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- iOS Web App Capable -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fullscreen Test">
+    
+    <!-- Prevent iOS Safari from auto-zooming -->
+    <meta name="format-detection" content="telephone=no">
+    
+    <title>iPad Fullscreen Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        #test-panel {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border: 2px solid #4a9eff;
+            border-radius: 8px;
+        }
+        
+        button {
+            margin: 10px 5px;
+            padding: 15px 25px;
+            background: #4a9eff;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            touch-action: manipulation;
+        }
+        
+        button:hover {
+            background: #3a7eff;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .status {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(74, 158, 255, 0.2);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background: rgba(0, 255, 0, 0.2);
+        }
+        
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+        }
+        
+        #test-box {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(45deg, #ff4500, #ffd700);
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        #test-box:hover {
+            transform: scale(1.05);
+        }
+        
+        #test-box:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="test-panel">
+        <h1 style="margin-top:0;">🎮 iPad Fullscreen Test</h1>
+        
+        <div class="status" id="device-info">
+            Loading device info...
+        </div>
+        
+        <div class="status" id="fullscreen-status">
+            Fullscreen Status: Not active
+        </div>
+        
+        <h2>Test Buttons:</h2>
+        
+        <button onclick="testFullscreen()">
+            🖥️ Toggle Fullscreen
+        </button>
+        
+        <button onclick="testStandardFullscreen()">
+            📺 Try Standard API
+        </button>
+        
+        <button onclick="testIOSFullscreen()">
+            📱 Try iOS Mode
+        </button>
+        
+        <button onclick="resetView()">
+            🔄 Reset View
+        </button>
+        
+        <h2>Interactive Test:</h2>
+        <p>Click/tap the box below to verify touch/click detection works in fullscreen:</p>
+        
+        <div id="test-box" onclick="handleBoxClick()">
+            Tap Me!<br>
+            <span style="font-size: 14px;" id="click-count">Clicks: 0</span>
+        </div>
+        
+        <div class="status" id="interaction-log">
+            Waiting for interactions...
+        </div>
+        
+        <h2>Instructions:</h2>
+        <ul style="font-size: 14px; line-height: 1.6;">
+            <li>On iPad, the standard fullscreen API doesn't work for canvas elements</li>
+            <li>The "iOS Mode" uses viewport manipulation instead</li>
+            <li>Test all buttons and verify the tap box works in fullscreen</li>
+            <li>If buttons don't work, the coordinate system needs adjustment</li>
+        </ul>
+    </div>
+
+    <script>
+        let clickCount = 0;
+        let isIOSFullscreen = false;
+        
+        // Detect device
+        function detectDevice() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isIPad = /iPad/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            
+            const info = document.getElementById('device-info');
+            info.innerHTML = `
+                <strong>Device Detection:</strong><br>
+                User Agent: ${navigator.userAgent.substring(0, 50)}...<br>
+                Platform: ${navigator.platform}<br>
+                Touch Points: ${navigator.maxTouchPoints}<br>
+                Is iOS: ${isIOS ? '✅ Yes' : '❌ No'}<br>
+                Is iPad: ${isIPad ? '✅ Yes' : '❌ No'}<br>
+                Screen Size: ${window.screen.width} x ${window.screen.height}<br>
+                Window Size: ${window.innerWidth} x ${window.innerHeight}
+            `;
+        }
+        
+        function updateStatus() {
+            const status = document.getElementById('fullscreen-status');
+            const isFS = !!(document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.mozFullScreenElement ||
+                           isIOSFullscreen);
+            
+            status.innerHTML = `
+                Fullscreen Status: ${isFS ? '✅ Active' : '❌ Not active'}<br>
+                iOS Fullscreen: ${isIOSFullscreen ? '✅' : '❌'}<br>
+                Standard Fullscreen: ${document.fullscreenElement ? '✅' : '❌'}<br>
+                Webkit Fullscreen: ${document.webkitFullscreenElement ? '✅' : '❌'}
+            `;
+            status.className = isFS ? 'status success' : 'status';
+        }
+        
+        function testFullscreen() {
+            if (isIOSFullscreen || document.fullscreenElement) {
+                exitFullscreen();
+            } else {
+                enterFullscreen();
+            }
+        }
+        
+        function enterFullscreen() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            
+            if (isIOS) {
+                testIOSFullscreen();
+            } else {
+                testStandardFullscreen();
+            }
+        }
+        
+        function testStandardFullscreen() {
+            const elem = document.documentElement;
+            
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    logInteraction('Standard fullscreen failed: ' + err.message);
+                });
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                elem.mozRequestFullScreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            } else {
+                logInteraction('❌ Standard fullscreen API not supported');
+            }
+        }
+        
+        function testIOSFullscreen() {
+            if (isIOSFullscreen) {
+                exitIOSFullscreen();
+                return;
+            }
+            
+            console.log('Entering iOS fullscreen mode');
+            logInteraction('✅ Entering iOS fullscreen mode');
+            
+            // Hide address bar
+            window.scrollTo(0, 1);
+            
+            // Update body styles
+            document.body.style.margin = '0';
+            document.body.style.padding = '0';
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.body.style.height = '100%';
+            document.body.style.top = '0';
+            document.body.style.left = '0';
+            
+            isIOSFullscreen = true;
+            updateStatus();
+            
+            logInteraction('✅ iOS fullscreen active. Try clicking the test box!');
+        }
+        
+        function exitIOSFullscreen() {
+            console.log('Exiting iOS fullscreen mode');
+            logInteraction('Exiting iOS fullscreen mode');
+            
+            // Reset body styles
+            document.body.style.margin = '';
+            document.body.style.padding = '';
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.height = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            
+            isIOSFullscreen = false;
+            updateStatus();
+        }
+        
+        function exitFullscreen() {
+            if (isIOSFullscreen) {
+                exitIOSFullscreen();
+                return;
+            }
+            
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+        
+        function resetView() {
+            exitFullscreen();
+            clickCount = 0;
+            document.getElementById('click-count').textContent = 'Clicks: 0';
+            logInteraction('View reset');
+        }
+        
+        function handleBoxClick() {
+            clickCount++;
+            document.getElementById('click-count').textContent = `Clicks: ${clickCount}`;
+            logInteraction(`✅ Box clicked! (Total: ${clickCount})`);
+            
+            // Visual feedback
+            const box = document.getElementById('test-box');
+            box.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                box.style.transform = '';
+            }, 100);
+        }
+        
+        function logInteraction(message) {
+            const log = document.getElementById('interaction-log');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML = `<strong>[${timestamp}]</strong> ${message}<br>` + log.innerHTML;
+        }
+        
+        // Event listeners
+        document.addEventListener('fullscreenchange', updateStatus);
+        document.addEventListener('webkitfullscreenchange', updateStatus);
+        document.addEventListener('mozfullscreenchange', updateStatus);
+        
+        window.addEventListener('resize', () => {
+            logInteraction(`Window resized: ${window.innerWidth}x${window.innerHeight}`);
+            detectDevice();
+            updateStatus();
+        });
+        
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                logInteraction('Orientation changed');
+                detectDevice();
+                updateStatus();
+            }, 300);
+        });
+        
+        // Initialize
+        detectDevice();
+        updateStatus();
+        logInteraction('Test page loaded. Ready for testing!');
+    </script>
+</body>
+</html>
+
