@@ -5,25 +5,79 @@ class Player {
             console.log('Player constructor started at:', x, y);
             this.scene = scene;
             
-            // Check if controls exist
+            // Check if controls exist - wait a moment for them to initialize if needed
             if (!window.gameInstance || !window.gameInstance.controls) {
-                console.error('No controls found, creating fallback');
+                console.warn('⚠️ Controls not ready yet, will retry...');
                 this.controls = null;
+                // Set up a timer to retry getting controls
+                this.controlsRetryTimer = 0;
+                this.controlsRetryAttempts = 0;
             } else {
                 this.controls = window.gameInstance.controls;
                 console.log('✅ Controls assigned');
             }
         
         // Create player sprite with outfit colors
-        const outfitColor = this.getOutfitColor();
-        this.sprite = scene.add.rectangle(x, y, 32, 48, outfitColor);
-        this.sprite.setStrokeStyle(2, 0x2c5f5d);
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        const costume = window.gameInstance?.getDragonCostume(currentOutfit);
+        const isLegendary = costume?.isLegendary || false;
+        const spriteSize = isLegendary ? { width: 80, height: 120 } : { width: 32, height: 48 }; // 2.5x instead of 5x
         
-        // Physics body
-        scene.physics.add.existing(this.sprite);
-        this.body = this.sprite.body;
-        this.body.setCollideWorldBounds(true);
-        this.body.setSize(28, 44);
+        console.log('🎨 Creating player sprite:', {
+            currentOutfit,
+            isLegendary,
+            costumeName: costume?.name,
+            spriteSize
+        });
+        
+        // Create main sprite container if legendary, otherwise simple rectangle
+        if (isLegendary) {
+            console.log('🌟 Creating LEGENDARY MODE sprite (5x size with all dragon colors)!');
+            this.sprite = scene.add.container(x, y);
+            this.createLegendarySprite();
+            scene.physics.add.existing(this.sprite);
+            this.body = this.sprite.body;
+            
+            // Configure physics body for container
+            this.body.setCollideWorldBounds(true);
+            const bodyWidth = spriteSize.width * 0.65;
+            const bodyHeight = spriteSize.height * 0.85;
+            this.body.setSize(bodyWidth, bodyHeight);
+            this.body.setOffset(-bodyWidth/2, -bodyHeight/2 + 2); // Center and lift slightly to prevent jitter
+            
+            // Enable physics and set mass - prevent vibration
+            this.body.setAllowGravity(true);
+            this.body.setGravityY(0); // Use world gravity
+            this.body.setMass(1);
+            this.body.enable = true;
+            this.body.setMaxVelocity(500, 1000); // Limit velocity to prevent jitter
+            this.body.useDamping = true;
+            this.body.setDrag(0.05); // Add tiny drag to stabilize
+            
+            // Set player depth higher than wings (wings will be at 49)
+            this.sprite.setDepth(50);
+            
+            console.log('✅ Legendary sprite created! Size:', spriteSize.width, 'x', spriteSize.height);
+            console.log('   Body size:', bodyWidth, 'x', bodyHeight, 'offset:', -bodyWidth/2, -bodyHeight/2);
+            console.log('   Body enabled:', this.body.enable);
+            console.log('   Body type:', this.sprite.body ? this.sprite.body.type : 'NO BODY');
+            console.log('   Gravity enabled:', this.body.allowGravity);
+        } else {
+            const outfitColor = this.getOutfitColor();
+            this.sprite = scene.add.rectangle(x, y, spriteSize.width, spriteSize.height, outfitColor);
+            this.sprite.setStrokeStyle(2, 0x2c5f5d);
+            
+            // Physics body
+            scene.physics.add.existing(this.sprite);
+            this.body = this.sprite.body;
+            this.body.setCollideWorldBounds(true);
+            this.body.setSize(28, 44);
+            
+            // Set player depth higher than wings (wings will be at 49)
+            this.sprite.setDepth(50);
+            
+            console.log('✅ Normal sprite created for costume:', costume?.name);
+        }
         
         // Player properties
         this.speed = 200;
@@ -51,6 +105,13 @@ class Player {
         this.punchRange = 30;
         this.comboCooldown = 0;
         this.comboCount = 0;
+        
+        // Fireball properties (for legendary mode)
+        this.fireballShotCount = 0;
+        this.fireballCooldownTime = 0;
+        this.fireballMaxShots = 3;
+        this.fireballGlobalCooldown = 2000; // 2 seconds after 3 shots
+        this.fireballs = [];
         
         // Power-up states
         this.powerUps = {
@@ -96,75 +157,201 @@ class Player {
     }
 
     createVisualElements() {
-        // Add simple face/details to the rectangle
-        this.eye1 = this.scene.add.circle(this.sprite.x - 6, this.sprite.y - 8, 2, 0xffffff);
-        this.eye2 = this.scene.add.circle(this.sprite.x + 6, this.sprite.y - 8, 2, 0xffffff);
-        this.belt = this.scene.add.rectangle(this.sprite.x, this.sprite.y + 8, 32, 4, 0x8b4513);
+        const costume = this.getDragonCostume();
+        const isLegendary = costume.isLegendary || false;
+        
+        if (isLegendary) {
+            // For legendary mode, visual elements are part of the sprite container
+            // Eyes and belt are already created in createLegendarySprite
+            this.visualGroup = this.scene.add.group([]);
+        } else {
+            // Add simple face/details to the rectangle
+            this.eye1 = this.scene.add.circle(this.sprite.x - 6, this.sprite.y - 8, 2, 0xffffff);
+            this.eye2 = this.scene.add.circle(this.sprite.x + 6, this.sprite.y - 8, 2, 0xffffff);
+            this.belt = this.scene.add.rectangle(this.sprite.x, this.sprite.y + 8, 32, 4, 0x8b4513);
+            
+            // Set depth for visual elements to be above player sprite
+            this.eye1.setDepth(51);
+            this.eye2.setDepth(51);
+            this.belt.setDepth(51);
+            
+            // Group visual elements
+            this.visualGroup = this.scene.add.group([this.eye1, this.eye2, this.belt]);
+        }
         
         // Create dragon wings
         this.createDragonWings();
         
-        // Group visual elements
-        this.visualGroup = this.scene.add.group([this.eye1, this.eye2, this.belt]);
-        
         // Wing animation state
         this.wingFlapTime = 0;
-        this.wingFlapSpeed = 0.1;
+        this.wingFlapSpeed = isLegendary ? 0.05 : 0.1; // Legendary wings flap at half speed
+    }
+
+    createLegendarySprite() {
+        // Get costume data for all 5 dragons
+        const costume = this.getDragonCostume();
+        const mapping = costume.bodyPartMapping;
+        
+        // Get colors for each body part from their respective costumes
+        const defaultCostume = window.gameInstance.getDragonCostume(mapping.body);
+        const fireCostume = window.gameInstance.getDragonCostume(mapping.rightLeg);
+        const iceCostume = window.gameInstance.getDragonCostume(mapping.leftLeg);
+        const lightningSostume = window.gameInstance.getDragonCostume(mapping.leftArm);
+        const shadowCostume = window.gameInstance.getDragonCostume(mapping.rightArm);
+        
+        // Legendary sprite is 2.5x size: 80x120 (vs 32x48)
+        const width = 80;
+        const height = 120;
+        
+        // Head (body costume - default)
+        this.legendaryHead = this.scene.add.rectangle(0, -height/2 + 30, width * 0.5, 60, defaultCostume.primaryColor);
+        this.legendaryHead.setStrokeStyle(3, 0x000000);
+        
+        // Eyes
+        this.legendaryEye1 = this.scene.add.circle(-15, -height/2 + 20, 5, 0xffffff);
+        this.legendaryEye2 = this.scene.add.circle(15, -height/2 + 20, 5, 0xffffff);
+        
+        // Body/Torso (body costume - default)
+        this.legendaryBody = this.scene.add.rectangle(0, 0, width * 0.6, height * 0.35, defaultCostume.primaryColor);
+        this.legendaryBody.setStrokeStyle(3, 0x000000);
+        
+        // Belt
+        this.legendaryBelt = this.scene.add.rectangle(0, height * 0.1, width * 0.6, 10, defaultCostume.beltColor);
+        
+        // Left Arm (lightning costume)
+        this.legendaryLeftArm = this.scene.add.rectangle(
+            -width * 0.35, 
+            -10, 
+            width * 0.15, 
+            height * 0.4, 
+            lightningSostume.primaryColor
+        );
+        this.legendaryLeftArm.setStrokeStyle(3, 0x000000);
+        
+        // Right Arm (shadow costume)
+        this.legendaryRightArm = this.scene.add.rectangle(
+            width * 0.35, 
+            -10, 
+            width * 0.15, 
+            height * 0.4, 
+            shadowCostume.primaryColor
+        );
+        this.legendaryRightArm.setStrokeStyle(3, 0x000000);
+        
+        // Left Leg (ice costume)
+        this.legendaryLeftLeg = this.scene.add.rectangle(
+            -width * 0.15, 
+            height * 0.25, 
+            width * 0.22, 
+            height * 0.35, 
+            iceCostume.primaryColor
+        );
+        this.legendaryLeftLeg.setStrokeStyle(3, 0x000000);
+        
+        // Right Leg (fire costume)
+        this.legendaryRightLeg = this.scene.add.rectangle(
+            width * 0.15, 
+            height * 0.25, 
+            width * 0.22, 
+            height * 0.35, 
+            fireCostume.primaryColor
+        );
+        this.legendaryRightLeg.setStrokeStyle(3, 0x000000);
+        
+        // Add all parts to the container in the right order (back to front)
+        this.sprite.add([
+            // Body parts
+            this.legendaryBody,
+            this.legendaryLeftArm,
+            this.legendaryRightArm,
+            this.legendaryLeftLeg,
+            this.legendaryRightLeg,
+            // Head and details on top
+            this.legendaryHead,
+            this.legendaryBelt,
+            this.legendaryEye1,
+            this.legendaryEye2
+        ]);
+        
+        // Store references for updates
+        this.eye1 = this.legendaryEye1;
+        this.eye2 = this.legendaryEye2;
+        this.belt = this.legendaryBelt;
+        
+        console.log('🌟 Legendary sprite created with all 5 dragon colors!');
     }
 
     createDragonWings() {
         const costume = this.getDragonCostume();
+        const isLegendary = costume.isLegendary;
         
-        console.log('🦅 Creating wings for costume:', costume.name, 'hasWings:', costume.hasWings);
+        console.log('🦅 Creating wings for costume:', costume.name, 'hasWings:', costume.hasWings, 'isLegendary:', isLegendary);
         
-        // Create left wing
+        // Wing size multiplier for legendary mode
+        const sizeMultiplier = isLegendary ? 5 : 1;
+        const segmentCount = isLegendary ? 5 : 3; // More segments for legendary
+        
+        // Create left wing - render at depth 49 (player is at 50)
         this.leftWing = this.scene.add.container(this.sprite.x, this.sprite.y);
-        this.leftWing.setDepth(50); // Higher depth to ensure visibility
+        this.leftWing.setDepth(49); // Just below player depth
         
-        // Create right wing  
+        // Create right wing - render at depth 49 (player is at 50)
         this.rightWing = this.scene.add.container(this.sprite.x, this.sprite.y);
-        this.rightWing.setDepth(50); // Higher depth to ensure visibility
+        this.rightWing.setDepth(49); // Just below player depth
         
         // Only create wing graphics if costume has wings
         if (costume.hasWings) {
             console.log('🦅 Adding wing segments with colors:', costume.wingColor.toString(16), costume.wingTipColor.toString(16));
-            // Left wing segments (3 segments for depth)
+            
+            // Left wing segments
             const leftWingSegments = [];
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < segmentCount; i++) {
+                // For legendary mode, use rainbow colors
+                let segmentColor = costume.wingColor;
+                if (isLegendary) {
+                    const colors = [0xff4500, 0x87ceeb, 0xffd700, 0x4b0082, 0x4a9eff];
+                    segmentColor = colors[i % colors.length];
+                }
+                
                 const segment = this.scene.add.triangle(
                     0, 0,
-                    0, -10 - (i * 5),   // top point
-                    -15 - (i * 5), 5,   // bottom left
-                    -5 - (i * 3), 10,   // bottom right
-                    i === 2 ? costume.wingTipColor : costume.wingColor,
+                    0, (-10 - (i * 5)) * sizeMultiplier,   // top point
+                    (-15 - (i * 5)) * sizeMultiplier, 5 * sizeMultiplier,   // bottom left
+                    (-5 - (i * 3)) * sizeMultiplier, 10 * sizeMultiplier,   // bottom right
+                    i === segmentCount - 1 ? costume.wingTipColor : segmentColor,
                     1.0  // Full opacity for visibility
                 );
-                segment.setStrokeStyle(2, 0x000000, 1.0);  // Black border for visibility
+                segment.setStrokeStyle(2 * sizeMultiplier, 0x000000, 1.0);  // Black border for visibility
                 leftWingSegments.push(segment);
                 this.leftWing.add(segment);
-                console.log(`  Left wing segment ${i} created at depth`, segment.depth);
             }
             
-            // Right wing segments (3 segments for depth)
+            // Right wing segments
             const rightWingSegments = [];
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < segmentCount; i++) {
+                // For legendary mode, use rainbow colors
+                let segmentColor = costume.wingColor;
+                if (isLegendary) {
+                    const colors = [0xff4500, 0x87ceeb, 0xffd700, 0x4b0082, 0x4a9eff];
+                    segmentColor = colors[i % colors.length];
+                }
+                
                 const segment = this.scene.add.triangle(
                     0, 0,
-                    0, -10 - (i * 5),   // top point
-                    15 + (i * 5), 5,    // bottom right
-                    5 + (i * 3), 10,    // bottom left
-                    i === 2 ? costume.wingTipColor : costume.wingColor,
+                    0, (-10 - (i * 5)) * sizeMultiplier,   // top point
+                    (15 + (i * 5)) * sizeMultiplier, 5 * sizeMultiplier,    // bottom right
+                    (5 + (i * 3)) * sizeMultiplier, 10 * sizeMultiplier,    // bottom left
+                    i === segmentCount - 1 ? costume.wingTipColor : segmentColor,
                     1.0  // Full opacity for visibility
                 );
-                segment.setStrokeStyle(2, 0x000000, 1.0);  // Black border for visibility
+                segment.setStrokeStyle(2 * sizeMultiplier, 0x000000, 1.0);  // Black border for visibility
                 rightWingSegments.push(segment);
                 this.rightWing.add(segment);
-                console.log(`  Right wing segment ${i} created at depth`, segment.depth);
             }
             
             this.leftWing.setVisible(true);
             this.rightWing.setVisible(true);
-            console.log('✅ Wings created and visible!');
+            console.log('✅ Wings created and visible!' + (isLegendary ? ' (LEGENDARY SIZE)' : ''));
         } else {
             this.leftWing.setVisible(false);
             this.rightWing.setVisible(false);
@@ -267,6 +454,19 @@ class Player {
     }
 
     update(time, delta) {
+        // Retry getting controls if they weren't available during construction
+        if (!this.controls && this.controlsRetryAttempts < 10) {
+            this.controlsRetryTimer += delta;
+            if (this.controlsRetryTimer > 100) { // Try every 100ms
+                this.controlsRetryTimer = 0;
+                this.controlsRetryAttempts++;
+                if (window.gameInstance && window.gameInstance.controls) {
+                    this.controls = window.gameInstance.controls;
+                    console.log('✅ Controls assigned on retry', this.controlsRetryAttempts);
+                }
+            }
+        }
+        
         // Update cooldowns
         this.updateCooldowns(delta);
         
@@ -285,6 +485,9 @@ class Player {
         // Update grounded state
         this.updateGroundedState();
         
+        // Update fireballs
+        this.updateFireballs(delta);
+        
         // Store previous inputs
         this.storePreviousInputs();
     }
@@ -299,6 +502,14 @@ class Player {
             }
         }
         
+        // Update fireball cooldown
+        if (this.fireballCooldownTime > 0) {
+            this.fireballCooldownTime -= delta;
+            if (this.fireballCooldownTime <= 0) {
+                this.fireballShotCount = 0; // Reset shot count when cooldown expires
+            }
+        }
+        
         // Update special ability cooldowns
         Object.keys(this.specialAbilityCooldowns).forEach(ability => {
             if (this.specialAbilityCooldowns[ability] > 0) {
@@ -308,6 +519,12 @@ class Player {
     }
 
     handleMovement() {
+        // Safety check for controls
+        if (!this.controls) {
+            console.warn('⚠️ Controls not initialized');
+            return;
+        }
+        
         const horizontal = this.controls.getHorizontal();
         const vertical = this.controls.getVertical();
         
@@ -354,14 +571,35 @@ class Player {
     handleCombat() {
         if (this.attackCooldown > 0) return;
         
-        // Kick attack
-        if (this.controls.isKick() && !this.previousInputs.kick) {
-            this.performKick();
+        // Safety check for controls
+        if (!this.controls) {
+            return;
         }
         
-        // Punch attack
-        if (this.controls.isPunch() && !this.previousInputs.punch) {
-            this.performPunch();
+        const costume = this.getDragonCostume();
+        
+        // In legendary mode, kick and punch shoot fireballs
+        if (costume.isLegendary && costume.fireballEnabled) {
+            // Kick shoots fireball
+            if (this.controls.isKick() && !this.previousInputs.kick) {
+                this.shootFireball();
+            }
+            
+            // Punch shoots fireball
+            if (this.controls.isPunch() && !this.previousInputs.punch) {
+                this.shootFireball();
+            }
+        } else {
+            // Normal mode - regular attacks
+            // Kick attack
+            if (this.controls.isKick() && !this.previousInputs.kick) {
+                this.performKick();
+            }
+            
+            // Punch attack
+            if (this.controls.isPunch() && !this.previousInputs.punch) {
+                this.performPunch();
+            }
         }
         
         // Special abilities (using different keys or combinations)
@@ -436,6 +674,234 @@ class Player {
         this.checkAttackHit('punch');
         
         console.log(`Punch attack! Combo: ${this.comboCount}`);
+    }
+
+    shootFireball() {
+        const costume = this.getDragonCostume();
+        
+        // No cooldown for now - commented out
+        // // Check if fireball cooldown is active
+        // if (this.fireballCooldownTime > 0) {
+        //     console.log('🔥 Fireball on cooldown!');
+        //     return;
+        // }
+        // 
+        // // Check if we've reached the shot limit
+        // if (this.fireballShotCount >= this.fireballMaxShots) {
+        //     this.fireballCooldownTime = this.fireballGlobalCooldown;
+        //     console.log('🔥 Fireball limit reached! Entering cooldown...');
+        //     return;
+        // }
+        
+        // Increment shot count (for color cycling)
+        this.fireballShotCount++;
+        
+        // Set brief attack cooldown
+        this.attackCooldown = 300;
+        
+        // Calculate fireball starting position and velocity
+        const startX = this.sprite.x + (this.facingRight ? 40 : -40); // Adjusted for smaller size
+        const startY = this.sprite.y + 10; // Start slightly lower
+        const velocityX = this.facingRight ? 600 : -600; // Jump speed (600)
+        const velocityY = 200; // Downward angle
+        
+        // Create fireball projectile with rainbow colors
+        const fireballSize = 20; // Large fireball
+        const colorIndex = this.fireballShotCount % costume.fireballColors.length;
+        const fireballColor = costume.fireballColors[colorIndex];
+        
+        const fireball = this.scene.add.circle(startX, startY, fireballSize, fireballColor, 0.9);
+        fireball.setDepth(100);
+        
+        // Add physics to fireball
+        this.scene.physics.add.existing(fireball);
+        fireball.body.setVelocityX(velocityX);
+        fireball.body.setVelocityY(velocityY); // Set downward velocity
+        fireball.body.setAllowGravity(false); // Use manual velocity instead
+        fireball.body.setBounce(0.7); // Bounce 70% of velocity
+        
+        // Add glow effect
+        const glow = this.scene.add.circle(startX, startY, fireballSize * 1.5, fireballColor, 0.3);
+        glow.setDepth(99);
+        this.scene.physics.add.existing(glow);
+        glow.body.setVelocityX(velocityX);
+        glow.body.setVelocityY(velocityY); // Match fireball velocity
+        glow.body.setAllowGravity(false);
+        glow.body.setBounce(0.7);
+        
+        // Store fireball data
+        this.fireballs.push({
+            sprite: fireball,
+            glow: glow,
+            damage: costume.fireballDamageMultiplier * 20, // 5x base damage (20)
+            traveled: 0,
+            maxDistance: this.scene.levelWidth || 3000 // Travel across the map
+        });
+        
+        // Add collider with platforms for bouncing
+        if (this.scene.platforms) {
+            this.scene.physics.add.collider(fireball, this.scene.platforms);
+            this.scene.physics.add.collider(glow, this.scene.platforms);
+        }
+        
+        // Create shooting effect at player
+        this.createFireballShootEffect();
+        
+        console.log(`🔥 Fireball shot! (${this.fireballShotCount}/${this.fireballMaxShots})`);
+    }
+
+    updateFireballs(delta) {
+        // Update each fireball
+        for (let i = this.fireballs.length - 1; i >= 0; i--) {
+            const fireball = this.fireballs[i];
+            
+            // Update traveled distance
+            const velocity = Math.abs(fireball.sprite.body.velocity.x);
+            fireball.traveled += velocity * (delta / 1000);
+            
+            // Update glow position
+            if (fireball.glow && !fireball.glow.destroyed) {
+                fireball.glow.x = fireball.sprite.x;
+                fireball.glow.y = fireball.sprite.y;
+            }
+            
+            // Check if fireball hit max distance
+            if (fireball.traveled >= fireball.maxDistance) {
+                this.destroyFireball(i);
+                continue;
+            }
+            
+            // Check collision with enemies
+            if (this.scene.enemies) {
+                this.scene.enemies.children.entries.forEach(enemy => {
+                    if (enemy.active && fireball.sprite && !fireball.sprite.destroyed) {
+                        const distance = Phaser.Math.Distance.Between(
+                            fireball.sprite.x, fireball.sprite.y,
+                            enemy.x, enemy.y
+                        );
+                        
+                        if (distance < 30) {
+                            // Hit enemy!
+                            if (enemy.getData && enemy.getData('enemy')) {
+                                enemy.getData('enemy').takeDamage(fireball.damage);
+                            }
+                            
+                            // Create explosion
+                            this.createFireballExplosion(fireball.sprite.x, fireball.sprite.y);
+                            
+                            // Destroy fireball
+                            this.destroyFireball(i);
+                        }
+                    }
+                });
+            }
+            
+            // Add trailing particle effect
+            if (fireball.sprite && !fireball.sprite.destroyed && Math.random() < 0.3) {
+                const costume = this.getDragonCostume();
+                const trailColor = costume.fireballColors[Math.floor(Math.random() * costume.fireballColors.length)];
+                const trail = this.scene.add.circle(
+                    fireball.sprite.x + (Math.random() - 0.5) * 10,
+                    fireball.sprite.y + (Math.random() - 0.5) * 10,
+                    5,
+                    trailColor,
+                    0.6
+                );
+                trail.setDepth(98);
+                
+                this.scene.tweens.add({
+                    targets: trail,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 300,
+                    onComplete: () => trail.destroy()
+                });
+            }
+        }
+    }
+
+    destroyFireball(index) {
+        const fireball = this.fireballs[index];
+        
+        if (fireball.sprite && !fireball.sprite.destroyed) {
+            fireball.sprite.destroy();
+        }
+        
+        if (fireball.glow && !fireball.glow.destroyed) {
+            fireball.glow.destroy();
+        }
+        
+        this.fireballs.splice(index, 1);
+    }
+
+    createFireballExplosion(x, y) {
+        const costume = this.getDragonCostume();
+        
+        // Create multiple explosion rings with rainbow colors
+        for (let i = 0; i < 3; i++) {
+            const explosionColor = costume.fireballColors[i % costume.fireballColors.length];
+            const explosion = this.scene.add.circle(x, y, 10, explosionColor, 0.8);
+            explosion.setDepth(101);
+            
+            this.scene.tweens.add({
+                targets: explosion,
+                scaleX: 3 + i,
+                scaleY: 3 + i,
+                alpha: 0,
+                duration: 400,
+                delay: i * 50,
+                onComplete: () => explosion.destroy()
+            });
+        }
+        
+        // Create particle burst
+        for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 * i) / 12;
+            const particleColor = costume.fireballColors[i % costume.fireballColors.length];
+            const particle = this.scene.add.circle(
+                x + Math.cos(angle) * 10,
+                y + Math.sin(angle) * 10,
+                6,
+                particleColor,
+                0.9
+            );
+            particle.setDepth(100);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 50,
+                y: y + Math.sin(angle) * 50,
+                alpha: 0,
+                scale: 0,
+                duration: 500,
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        console.log('💥 Fireball explosion at', x, y);
+    }
+
+    createFireballShootEffect() {
+        const costume = this.getDragonCostume();
+        const effectX = this.sprite.x + (this.facingRight ? 40 : -40);
+        const effectY = this.sprite.y;
+        
+        // Create shooting flash with rainbow colors
+        for (let i = 0; i < 3; i++) {
+            const flashColor = costume.fireballColors[i % costume.fireballColors.length];
+            const flash = this.scene.add.circle(effectX, effectY, 15 + i * 5, flashColor, 0.7 - i * 0.2);
+            flash.setDepth(99);
+            
+            this.scene.tweens.add({
+                targets: flash,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 200,
+                delay: i * 30,
+                onComplete: () => flash.destroy()
+            });
+        }
     }
 
     checkAttackHit(attackType) {
@@ -589,37 +1055,63 @@ class Player {
     updateVisuals() {
         // Get dragon costume colors
         const costume = this.getDragonCostume();
+        const isLegendary = costume.isLegendary;
         
-        // Update facing direction with dragon colors
-        if (this.facingRight) {
-            this.sprite.setFillStyle(costume.primaryColor);
-        } else {
-            this.sprite.setFillStyle(costume.secondaryColor);
-        }
-        
-        // Update visual elements positions
-        this.eye1.x = this.sprite.x + (this.facingRight ? -6 : 6);
-        this.eye1.y = this.sprite.y - 8;
-        this.eye2.x = this.sprite.x + (this.facingRight ? 6 : -6);
-        this.eye2.y = this.sprite.y - 8;
-        this.belt.x = this.sprite.x;
-        this.belt.y = this.sprite.y + 8;
-        
-        // Squash and stretch for movement
-        if (Math.abs(this.body.velocity.x) > 50) {
-            this.sprite.setScale(1.1, 0.9);
-        } else {
-            this.sprite.setScale(1.0, 1.0);
-        }
-        
-        // Jump/fall animation
-        if (!this.isGrounded) {
-            if (this.body.velocity.y < 0) {
-                // Jumping up - stretch
-                this.sprite.setScale(0.9, 1.1);
+        if (isLegendary) {
+            // Legendary mode - sprite is a container, can't use setFillStyle
+            // Visual elements (eyes, belt) are already part of the container
+            // No need to update positions since they're relative to container
+            
+            // Squash and stretch for movement on the container
+            if (Math.abs(this.body.velocity.x) > 50) {
+                this.sprite.setScale(1.05, 0.95);
             } else {
-                // Falling down - squash
+                this.sprite.setScale(1.0, 1.0);
+            }
+            
+            // Jump/fall animation
+            if (!this.isGrounded) {
+                if (this.body.velocity.y < 0) {
+                    // Jumping up - stretch
+                    this.sprite.setScale(0.95, 1.05);
+                } else {
+                    // Falling down - squash
+                    this.sprite.setScale(1.05, 0.95);
+                }
+            }
+        } else {
+            // Normal mode - single rectangle sprite
+            // Update facing direction with dragon colors
+            if (this.facingRight) {
+                this.sprite.setFillStyle(costume.primaryColor);
+            } else {
+                this.sprite.setFillStyle(costume.secondaryColor);
+            }
+            
+            // Update visual elements positions
+            this.eye1.x = this.sprite.x + (this.facingRight ? -6 : 6);
+            this.eye1.y = this.sprite.y - 8;
+            this.eye2.x = this.sprite.x + (this.facingRight ? 6 : -6);
+            this.eye2.y = this.sprite.y - 8;
+            this.belt.x = this.sprite.x;
+            this.belt.y = this.sprite.y + 8;
+            
+            // Squash and stretch for movement
+            if (Math.abs(this.body.velocity.x) > 50) {
                 this.sprite.setScale(1.1, 0.9);
+            } else {
+                this.sprite.setScale(1.0, 1.0);
+            }
+            
+            // Jump/fall animation
+            if (!this.isGrounded) {
+                if (this.body.velocity.y < 0) {
+                    // Jumping up - stretch
+                    this.sprite.setScale(0.9, 1.1);
+                } else {
+                    // Falling down - squash
+                    this.sprite.setScale(1.1, 0.9);
+                }
             }
         }
     }
@@ -648,6 +1140,11 @@ class Player {
     }
 
     storePreviousInputs() {
+        // Safety check for controls
+        if (!this.controls) {
+            return;
+        }
+        
         this.previousInputs.jump = this.controls.isJump();
         this.previousInputs.kick = this.controls.isKick();
         this.previousInputs.punch = this.controls.isPunch();
@@ -677,11 +1174,17 @@ class Player {
     }
 
     applyPowerUpEffects(powerType, activate) {
+        const costume = this.getDragonCostume();
+        const isLegendary = costume.isLegendary || false;
+        
         switch (powerType) {
             case 'speedBoost':
                 if (activate) {
                     this.speed *= 1.5;
-                    this.sprite.setFillStyle(0xff69b4);
+                    // Only set fill style if not legendary (legendary is a container)
+                    if (!isLegendary && this.sprite.setFillStyle) {
+                        this.sprite.setFillStyle(0xff69b4);
+                    }
                 } else {
                     this.speed /= 1.5;
                     this.updateOutfitColor(); // Reset to original outfit color
@@ -690,8 +1193,11 @@ class Player {
                 
             case 'invincibility':
                 if (activate) {
-                    this.sprite.setFillStyle(0xffd700);
-                    // Add flickering effect
+                    // Only set fill style if not legendary (legendary is a container)
+                    if (!isLegendary && this.sprite.setFillStyle) {
+                        this.sprite.setFillStyle(0xffd700);
+                    }
+                    // Add flickering effect (works for both container and rectangle)
                     this.scene.tweens.add({
                         targets: this.sprite,
                         alpha: 0.5,
@@ -709,7 +1215,10 @@ class Player {
                 
             case 'flyMode':
                 if (activate) {
-                    this.sprite.setFillStyle(0x98fb98);
+                    // Only set fill style if not legendary (legendary is a container)
+                    if (!isLegendary && this.sprite.setFillStyle) {
+                        this.sprite.setFillStyle(0x98fb98);
+                    }
                 } else {
                     this.updateOutfitColor(); // Reset to original outfit color
                 }
@@ -718,7 +1227,10 @@ class Player {
             case 'fireBreath':
             case 'ultraBlast':
                 if (activate) {
-                    this.sprite.setFillStyle(0xff4500);
+                    // Only set fill style if not legendary (legendary is a container)
+                    if (!isLegendary && this.sprite.setFillStyle) {
+                        this.sprite.setFillStyle(0xff4500);
+                    }
                 } else {
                     this.updateOutfitColor(); // Reset to original outfit color
                 }
@@ -932,13 +1444,35 @@ class Player {
     }
 
     updateOutfitColor() {
-        // Update sprite color based on current dragon costume
+        // Check if we need to switch between legendary and normal mode
         const costume = this.getDragonCostume();
-        this.sprite.setFillStyle(costume.primaryColor);
+        const wasLegendary = this.isLegendaryMode || false;
+        const isLegendary = costume.isLegendary || false;
         
-        // Update belt color to match dragon costume
-        if (this.belt) {
-            this.belt.setFillStyle(costume.beltColor);
+        // If switching between legendary and normal, need to recreate entire sprite
+        if (wasLegendary !== isLegendary) {
+            console.log('🔄 Switching sprite mode, scene restart required');
+            // Store the current outfit change was made
+            this.isLegendaryMode = isLegendary;
+            // Restart the current scene to recreate player with new sprite type
+            if (this.scene && this.scene.scene) {
+                const currentScene = this.scene.scene.key;
+                this.scene.scene.restart();
+            }
+            return;
+        }
+        
+        // Normal color update for same mode
+        this.isLegendaryMode = isLegendary;
+        
+        if (!isLegendary) {
+            // Update sprite color based on current dragon costume
+            this.sprite.setFillStyle(costume.primaryColor);
+            
+            // Update belt color to match dragon costume
+            if (this.belt) {
+                this.belt.setFillStyle(costume.beltColor);
+            }
         }
         
         // Recreate wings with new costume colors
@@ -970,6 +1504,14 @@ class Player {
     }
 
     destroy() {
+        // Clean up fireballs
+        if (this.fireballs) {
+            this.fireballs.forEach((fireball, index) => {
+                this.destroyFireball(index);
+            });
+            this.fireballs = [];
+        }
+        
         if (this.visualGroup) {
             this.visualGroup.destroy();
         }
