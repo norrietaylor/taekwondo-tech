@@ -132,7 +132,9 @@ class GameScene extends Phaser.Scene {
         const levelThemes = {
             1: { primary: 0x87ceeb, secondary: 0xb0e0e6, accent: 0x4682b4 }, // Ice
             2: { primary: 0xff6347, secondary: 0xff7f50, accent: 0xdc143c }, // Fire
-            3: { primary: 0x9370db, secondary: 0xba55d3, accent: 0x8a2be2 }  // Power Bomb
+            3: { primary: 0x9370db, secondary: 0xba55d3, accent: 0x8a2be2 }, // Power Bomb
+            4: { primary: 0x1e3a8a, secondary: 0x3b82f6, accent: 0xfbbf24 }, // Lightning
+            5: { primary: 0x1a1a2e, secondary: 0x16213e, accent: 0x4a5568 }  // Shadow
         };
         
         const theme = levelThemes[this.currentLevel] || levelThemes[1];
@@ -170,6 +172,14 @@ class GameScene extends Phaser.Scene {
                     
                 case 3: // Power bomb level - energy particles
                     element = this.add.triangle(x, y, 0, size, size, 0, size, size, theme.accent, 0.8);
+                    break;
+                    
+                case 4: // Lightning level - electric sparks
+                    element = this.add.star(x, y, 4, size/3, size, theme.accent, 0.9);
+                    break;
+                    
+                case 5: // Shadow level - dark wisps
+                    element = this.add.ellipse(x, y, size, size * 1.5, theme.accent, 0.5);
                     break;
                     
                 default:
@@ -219,6 +229,12 @@ class GameScene extends Phaser.Scene {
                 break;
             case 3:
                 this.createPowerBombLevelPlatforms(platformColor);
+                break;
+            case 4:
+                this.createLightningLevelPlatforms(platformColor);
+                break;
+            case 5:
+                this.createShadowLevelPlatforms(platformColor);
                 break;
         }
     }
@@ -285,11 +301,83 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    createLightningLevelPlatforms(color) {
+        // Lightning level - electrified platforms with wide gaps
+        const platforms = [
+            { x: 280, y: 460, w: 100, h: 18 },
+            { x: 520, y: 390, w: 70, h: 18 },
+            { x: 780, y: 310, w: 90, h: 18 },
+            { x: 1040, y: 250, w: 65, h: 18 },
+            { x: 1320, y: 200, w: 100, h: 18 },
+            { x: 1580, y: 280, w: 80, h: 18 },
+            { x: 1820, y: 380, w: 110, h: 18 }
+        ];
+        
+        platforms.forEach(p => {
+            const platform = this.add.rectangle(p.x, p.y, p.w, p.h, color);
+            platform.setStrokeStyle(2, 0xfbbf24);
+            this.physics.add.existing(platform, true);
+            this.platforms.add(platform);
+            
+            // Add electric glow effect
+            const glow = this.add.circle(p.x, p.y, p.w/2 + 10, 0xfbbf24, 0.2);
+            glow.setDepth(-1);
+            
+            // Pulse animation for lightning effect
+            this.tweens.add({
+                targets: glow,
+                alpha: 0.4,
+                duration: 800 + Math.random() * 400,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        });
+    }
+
+    createShadowLevelPlatforms(color) {
+        // Shadow level - dark, mysterious platforms with tricky spacing
+        const platforms = [
+            { x: 220, y: 480, w: 90, h: 16 },
+            { x: 420, y: 430, w: 75, h: 16 },
+            { x: 630, y: 370, w: 85, h: 16 },
+            { x: 850, y: 300, w: 70, h: 16 },
+            { x: 1080, y: 230, w: 90, h: 16 },
+            { x: 1310, y: 170, w: 65, h: 16 },
+            { x: 1530, y: 250, w: 95, h: 16 },
+            { x: 1750, y: 340, w: 85, h: 16 },
+            { x: 1900, y: 420, w: 100, h: 16 }
+        ];
+        
+        platforms.forEach(p => {
+            const platform = this.add.rectangle(p.x, p.y, p.w, p.h, color);
+            platform.setStrokeStyle(2, 0x4a5568);
+            this.physics.add.existing(platform, true);
+            this.platforms.add(platform);
+            
+            // Add shadow aura effect
+            const shadow = this.add.ellipse(p.x, p.y + 5, p.w + 20, p.h + 10, 0x000000, 0.4);
+            shadow.setDepth(-1);
+            
+            // Subtle fade animation
+            this.tweens.add({
+                targets: shadow,
+                alpha: 0.6,
+                duration: 1500 + Math.random() * 500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        });
+    }
+
     getLevelPlatformColor() {
         const colors = {
             1: 0xb0e0e6, // Light blue for ice
             2: 0x8b4513, // Brown for fire/rock
-            3: 0x4b0082  // Indigo for power bomb
+            3: 0x4b0082, // Indigo for power bomb
+            4: 0x1e40af, // Deep blue for lightning
+            5: 0x0f172a  // Very dark blue for shadow
         };
         return colors[this.currentLevel] || colors[1];
     }
@@ -521,6 +609,17 @@ class GameScene extends Phaser.Scene {
                 locations.push({ x: 1050, y: 210, type: 'fireBreath' });
                 locations.push({ x: 1450, y: 210, type: 'ultraBlast' });
                 break;
+            case 4: // Lightning level
+                locations.push({ x: 780, y: 280, type: 'speedBoost' });
+                locations.push({ x: 1320, y: 170, type: 'ultraBlast' });
+                locations.push({ x: 1580, y: 250, type: 'invincibility' });
+                break;
+            case 5: // Shadow level
+                locations.push({ x: 630, y: 340, type: 'flyMode' });
+                locations.push({ x: 1080, y: 200, type: 'fireBreath' });
+                locations.push({ x: 1530, y: 220, type: 'ultraBlast' });
+                locations.push({ x: 1750, y: 310, type: 'invincibility' });
+                break;
         }
         
         return locations;
@@ -580,6 +679,12 @@ class GameScene extends Phaser.Scene {
                 case 3:
                     enemy = window.EnemyFactory.createPowerTitan(this, pos.x, pos.y);
                     break;
+                case 4:
+                    enemy = window.EnemyFactory.createLightningTitan(this, pos.x, pos.y);
+                    break;
+                case 5:
+                    enemy = window.EnemyFactory.createShadowTitan(this, pos.x, pos.y);
+                    break;
                 default:
                     enemy = window.EnemyFactory.createTitan(this, pos.x, pos.y);
             }
@@ -613,6 +718,19 @@ class GameScene extends Phaser.Scene {
                 basePositions.push({ x: 500, y: 400 });
                 basePositions.push({ x: 900, y: 280 });
                 basePositions.push({ x: 1300, y: 160 });
+                break;
+            case 4: // Lightning level
+                basePositions.push({ x: 520, y: 360 });
+                basePositions.push({ x: 1040, y: 220 });
+                basePositions.push({ x: 1320, y: 170 });
+                basePositions.push({ x: 1820, y: 350 });
+                break;
+            case 5: // Shadow level
+                basePositions.push({ x: 420, y: 400 });
+                basePositions.push({ x: 850, y: 270 });
+                basePositions.push({ x: 1080, y: 200 });
+                basePositions.push({ x: 1530, y: 220 });
+                basePositions.push({ x: 1900, y: 390 });
                 break;
         }
         
@@ -999,6 +1117,14 @@ class GameScene extends Phaser.Scene {
             case 3: // Power bomb level - last platform at x: 1850, y: 450
                 finishX = 1850;
                 platformY = 450;
+                break;
+            case 4: // Lightning level - last platform at x: 1820, y: 380
+                finishX = 1820;
+                platformY = 380;
+                break;
+            case 5: // Shadow level - last platform at x: 1900, y: 420
+                finishX = 1900;
+                platformY = 420;
                 break;
             default:
                 finishX = this.levelWidth - 200; // Fallback

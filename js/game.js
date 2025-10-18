@@ -157,8 +157,11 @@ class TaekwondoRobotBuilder {
         // Initialize controls
         this.controls = new Controls();
 
-        // Hide loading screen
-        document.getElementById('loading').style.display = 'none';
+        // Hide loading screen (if it exists)
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+        }
 
         // Create Phaser game instance
         this.game = new Phaser.Game(this.config);
@@ -245,8 +248,8 @@ class TaekwondoRobotBuilder {
             }
         }
         
-        // Shadow Dragon - Complete the game (level 4 or higher)
-        if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('shadow')) {
+        // Shadow Dragon - Complete the game (level 6 means all 5 levels done)
+        if (this.gameData.currentLevel >= 6 && !this.gameData.outfits.unlocked.includes('shadow')) {
             if (this.unlockOutfit('shadow')) {
                 newUnlocks.push('shadow');
             }
@@ -297,7 +300,7 @@ class TaekwondoRobotBuilder {
         this.saveGameData();
         console.log('Game data saved');
         
-        if (this.gameData.currentLevel > 3) {
+        if (this.gameData.currentLevel > 5) {
             console.log('🎊 Game completed! All levels finished');
             this.completeGame();
         } else {
