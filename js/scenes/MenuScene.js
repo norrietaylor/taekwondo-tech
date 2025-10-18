@@ -302,7 +302,7 @@ class MenuScene extends Phaser.Scene {
         
         this.cameras.main.once('camerafadeoutcomplete', () => {
             // Check current level and go to appropriate scene
-            if (window.gameInstance.gameData.currentLevel > 3) {
+            if (window.gameInstance.gameData.currentLevel > 5) {
                 // Game completed, show craft scene
                 this.scene.start('CraftScene');
             } else {

@@ -506,7 +506,7 @@ class CraftScene extends Phaser.Scene {
         });
         
         // Continue to next level (if applicable)
-        if (window.gameInstance.gameData.currentLevel <= 3) {
+        if (window.gameInstance.gameData.currentLevel <= 5) {
             const continueButton = this.add.text(
                 this.cameras.main.width - 50, 
                 50, 
@@ -775,8 +775,8 @@ class CraftScene extends Phaser.Scene {
                 // Unlock after completing level 2
                 return gameData.currentLevel >= 3;
             case 'shadow':
-                // Unlock after completing the game
-                return gameData.currentLevel >= 4;
+                // Unlock after completing all 5 levels
+                return gameData.currentLevel >= 6;
             default:
                 return false;
         }

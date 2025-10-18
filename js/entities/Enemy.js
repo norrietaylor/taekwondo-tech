@@ -496,6 +496,8 @@ class Enemy {
         if (this.healthBarBg) this.healthBarBg.destroy();
         if (this.healthBarFill) this.healthBarFill.destroy();
         this.eyes.forEach(eye => eye.destroy());
+        if (this.electricGlow) this.electricGlow.destroy();
+        if (this.shadowAura) this.shadowAura.destroy();
         if (this.sprite) this.sprite.destroy();
     }
 }
@@ -525,6 +527,84 @@ window.EnemyFactory = {
         enemy.sprite.setFillStyle(0x9370db);
         enemy.health *= 2; // More health
         enemy.maxHealth *= 2;
+        return enemy;
+    },
+    
+    createLightningTitan: function(scene, x, y) {
+        const enemy = new Enemy(scene, x, y, 'lightning_titan');
+        enemy.sprite.setFillStyle(0x3b82f6);
+        enemy.sprite.setStrokeStyle(3, 0xfbbf24);
+        enemy.speed *= 1.3; // Faster movement
+        enemy.attackDelay *= 0.8; // Faster attacks
+        enemy.damage *= 1.2; // More damage
+        
+        // Add electric glow effect
+        const glow = scene.add.circle(x, y, 35, 0xfbbf24, 0.2);
+        glow.setDepth(-1);
+        scene.tweens.add({
+            targets: glow,
+            alpha: 0.4,
+            duration: 600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Store glow reference to update position
+        enemy.electricGlow = glow;
+        
+        // Override updateVisuals to include glow
+        const originalUpdateVisuals = enemy.updateVisuals;
+        enemy.updateVisuals = function() {
+            originalUpdateVisuals.call(this);
+            if (this.electricGlow) {
+                this.electricGlow.x = this.sprite.x;
+                this.electricGlow.y = this.sprite.y;
+            }
+        };
+        
+        return enemy;
+    },
+    
+    createShadowTitan: function(scene, x, y) {
+        const enemy = new Enemy(scene, x, y, 'shadow_titan');
+        enemy.sprite.setFillStyle(0x1a1a2e);
+        enemy.sprite.setStrokeStyle(3, 0x4a5568);
+        enemy.health *= 1.8; // More health
+        enemy.maxHealth *= 1.8;
+        enemy.damage *= 1.4; // More damage
+        enemy.detectionRange *= 1.5; // Better detection
+        
+        // Add shadow aura effect
+        const shadow = scene.add.ellipse(x, y, 60, 70, 0x000000, 0.5);
+        shadow.setDepth(-1);
+        scene.tweens.add({
+            targets: shadow,
+            alpha: 0.7,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Store shadow reference to update position
+        enemy.shadowAura = shadow;
+        
+        // Override updateVisuals to include shadow
+        const originalUpdateVisuals = enemy.updateVisuals;
+        enemy.updateVisuals = function() {
+            originalUpdateVisuals.call(this);
+            if (this.shadowAura) {
+                this.shadowAura.x = this.sprite.x;
+                this.shadowAura.y = this.sprite.y;
+            }
+        };
+        
+        // Make eyes glow purple for shadow titan
+        enemy.eyes.forEach(eye => eye.setFillStyle(0x8b5cf6));
+        
         return enemy;
     }
 };
