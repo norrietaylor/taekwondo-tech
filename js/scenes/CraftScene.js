@@ -260,6 +260,7 @@ class CraftScene extends Phaser.Scene {
         // Make interactive
         container.setSize(30, 30);
         container.setInteractive({ useHandCursor: true });
+        container.setDepth(10); // Ensure parts are above background
         
         container.on('pointerover', () => {
             icon.setFillStyle(0xffffff);
@@ -333,7 +334,15 @@ class CraftScene extends Phaser.Scene {
                 backgroundColor: '#ff6b6b',
                 padding: { x: 20, y: 10 }
             }
-        ).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(50);
+        
+        this.craftButton.on('pointerover', () => {
+            this.craftButton.setScale(1.05);
+        });
+        
+        this.craftButton.on('pointerout', () => {
+            this.craftButton.setScale(1.0);
+        });
         
         this.craftButton.on('pointerdown', () => {
             this.buildRobot();
@@ -487,7 +496,15 @@ class CraftScene extends Phaser.Scene {
             fill: '#ffffff',
             backgroundColor: '#3e8084',
             padding: { x: 15, y: 8 }
-        }).setInteractive({ useHandCursor: true });
+        }).setInteractive({ useHandCursor: true }).setDepth(50);
+        
+        backButton.on('pointerover', () => {
+            backButton.setScale(1.05);
+        });
+        
+        backButton.on('pointerout', () => {
+            backButton.setScale(1.0);
+        });
         
         backButton.on('pointerdown', () => {
             this.scene.start('MenuScene');
@@ -499,7 +516,15 @@ class CraftScene extends Phaser.Scene {
             fill: '#ffffff',
             backgroundColor: '#9370db',
             padding: { x: 15, y: 8 }
-        }).setInteractive({ useHandCursor: true });
+        }).setInteractive({ useHandCursor: true }).setDepth(50);
+        
+        outfitButton.on('pointerover', () => {
+            outfitButton.setScale(1.05);
+        });
+        
+        outfitButton.on('pointerout', () => {
+            outfitButton.setScale(1.0);
+        });
         
         outfitButton.on('pointerdown', () => {
             this.showOutfitSelection();
@@ -517,7 +542,15 @@ class CraftScene extends Phaser.Scene {
                     backgroundColor: '#4a9eff',
                     padding: { x: 15, y: 8 }
                 }
-            ).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+            ).setOrigin(1, 0).setInteractive({ useHandCursor: true }).setDepth(50);
+            
+            continueButton.on('pointerover', () => {
+                continueButton.setScale(1.05);
+            });
+            
+            continueButton.on('pointerout', () => {
+                continueButton.setScale(1.0);
+            });
             
             continueButton.on('pointerdown', () => {
                 this.scene.start('GameScene');
@@ -554,8 +587,8 @@ class CraftScene extends Phaser.Scene {
             }
         ).setOrigin(0.5).setDepth(101);
         
-        // Available dragon costumes
-        const dragonCostumes = ['default', 'fire', 'ice', 'lightning', 'shadow'];
+        // Available dragon costumes (including legendary)
+        const dragonCostumes = ['default', 'fire', 'ice', 'lightning', 'shadow', 'legendary'];
         
         const outfitElements = [overlay, title];
         
@@ -709,11 +742,60 @@ class CraftScene extends Phaser.Scene {
                 });
                 
                 button.on('pointerdown', () => {
+                    const wasLegendary = window.gameInstance.getDragonCostume(
+                        window.gameInstance.gameData.outfits.current
+                    ).isLegendary || false;
+                    const isLegendary = costume.isLegendary || false;
+                    
                     window.gameInstance.setOutfit(costumeKey);
                     this.closeOutfitSelection(outfitElements);
                     
                     // Show equipped notification
                     this.showDragonEquippedNotification(costume);
+                    
+                    // If switching to/from legendary, give user a heads up
+                    if (wasLegendary !== isLegendary) {
+                        if (isLegendary) {
+                            this.time.delayedCall(1800, () => {
+                                const notice = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY);
+                                notice.setDepth(300);
+                                
+                                const bg = this.add.rectangle(0, 0, 600, 200, 0x000000, 0.95);
+                                bg.setStrokeStyle(4, 0xffd700);
+                                
+                                const text = this.add.text(0, 0, 
+                                    '⚡ LEGENDARY MODE ACTIVATED ⚡\n\n' +
+                                    '5x SIZE • ALL DRAGON COLORS\n' +
+                                    'RAINBOW WINGS • FIREBALL ATTACKS\n\n' +
+                                    'Punch/Kick now shoot fireballs!',
+                                    {
+                                        fontSize: '18px',
+                                        fill: '#ffffff',
+                                        align: 'center',
+                                        fontWeight: 'bold'
+                                    }
+                                ).setOrigin(0.5);
+                                
+                                notice.add([bg, text]);
+                                
+                                this.tweens.add({
+                                    targets: notice,
+                                    alpha: { from: 0, to: 1 },
+                                    duration: 400,
+                                    onComplete: () => {
+                                        this.time.delayedCall(3000, () => {
+                                            this.tweens.add({
+                                                targets: notice,
+                                                alpha: 0,
+                                                duration: 400,
+                                                onComplete: () => notice.destroy()
+                                            });
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    }
                 });
             }
             
@@ -777,6 +859,12 @@ class CraftScene extends Phaser.Scene {
             case 'shadow':
                 // Unlock after completing all 5 levels
                 return gameData.currentLevel >= 6;
+            case 'legendary':
+                // Unlock after collecting all 5 robot part types
+                const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
+                return partTypes.every(type => 
+                    gameData.robotParts[type] && gameData.robotParts[type].length > 0
+                );
             default:
                 return false;
         }
@@ -800,6 +888,12 @@ class CraftScene extends Phaser.Scene {
                 return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
             case 'shadow':
                 return `🔒 Complete the game`;
+            case 'legendary':
+                const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
+                const collectedTypes = partTypes.filter(type => 
+                    gameData.robotParts[type] && gameData.robotParts[type].length > 0
+                ).length;
+                return `🔒 Collect all 5 robot part types (${collectedTypes}/5)`;
             default:
                 return costume.unlockCondition;
         }

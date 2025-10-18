@@ -69,13 +69,41 @@ class TaekwondoRobotBuilder {
                 secondaryColor: 0x2f1b3c,
                 beltColor: 0x000000,
                 description: 'Master of darkness and stealth',
-                unlockCondition: 'Complete the game',
+                unlockCondition: 'Complete level 4',
                 effectColor: 0x9400d3,
                 unlocked: false,
                 hasWings: true,
                 wingColor: 0x2f1b3c,
                 wingStyle: 'shadow',
                 wingTipColor: 0x000000
+            },
+            'legendary': {
+                name: 'Legendary Mode',
+                icon: '⚡🔥❄️🌙🥋',
+                primaryColor: 0xffd700, // Gold for main body
+                secondaryColor: 0xff4500, // Red-orange
+                beltColor: 0x8b4513, // Brown from default
+                description: 'Ultimate fusion of all 5 dragon powers!',
+                unlockCondition: 'Collect all robot parts',
+                effectColor: 0xffffff, // White/rainbow
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xffd700,
+                wingStyle: 'legendary',
+                wingTipColor: 0xff00ff,
+                isLegendary: true,
+                size: 2.5, // 2.5x normal size
+                bodyPartMapping: {
+                    leftLeg: 'ice',    // Ice Dragon
+                    rightLeg: 'fire',   // Fire Dragon
+                    leftArm: 'lightning', // Lightning Dragon
+                    rightArm: 'shadow',  // Shadow Dragon
+                    body: 'default'      // Default Gi
+                },
+                fireballEnabled: true,
+                fireballDamageMultiplier: 5,
+                fireballColors: [0xff4500, 0x87ceeb, 0xffd700, 0x4b0082, 0x4a9eff], // All dragon colors
+                fireballCooldown: 3 // 3 shots before cooldown
             }
         };
 
@@ -95,7 +123,10 @@ class TaekwondoRobotBuilder {
                 max: {
                     width: 1920,
                     height: 1080
-                }
+                },
+                // Enable fullscreen scaling
+                fullscreenTarget: document.body,
+                expandParent: true
             },
             physics: {
                 default: 'arcade',
@@ -188,6 +219,47 @@ class TaekwondoRobotBuilder {
         document.addEventListener('mozfullscreenerror', (e) => {
             console.error('Fullscreen error:', e);
         });
+        
+        // Listen for fullscreen change events
+        document.addEventListener('fullscreenchange', () => {
+            if (this.game && this.game.scale) {
+                setTimeout(() => {
+                    this.game.scale.refresh();
+                    console.log('Fullscreen changed, scale refreshed');
+                }, 100);
+            }
+        });
+        
+        document.addEventListener('webkitfullscreenchange', () => {
+            if (this.game && this.game.scale) {
+                setTimeout(() => {
+                    this.game.scale.refresh();
+                    console.log('Webkit fullscreen changed, scale refreshed');
+                }, 100);
+            }
+        });
+        
+        // Listen for window resize (important for iOS)
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (this.game && this.game.scale) {
+                    this.game.scale.refresh();
+                    console.log('Window resized, scale refreshed');
+                }
+            }, 250);
+        });
+        
+        // Listen for orientation changes (important for mobile)
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (this.game && this.game.scale) {
+                    this.game.scale.refresh();
+                    console.log('Orientation changed, scale refreshed');
+                }
+            }, 300);
+        });
     }
 
     loadGameData() {
@@ -266,10 +338,23 @@ class TaekwondoRobotBuilder {
             }
         }
         
-        // Shadow Dragon - Complete the game (level 6 means all 5 levels done)
-        if (this.gameData.currentLevel >= 6 && !this.gameData.outfits.unlocked.includes('shadow')) {
+        // Shadow Dragon - Complete the game (level 4 means all 5 levels done)
+        if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('shadow')) {
             if (this.unlockOutfit('shadow')) {
                 newUnlocks.push('shadow');
+            }
+        }
+        
+        // Legendary Mode - Collect all robot parts (5 part types, need at least 1 of each)
+        const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
+        const allPartsCollected = partTypes.every(type => 
+            this.gameData.robotParts[type] && this.gameData.robotParts[type].length > 0
+        );
+        
+        if (allPartsCollected && !this.gameData.outfits.unlocked.includes('legendary')) {
+            if (this.unlockOutfit('legendary')) {
+                newUnlocks.push('legendary');
+                console.log('🌟 LEGENDARY MODE UNLOCKED! All robot parts collected - assembled!');
             }
         }
         
@@ -290,9 +375,25 @@ class TaekwondoRobotBuilder {
 
     setOutfit(outfitName) {
         if (this.gameData.outfits.unlocked.includes(outfitName)) {
+            const previousOutfit = this.gameData.outfits.current;
+            const wasLegendary = this.dragonCostumes[previousOutfit]?.isLegendary || false;
+            const isLegendary = this.dragonCostumes[outfitName]?.isLegendary || false;
+            
             this.gameData.outfits.current = outfitName;
             this.saveGameData();
             console.log(`Outfit changed to: ${outfitName}`);
+            
+            // If switching to/from legendary mode, restart any active game scenes
+            if (wasLegendary !== isLegendary) {
+                console.log('🔄 Switching sprite mode - restarting active scenes');
+                const activeScenes = this.game.scene.getScenes(true);
+                activeScenes.forEach(scene => {
+                    if (scene.scene.key === 'GameScene') {
+                        console.log('🔄 Restarting GameScene for sprite recreation');
+                        scene.scene.restart();
+                    }
+                });
+            }
         }
     }
 
@@ -378,6 +479,17 @@ class TaekwondoRobotBuilder {
 
     // Fullscreen functionality
     requestFullscreen() {
+        // Check if we're on iOS/iPad
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        if (isIOS) {
+            // iOS doesn't support fullscreen API for canvas
+            // Instead, use viewport manipulation for fullscreen-like experience
+            this.enterIOSFullscreen();
+            return;
+        }
+
         // Try to get the canvas - check multiple ways
         let canvas = this.game ? this.game.canvas : null;
         
@@ -392,22 +504,110 @@ class TaekwondoRobotBuilder {
         }
 
         // Try to request fullscreen on the canvas element
-        if (canvas.requestFullscreen) {
-            canvas.requestFullscreen().catch(err => {
-                console.warn(`Fullscreen request failed: ${err.message}`);
-            });
-        } else if (canvas.webkitRequestFullscreen) { // Safari
-            canvas.webkitRequestFullscreen();
-        } else if (canvas.mozRequestFullScreen) { // Firefox
-            canvas.mozRequestFullScreen();
-        } else if (canvas.msRequestFullscreen) { // IE11
-            canvas.msRequestFullscreen();
+        const requestFS = canvas.requestFullscreen || 
+                         canvas.webkitRequestFullscreen || 
+                         canvas.mozRequestFullScreen || 
+                         canvas.msRequestFullscreen;
+        
+        if (requestFS) {
+            try {
+                requestFS.call(canvas).catch(err => {
+                    console.warn(`Fullscreen request failed: ${err.message}`);
+                    // Fallback to iOS method
+                    this.enterIOSFullscreen();
+                });
+            } catch (err) {
+                console.warn('Fullscreen request failed:', err);
+                this.enterIOSFullscreen();
+            }
         } else {
             console.warn('Fullscreen API not supported by this browser');
+            this.enterIOSFullscreen();
+        }
+    }
+
+    enterIOSFullscreen() {
+        // iOS fullscreen-like experience using viewport and CSS
+        console.log('Entering iOS fullscreen mode');
+        
+        // Hide address bar by scrolling
+        window.scrollTo(0, 1);
+        
+        // Update body and canvas styles for fullscreen-like appearance
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+        document.body.style.top = '0';
+        document.body.style.left = '0';
+        
+        // Store that we're in iOS fullscreen mode BEFORE modifying canvas
+        this._iosFullscreenActive = true;
+        
+        // Instead of manually styling the canvas, let Phaser handle it
+        // Just trigger a resize event which Phaser will respond to
+        if (this.game && this.game.scale) {
+            // Use Phaser's scale manager to handle fullscreen-like mode
+            this.game.scale.refresh();
+            
+            // Small delay to ensure resize is complete
+            setTimeout(() => {
+                this.game.scale.refresh();
+                console.log('Phaser scale refreshed for iOS fullscreen');
+            }, 100);
+        }
+        
+        // Request orientation lock if available
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(err => {
+                console.log('Screen orientation lock not available:', err);
+            });
+        }
+        
+        // Notify user
+        console.log('iOS fullscreen mode activated. Rotate to landscape for best experience.');
+    }
+
+    exitIOSFullscreen() {
+        console.log('Exiting iOS fullscreen mode');
+        
+        // Reset body styles
+        document.body.style.margin = '';
+        document.body.style.padding = '';
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        
+        this._iosFullscreenActive = false;
+        
+        // Refresh Phaser scale after exiting
+        if (this.game && this.game.scale) {
+            this.game.scale.refresh();
+            
+            setTimeout(() => {
+                this.game.scale.refresh();
+                console.log('Phaser scale refreshed after exiting iOS fullscreen');
+            }, 100);
+        }
+        
+        // Unlock orientation if available
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
         }
     }
 
     exitFullscreen() {
+        // Check if we're in iOS fullscreen mode
+        if (this._iosFullscreenActive) {
+            this.exitIOSFullscreen();
+            return;
+        }
+
         if (document.exitFullscreen) {
             document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
@@ -420,6 +620,11 @@ class TaekwondoRobotBuilder {
     }
 
     isFullscreen() {
+        // Check iOS fullscreen mode first
+        if (this._iosFullscreenActive) {
+            return true;
+        }
+        
         return !!(document.fullscreenElement || 
                   document.webkitFullscreenElement || 
                   document.mozFullScreenElement ||

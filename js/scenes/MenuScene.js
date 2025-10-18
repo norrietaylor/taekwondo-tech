@@ -181,6 +181,10 @@ class MenuScene extends Phaser.Scene {
         const centerX = this.cameras.main.centerX;
         const bottomY = this.cameras.main.height - 40;
         
+        // Detect if iOS/iPad
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
         // Game version and controls info
         this.add.text(centerX, bottomY - 80, 'Use WASD/Arrow Keys to move, X to kick, Z to punch', {
             fontSize: '16px',
@@ -194,11 +198,20 @@ class MenuScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
         
-        this.add.text(centerX, bottomY - 40, 'Press F for fullscreen | ESC to exit fullscreen', {
-            fontSize: '14px',
-            fill: '#87ceeb',
-            align: 'center'
-        }).setOrigin(0.5);
+        // Different instructions for iOS vs desktop
+        if (isIOS) {
+            this.add.text(centerX, bottomY - 40, 'Tap fullscreen button for immersive mode 🎮', {
+                fontSize: '14px',
+                fill: '#87ceeb',
+                align: 'center'
+            }).setOrigin(0.5);
+        } else {
+            this.add.text(centerX, bottomY - 40, 'Press F for fullscreen | ESC to exit fullscreen', {
+                fontSize: '14px',
+                fill: '#87ceeb',
+                align: 'center'
+            }).setOrigin(0.5);
+        }
         
         this.add.text(centerX, bottomY, 'v1.0.0 - Made with ❤️ and Phaser.js', {
             fontSize: '12px',
@@ -462,6 +475,10 @@ Made with ❤️ in 2025`,
         const buttonX = this.cameras.main.width - 50;
         const buttonY = 30;
         
+        // Detect if iOS/iPad
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
         this.fullscreenButton = this.add.text(buttonX, buttonY, '⛶', {
             fontSize: '28px',
             fill: '#ffffff',
@@ -472,6 +489,15 @@ Made with ❤️ in 2025`,
           .on('pointerdown', () => {
               if (window.gameInstance) {
                   window.gameInstance.toggleFullscreen();
+                  
+                  // Visual feedback on iOS
+                  if (isIOS) {
+                      this.cameras.main.flash(200, 255, 255, 255, false, (camera, progress) => {
+                          if (progress === 1) {
+                              console.log('iOS fullscreen mode toggled');
+                          }
+                      });
+                  }
               }
           })
           .on('pointerover', function() {
@@ -481,8 +507,9 @@ Made with ❤️ in 2025`,
               this.clearTint();
           });
         
-        // Add tooltip
-        this.add.text(buttonX, buttonY + 35, 'Fullscreen', {
+        // Add tooltip with iOS-specific text
+        const tooltipText = isIOS ? 'Immersive' : 'Fullscreen';
+        this.add.text(buttonX, buttonY + 35, tooltipText, {
             fontSize: '10px',
             fill: '#a8d5d1',
             align: 'center'
