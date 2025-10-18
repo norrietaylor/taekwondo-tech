@@ -543,6 +543,26 @@ class TaekwondoRobotBuilder {
         document.body.style.top = '0';
         document.body.style.left = '0';
         
+        // Ensure mobile controls remain visible and properly positioned
+        const mobileControls = document.getElementById('mobileControls');
+        if (mobileControls) {
+            // Force display for touch devices
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            if (isTouchDevice) {
+                mobileControls.style.display = 'block';
+                console.log('Mobile controls forced visible for touch device');
+            }
+            mobileControls.style.position = 'fixed';
+            mobileControls.style.bottom = '20px';
+            mobileControls.style.left = '20px';
+            mobileControls.style.right = '20px';
+            mobileControls.style.zIndex = '10000';
+            mobileControls.style.pointerEvents = 'auto';
+            console.log('Mobile controls visibility ensured');
+        } else {
+            console.warn('Mobile controls element not found!');
+        }
+        
         // Store that we're in iOS fullscreen mode BEFORE modifying canvas
         this._iosFullscreenActive = true;
         
