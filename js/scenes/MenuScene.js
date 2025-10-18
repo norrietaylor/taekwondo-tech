@@ -182,15 +182,21 @@ class MenuScene extends Phaser.Scene {
         const bottomY = this.cameras.main.height - 40;
         
         // Game version and controls info
-        this.add.text(centerX, bottomY - 60, 'Use WASD/Arrow Keys to move, X to kick, Z to punch', {
+        this.add.text(centerX, bottomY - 80, 'Use WASD/Arrow Keys to move, X to kick, Z to punch', {
             fontSize: '16px',
             fill: '#a8d5d1',
             align: 'center'
         }).setOrigin(0.5);
         
-        this.add.text(centerX, bottomY - 40, 'Collect robot parts to build the ultimate robot!', {
+        this.add.text(centerX, bottomY - 60, 'Collect robot parts to build the ultimate robot!', {
             fontSize: '16px',
             fill: '#a8d5d1',
+            align: 'center'
+        }).setOrigin(0.5);
+        
+        this.add.text(centerX, bottomY - 40, 'Press F for fullscreen | ESC to exit fullscreen', {
+            fontSize: '14px',
+            fill: '#87ceeb',
             align: 'center'
         }).setOrigin(0.5);
         
@@ -199,6 +205,9 @@ class MenuScene extends Phaser.Scene {
             fill: '#666666',
             align: 'center'
         }).setOrigin(0.5);
+        
+        // Add fullscreen toggle button in corner
+        this.createFullscreenButton();
     }
 
     setupInput() {
@@ -219,6 +228,13 @@ class MenuScene extends Phaser.Scene {
         
         this.input.keyboard.on('keydown-SPACE', () => {
             this.selectMenuItem('Start Game');
+        });
+        
+        // Fullscreen toggle with F key
+        this.input.keyboard.on('keydown-F', () => {
+            if (window.gameInstance) {
+                window.gameInstance.toggleFullscreen();
+            }
         });
     }
 
@@ -272,6 +288,11 @@ class MenuScene extends Phaser.Scene {
             console.log('Resetting game data...');
             window.gameInstance.resetGame();
             
+            // Request fullscreen
+            if (window.gameInstance.requestFullscreen) {
+                window.gameInstance.requestFullscreen();
+            }
+            
             // Add transition effect
             console.log('Starting camera fade out...');
             this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -296,6 +317,11 @@ class MenuScene extends Phaser.Scene {
     continueGame() {
         // Load existing save data
         window.gameInstance.loadGameData();
+        
+        // Request fullscreen
+        if (window.gameInstance.requestFullscreen) {
+            window.gameInstance.requestFullscreen();
+        }
         
         // Add transition effect
         this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -429,6 +455,38 @@ Made with ❤️ in 2025`,
             creditsText.destroy();
             closeButton.destroy();
         });
+    }
+
+    createFullscreenButton() {
+        // Create a fullscreen button in top-right corner
+        const buttonX = this.cameras.main.width - 50;
+        const buttonY = 30;
+        
+        this.fullscreenButton = this.add.text(buttonX, buttonY, '⛶', {
+            fontSize: '28px',
+            fill: '#ffffff',
+            backgroundColor: '#3e8084',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5)
+          .setInteractive({ useHandCursor: true })
+          .on('pointerdown', () => {
+              if (window.gameInstance) {
+                  window.gameInstance.toggleFullscreen();
+              }
+          })
+          .on('pointerover', function() {
+              this.setTint(0xcccccc);
+          })
+          .on('pointerout', function() {
+              this.clearTint();
+          });
+        
+        // Add tooltip
+        this.add.text(buttonX, buttonY + 35, 'Fullscreen', {
+            fontSize: '10px',
+            fill: '#a8d5d1',
+            align: 'center'
+        }).setOrigin(0.5);
     }
 
     startAnimations() {

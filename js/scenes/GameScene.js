@@ -108,6 +108,9 @@ class GameScene extends Phaser.Scene {
             // Start the game
             console.log('Starting game...');
             this.startGame();
+            
+            // Set up keyboard shortcuts (like fullscreen)
+            this.setupKeyboardShortcuts();
             console.log('🎮 GameScene created successfully!');
             
         } catch (error) {
@@ -1518,6 +1521,16 @@ class GameScene extends Phaser.Scene {
     gameOver() {
         console.log('Game Over!');
         this.scene.restart();
+    }
+
+    // Keyboard shortcuts setup
+    setupKeyboardShortcuts() {
+        // Fullscreen toggle with F key
+        this.input.keyboard.on('keydown-F', () => {
+            if (window.gameInstance) {
+                window.gameInstance.toggleFullscreen();
+            }
+        });
     }
 
     // Scene management

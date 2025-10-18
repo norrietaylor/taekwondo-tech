@@ -169,7 +169,25 @@ class TaekwondoRobotBuilder {
         // Global game reference
         window.gameInstance = this;
         
+        // Set up fullscreen event listeners for debugging
+        this.setupFullscreenListeners();
+        
         console.log('🥋 Taekwondo Robot Builder initialized!');
+    }
+
+    setupFullscreenListeners() {
+        // Listen for fullscreen errors
+        document.addEventListener('fullscreenerror', (e) => {
+            console.error('Fullscreen error:', e);
+        });
+        
+        document.addEventListener('webkitfullscreenerror', (e) => {
+            console.error('Fullscreen error:', e);
+        });
+        
+        document.addEventListener('mozfullscreenerror', (e) => {
+            console.error('Fullscreen error:', e);
+        });
     }
 
     loadGameData() {
@@ -356,6 +374,64 @@ class TaekwondoRobotBuilder {
 
     getGameHeight() {
         return this.game ? this.game.config.height : 576;
+    }
+
+    // Fullscreen functionality
+    requestFullscreen() {
+        // Try to get the canvas - check multiple ways
+        let canvas = this.game ? this.game.canvas : null;
+        
+        // If canvas not found via game object, try to find it in DOM
+        if (!canvas) {
+            canvas = document.querySelector('canvas');
+        }
+        
+        if (!canvas) {
+            console.warn('Canvas not found, cannot enter fullscreen');
+            return;
+        }
+
+        // Try to request fullscreen on the canvas element
+        if (canvas.requestFullscreen) {
+            canvas.requestFullscreen().catch(err => {
+                console.warn(`Fullscreen request failed: ${err.message}`);
+            });
+        } else if (canvas.webkitRequestFullscreen) { // Safari
+            canvas.webkitRequestFullscreen();
+        } else if (canvas.mozRequestFullScreen) { // Firefox
+            canvas.mozRequestFullScreen();
+        } else if (canvas.msRequestFullscreen) { // IE11
+            canvas.msRequestFullscreen();
+        } else {
+            console.warn('Fullscreen API not supported by this browser');
+        }
+    }
+
+    exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+
+    isFullscreen() {
+        return !!(document.fullscreenElement || 
+                  document.webkitFullscreenElement || 
+                  document.mozFullScreenElement ||
+                  document.msFullscreenElement);
+    }
+
+    toggleFullscreen() {
+        if (this.isFullscreen()) {
+            this.exitFullscreen();
+        } else {
+            this.requestFullscreen();
+        }
     }
 }
 

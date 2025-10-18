@@ -937,6 +937,13 @@ class CraftScene extends Phaser.Scene {
         this.input.keyboard.on('keydown-ESC', () => {
             this.scene.start('MenuScene');
         });
+        
+        // Fullscreen toggle with F key
+        this.input.keyboard.on('keydown-F', () => {
+            if (window.gameInstance) {
+                window.gameInstance.toggleFullscreen();
+            }
+        });
     }
 
     update() {
