@@ -562,12 +562,16 @@ class CraftScene extends Phaser.Scene {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         
+        // Calculate overlay height based on screen size
+        const screenHeight = this.cameras.main.height;
+        const overlayHeight = Math.min(screenHeight - 40, 540); // Max 540px or screen - 40px
+        
         // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
             this.cameras.main.centerX,
             this.cameras.main.centerY,
             700,
-            500,
+            overlayHeight,
             0x0a0a0a,
             0.95
         ).setDepth(100);
@@ -576,10 +580,10 @@ class CraftScene extends Phaser.Scene {
         
         const title = this.add.text(
             this.cameras.main.centerX,
-            this.cameras.main.centerY - 210,
+            this.cameras.main.centerY - (overlayHeight / 2) + 30,
             '🐉 DRAGON COSTUME SELECTION 🐉',
             {
-                fontSize: '32px',
+                fontSize: '28px',
                 fill: '#ffd700',
                 fontWeight: 'bold',
                 stroke: '#000000',
@@ -592,20 +596,24 @@ class CraftScene extends Phaser.Scene {
         
         const outfitElements = [overlay, title];
         
+        // Calculate spacing to fit all items
+        const itemSpacing = 65; // Reduced from 80px to 65px
+        const startY = this.cameras.main.centerY - (overlayHeight / 2) + 70; // Start below title
+        
         dragonCostumes.forEach((costumeKey, index) => {
             const costume = window.gameInstance.getDragonCostume(costumeKey);
             const isUnlocked = this.isDragonUnlocked(costumeKey);
             const isCurrent = window.gameInstance.gameData.outfits.current === costumeKey;
             const isNewlyUnlocked = newUnlocks.includes(costumeKey);
             
-            const y = this.cameras.main.centerY - 150 + (index * 80);
+            const y = startY + (index * itemSpacing);
             
-            // Dragon costume preview (larger, with both colors)
+            // Dragon costume preview (compact, with both colors)
             const previewBg = this.add.rectangle(
                 this.cameras.main.centerX - 250,
                 y,
-                60,
-                70,
+                55,
+                55,
                 isUnlocked ? costume.primaryColor : 0x333333,
                 isUnlocked ? 1 : 0.3
             ).setDepth(101);
@@ -614,10 +622,10 @@ class CraftScene extends Phaser.Scene {
             
             // Secondary color accent
             const accentRect = this.add.rectangle(
-                this.cameras.main.centerX - 240,
+                this.cameras.main.centerX - 242,
                 y,
-                20,
-                70,
+                18,
+                55,
                 isUnlocked ? costume.secondaryColor : 0x222222,
                 isUnlocked ? 0.8 : 0.3
             ).setDepth(102);
@@ -625,10 +633,10 @@ class CraftScene extends Phaser.Scene {
             // Dragon icon
             const icon = this.add.text(
                 this.cameras.main.centerX - 250,
-                y - 25,
+                y - 20,
                 costume.icon,
                 {
-                    fontSize: '24px'
+                    fontSize: '20px'
                 }
             ).setOrigin(0.5).setDepth(103).setAlpha(isUnlocked ? 1 : 0.3);
             
@@ -662,10 +670,10 @@ class CraftScene extends Phaser.Scene {
             // Dragon costume name
             const nameText = this.add.text(
                 this.cameras.main.centerX - 170,
-                y - 20,
+                y - 18,
                 costume.name,
                 {
-                    fontSize: '22px',
+                    fontSize: '18px',
                     fill: isUnlocked ? '#ffffff' : '#666666',
                     fontWeight: 'bold'
                 }
@@ -674,10 +682,10 @@ class CraftScene extends Phaser.Scene {
             // Description
             const descText = this.add.text(
                 this.cameras.main.centerX - 170,
-                y + 5,
+                y + 2,
                 costume.description,
                 {
-                    fontSize: '14px',
+                    fontSize: '12px',
                     fill: isUnlocked ? '#aaaaaa' : '#444444',
                     fontStyle: 'italic'
                 }
@@ -686,10 +694,10 @@ class CraftScene extends Phaser.Scene {
             // Unlock condition / progress
             const conditionText = this.add.text(
                 this.cameras.main.centerX - 170,
-                y + 25,
+                y + 18,
                 this.getUnlockProgressText(costumeKey),
                 {
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fill: isUnlocked ? '#00ff00' : '#ff8800'
                 }
             ).setOrigin(0, 0.5).setDepth(101);
@@ -802,10 +810,10 @@ class CraftScene extends Phaser.Scene {
             outfitElements.push(previewBg, accentRect, icon, nameText, descText, conditionText, button);
         });
         
-        // Close button
+        // Close button - positioned at bottom of overlay
         const closeButton = this.add.text(
             this.cameras.main.centerX,
-            this.cameras.main.centerY + 210,
+            this.cameras.main.centerY + (overlayHeight / 2) - 35,
             'Close',
             {
                 fontSize: '20px',

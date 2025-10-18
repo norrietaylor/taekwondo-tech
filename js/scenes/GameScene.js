@@ -821,8 +821,14 @@ class GameScene extends Phaser.Scene {
     }
 
     setupCollisions() {
+        console.log('🔧 Setting up collisions...');
+        console.log('   Player sprite type:', this.player.sprite.type);
+        console.log('   Player has body:', !!this.player.sprite.body);
+        console.log('   Platforms group size:', this.platforms.children.size);
+        
         // Player vs platforms
-        this.physics.add.collider(this.player.sprite, this.platforms);
+        const collider = this.physics.add.collider(this.player.sprite, this.platforms);
+        console.log('   Player-platform collider created:', !!collider);
         
         // Enemies vs platforms
         this.physics.add.collider(this.enemies, this.platforms);
@@ -835,6 +841,8 @@ class GameScene extends Phaser.Scene {
         
         // Player vs finish line
         this.physics.add.overlap(this.player.sprite, this.finishLineZone, this.reachFinishLine, null, this);
+        
+        console.log('✅ All collisions set up');
     }
 
     hitEnemy(playerSprite, enemySprite) {
