@@ -483,29 +483,58 @@ Made with ❤️ in 2025`,
             fontSize: '28px',
             fill: '#ffffff',
             backgroundColor: '#3e8084',
-            padding: { x: 10, y: 5 }
+            padding: { x: 15, y: 10 }
         }).setOrigin(0.5)
-          .setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => {
-              if (window.gameInstance) {
-                  window.gameInstance.toggleFullscreen();
-                  
-                  // Visual feedback on iOS
-                  if (isIOS) {
-                      this.cameras.main.flash(200, 255, 255, 255, false, (camera, progress) => {
-                          if (progress === 1) {
-                              console.log('iOS fullscreen mode toggled');
-                          }
-                      });
-                  }
-              }
-          })
-          .on('pointerover', function() {
-              this.setTint(0xcccccc);
-          })
-          .on('pointerout', function() {
-              this.clearTint();
+          .setDepth(1000) // High depth to ensure it's clickable
+          .setInteractive({ 
+              useHandCursor: true,
+              // Larger hit area for better touch targeting on mobile
+              hitArea: new Phaser.Geom.Rectangle(-25, -20, 50, 40),
+              hitAreaCallback: Phaser.Geom.Rectangle.Contains
           });
+        
+        // iOS needs special handling for touch events
+        const handleFullscreenToggle = () => {
+            console.log('Fullscreen button clicked/tapped');
+            if (window.gameInstance) {
+                console.log('Toggling fullscreen...');
+                window.gameInstance.toggleFullscreen();
+                
+                // Visual feedback on iOS
+                if (isIOS) {
+                    this.cameras.main.flash(200, 255, 255, 255, false, (camera, progress) => {
+                        if (progress === 1) {
+                            console.log('iOS fullscreen mode toggled');
+                        }
+                    });
+                }
+            } else {
+                console.error('window.gameInstance not available!');
+            }
+        };
+        
+        // Add visual press effect
+        this.fullscreenButton.on('pointerdown', function() {
+            console.log('Fullscreen button pointerdown detected');
+            this.setScale(0.9);
+            this.setTint(0xaaaaaa);
+        });
+        
+        // Use pointerup for the actual action (better iOS compatibility)
+        this.fullscreenButton.on('pointerup', function() {
+            this.setScale(1.0);
+            this.clearTint();
+            handleFullscreenToggle();
+        });
+        
+        this.fullscreenButton.on('pointerover', function() {
+            this.setTint(0xcccccc);
+        });
+        
+        this.fullscreenButton.on('pointerout', function() {
+            this.clearTint();
+            this.setScale(1.0);
+        });
         
         // Add tooltip with iOS-specific text
         const tooltipText = isIOS ? 'Immersive' : 'Fullscreen';
@@ -513,7 +542,7 @@ Made with ❤️ in 2025`,
             fontSize: '10px',
             fill: '#a8d5d1',
             align: 'center'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(1000);
     }
 
     startAnimations() {
