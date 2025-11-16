@@ -49,6 +49,24 @@ class CraftScene extends Phaser.Scene {
         
         // Set up input
         this.setupInput();
+        
+        // Listen for scale changes (fullscreen, resize, etc.)
+        this.scale.on('resize', this.handleResize, this);
+    }
+    
+    handleResize(gameSize) {
+        // When entering fullscreen or resizing, ensure input hit areas are updated
+        console.log('CraftScene resize detected:', gameSize.width, 'x', gameSize.height);
+        
+        // Force input plugin to recalculate hit areas
+        if (this.input && this.input.updateBounds) {
+            this.input.updateBounds();
+        }
+        
+        // Refresh camera bounds (only if camera exists)
+        if (this.cameras && this.cameras.main) {
+            this.cameras.main.setBounds(0, 0, gameSize.width, gameSize.height);
+        }
     }
 
     createBackground() {
@@ -57,6 +75,7 @@ class CraftScene extends Phaser.Scene {
         const height = this.cameras.main.height;
         
         this.background = this.add.rectangle(width/2, height/2, width, height, 0x1a3d3b);
+        this.background.setDepth(0); // Ensure background is at the bottom
         
         // Add workshop elements
         this.createWorkshopElements();
@@ -72,6 +91,7 @@ class CraftScene extends Phaser.Scene {
             const y = height - 50 - Math.random() * 100;
             const tool = this.add.rectangle(x, y, 20, 4, 0x4a5568, 0.3);
             tool.setRotation(Math.random() * Math.PI);
+            tool.setDepth(1); // Keep workshop elements at low depth
         }
         
         // Add some "sparks" or energy effects
@@ -79,6 +99,7 @@ class CraftScene extends Phaser.Scene {
             const x = Math.random() * width;
             const y = Math.random() * height;
             const spark = this.add.circle(x, y, 2, 0xffd700, 0.6);
+            spark.setDepth(1); // Keep sparks at low depth
             
             this.tweens.add({
                 targets: spark,
@@ -96,13 +117,13 @@ class CraftScene extends Phaser.Scene {
             fontSize: '32px',
             fill: '#ffffff',
             fontWeight: 'bold'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(5);
         
         // Inventory section
         this.add.text(this.inventoryArea.x, 100, 'Parts Inventory', {
             fontSize: '24px',
             fill: '#a8d5d1'
-        });
+        }).setDepth(5);
         
         this.inventoryBg = this.add.rectangle(
             this.inventoryArea.x + this.inventoryArea.width/2,
@@ -111,13 +132,13 @@ class CraftScene extends Phaser.Scene {
             this.inventoryArea.height,
             0x2c5f5d,
             0.8
-        ).setStrokeStyle(2, 0x4a9eff);
+        ).setStrokeStyle(2, 0x4a9eff).setDepth(2);
         
         // Craft section
         this.add.text(this.craftArea.x, 100, 'Robot Assembly', {
             fontSize: '24px',
             fill: '#a8d5d1'
-        });
+        }).setDepth(5);
         
         this.craftBg = this.add.rectangle(
             this.craftArea.x + this.craftArea.width/2,
@@ -126,7 +147,7 @@ class CraftScene extends Phaser.Scene {
             this.craftArea.height,
             0x2c5f5d,
             0.8
-        ).setStrokeStyle(2, 0x4a9eff);
+        ).setStrokeStyle(2, 0x4a9eff).setDepth(2);
     }
 
     setupLayout() {
@@ -257,9 +278,13 @@ class CraftScene extends Phaser.Scene {
         
         container.add([icon, label, typeLabel]);
         
-        // Make interactive
+        // Make interactive with explicit hit area for better fullscreen compatibility
         container.setSize(30, 30);
-        container.setInteractive({ useHandCursor: true });
+        container.setInteractive({
+            hitArea: new Phaser.Geom.Rectangle(-15, -15, 30, 30),
+            hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+            useHandCursor: true
+        });
         container.setDepth(10); // Ensure parts are above background
         
         container.on('pointerover', () => {
@@ -574,7 +599,7 @@ class CraftScene extends Phaser.Scene {
             overlayHeight,
             0x0a0a0a,
             0.95
-        ).setDepth(100);
+        ).setDepth(150).setInteractive(); // Make overlay interactive to block clicks behind it
         
         overlay.setStrokeStyle(3, 0x8b4513);
         
@@ -589,7 +614,7 @@ class CraftScene extends Phaser.Scene {
                 stroke: '#000000',
                 strokeThickness: 3
             }
-        ).setOrigin(0.5).setDepth(101);
+        ).setOrigin(0.5).setDepth(151);
         
         // Available dragon costumes (including legendary)
         const dragonCostumes = ['default', 'fire', 'ice', 'lightning', 'shadow', 'legendary'];
@@ -616,7 +641,7 @@ class CraftScene extends Phaser.Scene {
                 50,
                 isUnlocked ? costume.primaryColor : 0x333333,
                 isUnlocked ? 1 : 0.3
-            ).setDepth(101);
+            ).setDepth(151);
             
             previewBg.setStrokeStyle(2, isUnlocked ? costume.beltColor : 0x666666);
             
@@ -628,7 +653,7 @@ class CraftScene extends Phaser.Scene {
                 50,
                 isUnlocked ? costume.secondaryColor : 0x222222,
                 isUnlocked ? 0.8 : 0.3
-            ).setDepth(102);
+            ).setDepth(152);
             
             // Dragon icon
             const icon = this.add.text(
@@ -638,7 +663,7 @@ class CraftScene extends Phaser.Scene {
                 {
                     fontSize: '18px'
                 }
-            ).setOrigin(0.5).setDepth(103).setAlpha(isUnlocked ? 1 : 0.3);
+            ).setOrigin(0.5).setDepth(153).setAlpha(isUnlocked ? 1 : 0.3);
             
             // "NEW!" badge for newly unlocked costumes
             if (isNewlyUnlocked) {
@@ -653,7 +678,7 @@ class CraftScene extends Phaser.Scene {
                         padding: { x: 5, y: 2 },
                         fontWeight: 'bold'
                     }
-                ).setOrigin(0.5).setDepth(104);
+                ).setOrigin(0.5).setDepth(154);
                 
                 // Pulse animation for NEW badge
                 this.tweens.add({
@@ -677,7 +702,7 @@ class CraftScene extends Phaser.Scene {
                     fill: isUnlocked ? '#ffffff' : '#666666',
                     fontWeight: 'bold'
                 }
-            ).setOrigin(0, 0.5).setDepth(101);
+            ).setOrigin(0, 0.5).setDepth(151);
             
             // Description
             const descText = this.add.text(
@@ -689,7 +714,7 @@ class CraftScene extends Phaser.Scene {
                     fill: isUnlocked ? '#aaaaaa' : '#444444',
                     fontStyle: 'italic'
                 }
-            ).setOrigin(0, 0.5).setDepth(101);
+            ).setOrigin(0, 0.5).setDepth(151);
             
             // Unlock condition / progress
             const conditionText = this.add.text(
@@ -700,7 +725,7 @@ class CraftScene extends Phaser.Scene {
                     fontSize: '10px',
                     fill: isUnlocked ? '#00ff00' : '#ff8800'
                 }
-            ).setOrigin(0, 0.5).setDepth(101);
+            ).setOrigin(0, 0.5).setDepth(151);
             
             // Status/Select button
             let button;
@@ -715,7 +740,7 @@ class CraftScene extends Phaser.Scene {
                         backgroundColor: '#333333',
                         padding: { x: 12, y: 8 }
                     }
-                ).setOrigin(0.5).setDepth(101);
+                ).setOrigin(0.5).setDepth(155);
             } else if (isCurrent) {
                 button = this.add.text(
                     this.cameras.main.centerX + 220,
@@ -727,7 +752,7 @@ class CraftScene extends Phaser.Scene {
                         backgroundColor: '#4a9eff',
                         padding: { x: 12, y: 8 }
                     }
-                ).setOrigin(0.5).setDepth(101);
+                ).setOrigin(0.5).setDepth(155);
             } else {
                 button = this.add.text(
                     this.cameras.main.centerX + 220,
@@ -739,7 +764,7 @@ class CraftScene extends Phaser.Scene {
                         backgroundColor: '#00aa00',
                         padding: { x: 12, y: 8 }
                     }
-                ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(101);
+                ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(155);
                 
                 button.on('pointerover', () => {
                     button.setStyle({ backgroundColor: '#00dd00' });
@@ -821,7 +846,7 @@ class CraftScene extends Phaser.Scene {
                 backgroundColor: '#ff6b6b',
                 padding: { x: 20, y: 8 }
             }
-        ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(101);
+        ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(155);
         
         closeButton.on('pointerover', () => {
             closeButton.setScale(1.1);
@@ -1050,5 +1075,12 @@ class CraftScene extends Phaser.Scene {
 
     update() {
         // Update any craft scene animations
+    }
+    
+    shutdown() {
+        // Clean up event listeners when scene shuts down
+        if (this.scale) {
+            this.scale.off('resize', this.handleResize, this);
+        }
     }
 }

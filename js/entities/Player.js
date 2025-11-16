@@ -40,10 +40,14 @@ class Player {
             
             // Configure physics body for container
             this.body.setCollideWorldBounds(true);
-            const bodyWidth = spriteSize.width * 0.65;
-            const bodyHeight = spriteSize.height * 0.85;
+            const bodyWidth = spriteSize.width * 0.65; // 52 pixels
+            const bodyHeight = spriteSize.height * 0.85; // 102 pixels
+            
+            // For containers, the body offset needs to account for the fact that 
+            // the body's top-left corner is positioned relative to the container's position
+            // Since container is at (x, y) and we want body centered, we need negative offset
             this.body.setSize(bodyWidth, bodyHeight);
-            this.body.setOffset(-bodyWidth/2, -bodyHeight/2 + 2); // Center and lift slightly to prevent jitter
+            this.body.setOffset(-bodyWidth/2, -bodyHeight/2); // Center the body on the container
             
             // Enable physics and set mass - prevent vibration
             this.body.setAllowGravity(true);
@@ -85,6 +89,10 @@ class Player {
         this.health = 100;
         this.maxHealth = 100;
         
+        // Track legendary mode state (initialized based on current costume)
+        const initialCostume = window.gameInstance?.getDragonCostume(currentOutfit);
+        this.isLegendaryMode = initialCostume?.isLegendary || false;
+        
         // State tracking
         this.facingRight = true;
         this.isGrounded = false;
@@ -113,7 +121,15 @@ class Player {
         this.fireballGlobalCooldown = 2000; // 2 seconds after 3 shots
         this.fireballs = [];
         
-        // Power-up states
+        // Power-up queue system (max 2 items)
+        this.powerUpQueue = [];
+        this.maxQueueSize = 2;
+        
+        // Currently active power-up
+        this.activePowerUp = null;
+        this.activePowerUpTimer = null;
+        
+        // Power-up states (for currently active power-up)
         this.powerUps = {
             fireBreath: false,
             ultraBlast: false,
@@ -121,9 +137,6 @@ class Player {
             invincibility: false,
             speedBoost: false
         };
-        
-        // Power-up timers
-        this.powerUpTimers = {};
         
         // Special abilities cooldowns
         this.specialAbilityCooldowns = {
@@ -449,7 +462,8 @@ class Player {
         this.previousInputs = {
             jump: false,
             kick: false,
-            punch: false
+            punch: false,
+            activate: false
         };
     }
 
@@ -475,6 +489,9 @@ class Player {
         
         // Handle combat
         this.handleCombat();
+        
+        // Handle power-up activation
+        this.handlePowerUpActivation();
         
         // Update visual elements
         this.updateVisuals();
@@ -625,24 +642,28 @@ class Player {
     tryJump() {
         const canCoyoteJump = (Date.now() - this.lastGroundTime) < this.coyoteTime;
         
+        // Check if in legendary mode for jump boost
+        const costume = this.getDragonCostume();
+        const jumpMultiplier = costume.isLegendary ? 1.3 : 1.0; // 30% higher jump for legendary
+        
         // Regular jump (when grounded or within coyote time)
         if ((this.isGrounded || canCoyoteJump) && this.jumpCooldown <= 0) {
-            this.body.setVelocityY(-this.jumpPower);
+            this.body.setVelocityY(-this.jumpPower * jumpMultiplier);
             this.isGrounded = false;
             this.jumpCooldown = 100; // Prevent multi-jumping
             this.hasDoubleJumped = false; // Reset double jump when doing regular jump
             this.createJumpEffect();
             
-            console.log('Player jumped!');
+            console.log('Player jumped!' + (costume.isLegendary ? ' (LEGENDARY BOOST)' : ''));
         }
         // Double jump (when in air and haven't used double jump yet)
         else if (!this.isGrounded && !this.hasDoubleJumped && this.canDoubleJump && this.jumpCooldown <= 0) {
-            this.body.setVelocityY(-this.doubleJumpPower);
+            this.body.setVelocityY(-this.doubleJumpPower * jumpMultiplier);
             this.hasDoubleJumped = true;
             this.jumpCooldown = 100; // Prevent multi-jumping
             this.createDoubleJumpEffect();
             
-            console.log('Player double jumped!');
+            console.log('Player double jumped!' + (costume.isLegendary ? ' (LEGENDARY BOOST)' : ''));
         }
     }
 
@@ -1148,27 +1169,99 @@ class Player {
         this.previousInputs.jump = this.controls.isJump();
         this.previousInputs.kick = this.controls.isKick();
         this.previousInputs.punch = this.controls.isPunch();
+        this.previousInputs.activate = this.controls.isActivate();
     }
 
-    // Power-up methods
+    // Power-up queue methods
+    addPowerUpToQueue(powerType) {
+        // If queue is full, remove oldest (first) item without activation
+        if (this.powerUpQueue.length >= this.maxQueueSize) {
+            const removed = this.powerUpQueue.shift();
+            console.log(`Power-up queue full! Removed ${removed} without activation`);
+            
+            // Show feedback to player
+            if (this.scene && this.scene.showPowerUpMessage) {
+                this.scene.showPowerUpMessage(`${removed} discarded!`, 0xff0000);
+            }
+        }
+        
+        // Add new power-up to queue
+        this.powerUpQueue.push(powerType);
+        console.log(`Power-up ${powerType} added to queue. Queue:`, this.powerUpQueue);
+        
+        // Update UI to show queue
+        if (this.scene && this.scene.updatePowerUpQueueUI) {
+            this.scene.updatePowerUpQueueUI(this.powerUpQueue);
+        }
+    }
+    
+    handlePowerUpActivation() {
+        // Safety check for controls
+        if (!this.controls) {
+            return;
+        }
+        
+        // Check for activation button press (edge detection - only on press, not hold)
+        if (this.controls.isActivate() && !this.previousInputs.activate) {
+            this.activateNextPowerUp();
+        }
+    }
+    
+    activateNextPowerUp() {
+        // Can't activate if already active
+        if (this.activePowerUp) {
+            console.log('Power-up already active!');
+            return;
+        }
+        
+        // Get next power-up from queue
+        if (this.powerUpQueue.length === 0) {
+            console.log('No power-ups in queue!');
+            return;
+        }
+        
+        const powerType = this.powerUpQueue.shift();
+        console.log(`Activating power-up: ${powerType}`);
+        
+        // Activate the power-up
+        this.activatePowerUp(powerType, 10000); // 10 seconds duration
+        
+        // Update UI
+        if (this.scene && this.scene.updatePowerUpQueueUI) {
+            this.scene.updatePowerUpQueueUI(this.powerUpQueue);
+        }
+    }
+    
     activatePowerUp(powerType, duration = 10000) {
         this.powerUps[powerType] = true;
+        this.activePowerUp = powerType;
         
-        // Store timer reference for cleanup
-        if (this.powerUpTimers[powerType]) {
-            clearTimeout(this.powerUpTimers[powerType]);
+        // Clear existing timer if any
+        if (this.activePowerUpTimer) {
+            clearTimeout(this.activePowerUpTimer);
         }
         
         // Apply power-up specific effects
         this.applyPowerUpEffects(powerType, true);
         
         // Set timer to deactivate
-        this.powerUpTimers[powerType] = setTimeout(() => {
+        this.activePowerUpTimer = setTimeout(() => {
             this.powerUps[powerType] = false;
             this.applyPowerUpEffects(powerType, false);
-            delete this.powerUpTimers[powerType];
+            this.activePowerUp = null;
+            this.activePowerUpTimer = null;
             console.log(`Power-up ${powerType} expired`);
+            
+            // Update UI
+            if (this.scene && this.scene.updateActivePowerUpUI) {
+                this.scene.updateActivePowerUpUI(null);
+            }
         }, duration);
+        
+        // Update UI to show active power-up
+        if (this.scene && this.scene.updateActivePowerUpUI) {
+            this.scene.updateActivePowerUpUI(powerType);
+        }
         
         console.log(`Power-up activated: ${powerType} for ${duration}ms`);
     }
@@ -1373,10 +1466,24 @@ class Player {
         }
         
         // Flash red when taking damage
-        this.sprite.setFillStyle(0xff0000);
+        const costume = this.getDragonCostume();
+        const isLegendary = costume.isLegendary;
+        
+        if (!isLegendary && this.sprite.setFillStyle) {
+            // Only set fill style for non-legendary (rectangle sprite)
+            this.sprite.setFillStyle(0xff0000);
+        } else {
+            // For legendary (container), flash the alpha
+            this.sprite.setAlpha(0.5);
+        }
+        
         setTimeout(() => {
             if (!this.powerUps.invincibility) {
-                this.updateOutfitColor(); // Reset to original outfit color
+                if (isLegendary) {
+                    this.sprite.setAlpha(1);
+                } else {
+                    this.updateOutfitColor(); // Reset to original outfit color
+                }
             }
         }, 100);
         
@@ -1391,9 +1498,29 @@ class Player {
         this.health = Math.min(this.maxHealth, this.health + amount);
         
         // Flash green when healing
-        this.sprite.setFillStyle(0x00ff00);
+        const costume = this.getDragonCostume();
+        const isLegendary = costume.isLegendary;
+        
+        if (!isLegendary && this.sprite.setFillStyle) {
+            // Only set fill style for non-legendary (rectangle sprite)
+            this.sprite.setFillStyle(0x00ff00);
+        } else {
+            // For legendary (container), create a green glow effect
+            const glow = this.scene.add.circle(this.sprite.x, this.sprite.y, 60, 0x00ff00, 0.4);
+            glow.setDepth(45);
+            this.scene.tweens.add({
+                targets: glow,
+                alpha: 0,
+                scale: 1.5,
+                duration: 400,
+                onComplete: () => glow.destroy()
+            });
+        }
+        
         setTimeout(() => {
-            this.updateOutfitColor(); // Reset to original outfit color
+            if (!isLegendary) {
+                this.updateOutfitColor(); // Reset to original outfit color
+            }
         }, 100);
         
         console.log(`Player healed ${amount}. Health: ${this.health}/${this.maxHealth}`);
@@ -1405,14 +1532,29 @@ class Player {
         this.health = this.maxHealth;
         this.sprite.setPosition(100, this.scene.levelHeight - 200); // Reset to start position
         
-        // Change color to red to show damage (since it's a rectangle, not a sprite)
-        const originalColor = this.sprite.fillColor;
-        this.sprite.setFillStyle(0xff0000); // Red color to show damage
+        // Check if legendary mode
+        const costume = this.getDragonCostume();
+        const isLegendary = costume.isLegendary;
         
-        // Restore original color after a moment
-        this.scene.time.delayedCall(1000, () => {
-            this.sprite.setFillStyle(originalColor);
-        });
+        if (!isLegendary && this.sprite.setFillStyle) {
+            // Change color to red to show damage (for rectangle sprite)
+            const originalColor = this.sprite.fillColor;
+            this.sprite.setFillStyle(0xff0000); // Red color to show damage
+            
+            // Restore original color after a moment
+            this.scene.time.delayedCall(1000, () => {
+                this.sprite.setFillStyle(originalColor);
+            });
+        } else {
+            // For legendary (container), flash red using alpha
+            const originalAlpha = this.sprite.alpha;
+            this.sprite.setAlpha(0.3);
+            
+            // Restore original alpha after a moment
+            this.scene.time.delayedCall(1000, () => {
+                this.sprite.setAlpha(originalAlpha);
+            });
+        }
         
         // Add damage to scene counter for star rating
         if (this.scene.damageTaken !== undefined) {

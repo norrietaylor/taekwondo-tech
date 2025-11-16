@@ -442,12 +442,13 @@ class GameScene extends Phaser.Scene {
 
     getRobotPartLocations() {
         // Level-specific robot part placements
+        // Make sure last part is before finish line (finish is at 1800+ for all levels)
         const baseLocations = [
             { x: 300, y: 360, type: 'head', rarity: 'common' },
             { x: 700, y: 260, type: 'body', rarity: 'rare' },
             { x: 1200, y: 160, type: 'arms', rarity: 'common' },
             { x: 1500, y: 260, type: 'legs', rarity: 'common' },
-            { x: 1800, y: 310, type: 'powerCore', rarity: 'epic' }
+            { x: 1650, y: 310, type: 'powerCore', rarity: 'epic' } // Moved from 1800 to 1650 to be before finish line
         ];
         
         return baseLocations;
@@ -793,6 +794,9 @@ class GameScene extends Phaser.Scene {
             backgroundColor: '#000000',
             padding: { x: 10, y: 5 }
         }).setScrollFactor(0).setDepth(100);
+        
+        // Power-up queue UI
+        this.createPowerUpQueueUI();
     }
 
     createHealthBar() {
@@ -1504,6 +1508,177 @@ class GameScene extends Phaser.Scene {
             
             this.healthText.setText(`${this.player.health}/${this.player.maxHealth}`);
         }
+    }
+    
+    createPowerUpQueueUI() {
+        // Power-up queue display (shows next 2 power-ups)
+        const uiX = this.cameras.main.width / 2;
+        const uiY = 20;
+        
+        // Title text
+        this.powerUpQueueTitle = this.add.text(uiX, uiY, 'Next Power-Up:', {
+            fontSize: '14px',
+            fill: '#ffffff',
+            backgroundColor: '#000000',
+            padding: { x: 8, y: 4 }
+        }).setScrollFactor(0).setDepth(100).setOrigin(0.5, 0);
+        
+        // Queue slot indicators
+        this.powerUpQueueSlots = [];
+        for (let i = 0; i < 2; i++) {
+            const slotX = uiX - 40 + (i * 80);
+            const slotY = uiY + 25;
+            
+            // Background slot
+            const slotBg = this.add.rectangle(slotX, slotY, 60, 60, 0x333333, 0.8)
+                .setScrollFactor(0)
+                .setDepth(100)
+                .setStrokeStyle(2, 0x666666);
+            
+            // Icon (will be updated based on power-up type)
+            const slotIcon = this.add.text(slotX, slotY, i === 0 ? '▶' : '', {
+                fontSize: '16px',
+                fill: '#ffffff'
+            }).setScrollFactor(0).setDepth(101).setOrigin(0.5);
+            
+            // Text label (power-up name)
+            const slotText = this.add.text(slotX, slotY + 20, 'Empty', {
+                fontSize: '10px',
+                fill: '#888888'
+            }).setScrollFactor(0).setDepth(101).setOrigin(0.5);
+            
+            this.powerUpQueueSlots.push({
+                background: slotBg,
+                icon: slotIcon,
+                text: slotText
+            });
+        }
+        
+        // Active power-up display (shows currently active power-up)
+        this.activePowerUpBg = this.add.rectangle(uiX, uiY + 100, 120, 50, 0x1a1a1a, 0.9)
+            .setScrollFactor(0)
+            .setDepth(100)
+            .setStrokeStyle(2, 0x00ff00);
+        
+        this.activePowerUpText = this.add.text(uiX, uiY + 100, 'No Active\nPower-Up', {
+            fontSize: '12px',
+            fill: '#888888',
+            align: 'center'
+        }).setScrollFactor(0).setDepth(101).setOrigin(0.5);
+        
+        // Activation hint
+        const activationHint = this.add.text(uiX, uiY + 130, 'Press E/Q to Activate', {
+            fontSize: '10px',
+            fill: '#888888',
+            backgroundColor: '#000000',
+            padding: { x: 4, y: 2 }
+        }).setScrollFactor(0).setDepth(100).setOrigin(0.5);
+    }
+    
+    updatePowerUpQueueUI(queue) {
+        if (!this.powerUpQueueSlots) return;
+        
+        const powerUpNames = {
+            'fireBreath': 'Fire',
+            'ultraBlast': 'Blast',
+            'flyMode': 'Fly',
+            'invincibility': 'Shield',
+            'speedBoost': 'Speed'
+        };
+        
+        const powerUpColors = {
+            'fireBreath': 0xff4500,
+            'ultraBlast': 0x00ffff,
+            'flyMode': 0x98fb98,
+            'invincibility': 0xffd700,
+            'speedBoost': 0xff69b4
+        };
+        
+        const powerUpIcons = {
+            'fireBreath': '🔥',
+            'ultraBlast': '💥',
+            'flyMode': '🦋',
+            'invincibility': '🛡️',
+            'speedBoost': '⚡'
+        };
+        
+        // Update each slot
+        for (let i = 0; i < this.powerUpQueueSlots.length; i++) {
+            const slot = this.powerUpQueueSlots[i];
+            
+            if (i < queue.length) {
+                const powerType = queue[i];
+                slot.background.setFillStyle(powerUpColors[powerType] || 0x666666, 0.8);
+                slot.background.setStrokeStyle(2, powerUpColors[powerType] || 0x888888);
+                slot.icon.setText((i === 0 ? '▶ ' : '') + powerUpIcons[powerType]);
+                slot.text.setText(powerUpNames[powerType] || powerType);
+                slot.text.setColor('#ffffff');
+            } else {
+                slot.background.setFillStyle(0x333333, 0.8);
+                slot.background.setStrokeStyle(2, 0x666666);
+                slot.icon.setText(i === 0 ? '▶' : '');
+                slot.text.setText('Empty');
+                slot.text.setColor('#888888');
+            }
+        }
+    }
+    
+    updateActivePowerUpUI(powerType) {
+        if (!this.activePowerUpText) return;
+        
+        const powerUpNames = {
+            'fireBreath': 'Fire Breath',
+            'ultraBlast': 'Ultra Blast',
+            'flyMode': 'Fly Mode',
+            'invincibility': 'Invincibility',
+            'speedBoost': 'Speed Boost'
+        };
+        
+        const powerUpColors = {
+            'fireBreath': 0xff4500,
+            'ultraBlast': 0x00ffff,
+            'flyMode': 0x98fb98,
+            'invincibility': 0xffd700,
+            'speedBoost': 0xff69b4
+        };
+        
+        if (powerType) {
+            this.activePowerUpText.setText(powerUpNames[powerType] || powerType);
+            this.activePowerUpText.setColor('#00ff00');
+            this.activePowerUpBg.setStrokeStyle(3, powerUpColors[powerType] || 0x00ff00);
+        } else {
+            this.activePowerUpText.setText('No Active\nPower-Up');
+            this.activePowerUpText.setColor('#888888');
+            this.activePowerUpBg.setStrokeStyle(2, 0x666666);
+        }
+    }
+    
+    showPowerUpMessage(message, color = 0xffff00) {
+        // Show a temporary message near the player
+        const player = this.player;
+        if (!player) return;
+        
+        const messageText = this.add.text(
+            player.sprite.x,
+            player.sprite.y - 60,
+            message,
+            {
+                fontSize: '16px',
+                fill: `#${color.toString(16).padStart(6, '0')}`,
+                fontWeight: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5).setDepth(100);
+        
+        this.tweens.add({
+            targets: messageText,
+            y: messageText.y - 40,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Power1',
+            onComplete: () => messageText.destroy()
+        });
     }
 
     checkGameOver() {
