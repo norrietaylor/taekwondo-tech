@@ -207,17 +207,17 @@ class TaekwondoRobotBuilder {
     }
 
     setupFullscreenListeners() {
-        // Listen for fullscreen errors
+        // Listen for fullscreen errors (silently handle - they're expected due to browser security)
         document.addEventListener('fullscreenerror', (e) => {
-            console.error('Fullscreen error:', e);
+            // Fullscreen errors are expected when not triggered by user gesture
         });
         
         document.addEventListener('webkitfullscreenerror', (e) => {
-            console.error('Fullscreen error:', e);
+            // Fullscreen errors are expected when not triggered by user gesture
         });
         
         document.addEventListener('mozfullscreenerror', (e) => {
-            console.error('Fullscreen error:', e);
+            // Fullscreen errors are expected when not triggered by user gesture
         });
         
         // Listen for fullscreen change events
@@ -512,16 +512,15 @@ class TaekwondoRobotBuilder {
         if (requestFS) {
             try {
                 requestFS.call(canvas).catch(err => {
-                    console.warn(`Fullscreen request failed: ${err.message}`);
-                    // Fallback to iOS method
+                    // Silently fallback to iOS method - fullscreen API restrictions are expected
                     this.enterIOSFullscreen();
                 });
             } catch (err) {
-                console.warn('Fullscreen request failed:', err);
+                // Silently fallback to iOS method
                 this.enterIOSFullscreen();
             }
         } else {
-            console.warn('Fullscreen API not supported by this browser');
+            // Fullscreen API not supported, use iOS fallback
             this.enterIOSFullscreen();
         }
     }
@@ -562,7 +561,7 @@ class TaekwondoRobotBuilder {
         // Request orientation lock if available
         if (screen.orientation && screen.orientation.lock) {
             screen.orientation.lock('landscape').catch(err => {
-                console.log('Screen orientation lock not available:', err);
+                // Orientation lock not supported on this device - this is normal
             });
         }
         

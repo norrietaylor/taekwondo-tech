@@ -12,10 +12,10 @@ class Controls {
                 radius: 40
             },
             buttons: {
-                
                 jump: false,
                 kick: false,
-                punch: false
+                punch: false,
+                activate: false
             }
         };
         
@@ -118,7 +118,7 @@ class Controls {
         window.addEventListener('blur', () => {
             // Clear all keys when window loses focus
             this.keys = {};
-            this.mobile.buttons = { jump: false, kick: false, punch: false };
+            this.mobile.buttons = { jump: false, kick: false, punch: false, activate: false };
         });
     }
 
@@ -128,6 +128,7 @@ class Controls {
         const jumpBtn = document.getElementById('jumpBtn');
         const kickBtn = document.getElementById('kickBtn');
         const punchBtn = document.getElementById('punchBtn');
+        const activateBtn = document.getElementById('activateBtn');
 
         if (!joystick || !joystickKnob) return;
 
@@ -290,6 +291,37 @@ class Controls {
                 }
             });
         }
+
+        if (activateBtn) {
+            activateBtn.addEventListener('touchstart', (e) => {
+                console.log('Activate button touchstart');
+                e.preventDefault();
+                e.stopPropagation();
+                this.mobile.buttons.activate = true;
+            }, { passive: false });
+            activateBtn.addEventListener('touchend', (e) => {
+                console.log('Activate button touchend');
+                e.preventDefault();
+                e.stopPropagation();
+                this.mobile.buttons.activate = false;
+            }, { passive: false });
+            
+            // Pointer event fallbacks
+            activateBtn.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'touch') {
+                    console.log('Activate button pointerdown fallback');
+                    e.preventDefault();
+                    this.mobile.buttons.activate = true;
+                }
+            });
+            activateBtn.addEventListener('pointerup', (e) => {
+                if (e.pointerType === 'touch') {
+                    console.log('Activate button pointerup fallback');
+                    e.preventDefault();
+                    this.mobile.buttons.activate = false;
+                }
+            });
+        }
     }
 
     handleJoystickMove(touch) {
@@ -364,6 +396,11 @@ class Controls {
 
     isAction() {
         return this.keys['Enter'] || this.keys['Space'];
+    }
+
+    isActivate() {
+        return this.keys['KeyE'] || this.keys['KeyQ'] || 
+               (this.isMobile && this.mobile.buttons.activate);
     }
 
     // For one-time key presses (not held)
