@@ -403,6 +403,10 @@ class Controls {
                (this.isMobile && this.mobile.buttons.activate);
     }
 
+    isTeleport() {
+        return this.keys['KeyT'];
+    }
+
     // For one-time key presses (not held)
     wasJustPressed(keyMethod) {
         if (!this.lastFrameState) this.lastFrameState = {};

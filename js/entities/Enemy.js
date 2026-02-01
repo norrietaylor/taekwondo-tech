@@ -606,5 +606,380 @@ window.EnemyFactory = {
         enemy.eyes.forEach(eye => eye.setFillStyle(0x8b5cf6));
         
         return enemy;
+    },
+    
+    createEarthTitan: function(scene, x, y) {
+        const enemy = new Enemy(scene, x, y, 'earth_titan');
+        enemy.sprite.setFillStyle(0x654321); // Dark brown
+        enemy.sprite.setStrokeStyle(4, 0x228b22); // Green vegetation stroke
+        enemy.health *= 2.5; // Very tanky
+        enemy.maxHealth *= 2.5;
+        enemy.damage *= 1.6; // Strong attacks
+        enemy.speed *= 0.7; // Slower but powerful
+        enemy.attackDelay *= 1.3; // Slower attacks but devastating
+        
+        // Add rocky texture effect around the titan
+        const rockAura = scene.add.polygon(x, y, [
+            -35, 0, -25, -30, 0, -40, 25, -30, 35, 0, 25, 30, 0, 40, -25, 30
+        ], 0x8b7355, 0.3);
+        rockAura.setDepth(-1);
+        
+        // Add ground rumble effect - shake periodically
+        const rumbleInterval = scene.time.addEvent({
+            delay: 3000 + Math.random() * 2000,
+            callback: () => {
+                if (enemy.health > 0 && scene.cameras && scene.cameras.main) {
+                    // Only shake if player is nearby
+                    const player = scene.player;
+                    if (player) {
+                        const dist = Phaser.Math.Distance.Between(
+                            enemy.sprite.x, enemy.sprite.y,
+                            player.sprite.x, player.sprite.y
+                        );
+                        if (dist < 200) {
+                            scene.cameras.main.shake(150, 0.008);
+                        }
+                    }
+                }
+            },
+            loop: true
+        });
+        
+        // Store references to update and clean up
+        enemy.rockAura = rockAura;
+        enemy.rumbleInterval = rumbleInterval;
+        
+        // Override updateVisuals to include rock aura
+        const originalUpdateVisuals = enemy.updateVisuals;
+        enemy.updateVisuals = function() {
+            originalUpdateVisuals.call(this);
+            if (this.rockAura) {
+                this.rockAura.x = this.sprite.x;
+                this.rockAura.y = this.sprite.y;
+            }
+        };
+        
+        // Override attack to create ground shake effect
+        const originalPerformAttack = enemy.performAttack;
+        enemy.performAttack = function(player) {
+            console.log('🌍 Earth Titan ground pound!');
+            
+            // Create ground pound effect
+            this.createGroundPoundEffect();
+            
+            // Check if attack hits player
+            const distanceToPlayer = Phaser.Math.Distance.Between(
+                this.sprite.x, this.sprite.y,
+                player.sprite.x, player.sprite.y
+            );
+            
+            // Larger attack range due to ground pound
+            if (distanceToPlayer < this.attackRange * 1.5) {
+                player.takeDamage(this.damage);
+                
+                // Strong knockback and knock up
+                const knockbackDirection = player.sprite.x < this.sprite.x ? -1 : 1;
+                player.body.setVelocity(knockbackDirection * 300, -200);
+            }
+            
+            // Screen shake for ground pound
+            if (scene.cameras && scene.cameras.main) {
+                scene.cameras.main.shake(300, 0.025);
+            }
+        };
+        
+        // Ground pound effect
+        enemy.createGroundPoundEffect = function() {
+            const x = this.sprite.x;
+            const y = this.sprite.y + 30;
+            
+            // Create shockwave rings
+            for (let i = 0; i < 3; i++) {
+                const ring = scene.add.circle(x, y, 20, 0x8b4513, 0.6);
+                ring.setDepth(40);
+                
+                scene.tweens.add({
+                    targets: ring,
+                    scaleX: 4 + i,
+                    scaleY: 1.5 + i * 0.3,
+                    alpha: 0,
+                    duration: 500,
+                    delay: i * 100,
+                    onComplete: () => ring.destroy()
+                });
+            }
+            
+            // Create flying rocks/debris
+            for (let i = 0; i < 8; i++) {
+                const rock = scene.add.polygon(
+                    x + (Math.random() - 0.5) * 60,
+                    y,
+                    [0, -8, 6, 0, 3, 8, -3, 8, -6, 0],
+                    0x654321,
+                    0.9
+                );
+                rock.setDepth(45);
+                
+                const targetX = rock.x + (Math.random() - 0.5) * 80;
+                const targetY = rock.y - 40 - Math.random() * 60;
+                
+                scene.tweens.add({
+                    targets: rock,
+                    x: targetX,
+                    y: targetY,
+                    rotation: Math.PI * 2 * (Math.random() - 0.5),
+                    duration: 400 + Math.random() * 200,
+                    ease: 'Power1',
+                    onComplete: () => {
+                        // Rock falls back down
+                        scene.tweens.add({
+                            targets: rock,
+                            y: rock.y + 100,
+                            alpha: 0,
+                            duration: 300,
+                            onComplete: () => rock.destroy()
+                        });
+                    }
+                });
+            }
+            
+            // Create dust cloud
+            for (let i = 0; i < 6; i++) {
+                const dust = scene.add.circle(
+                    x + (Math.random() - 0.5) * 50,
+                    y,
+                    10 + Math.random() * 10,
+                    0xa0522d,
+                    0.5
+                );
+                dust.setDepth(38);
+                
+                scene.tweens.add({
+                    targets: dust,
+                    y: dust.y - 30,
+                    scaleX: 2,
+                    scaleY: 2,
+                    alpha: 0,
+                    duration: 600,
+                    delay: i * 50,
+                    onComplete: () => dust.destroy()
+                });
+            }
+        };
+        
+        // Override destroy to clean up earth titan parts
+        const originalDestroy = enemy.destroy;
+        enemy.destroy = function() {
+            if (this.rockAura) this.rockAura.destroy();
+            if (this.rumbleInterval) this.rumbleInterval.remove();
+            originalDestroy.call(this);
+        };
+        
+        // Make eyes glow green for earth titan
+        enemy.eyes.forEach(eye => eye.setFillStyle(0x228b22));
+        
+        // Change red indicator to earth brown
+        if (enemy.redLineIndicator) {
+            enemy.redLineIndicator.setFillStyle(0x8b4513);
+        }
+        
+        return enemy;
+    },
+    
+    // 🍌 MONKEY TITAN - Throws bananas at the player!
+    createMonkeyTitan: function(scene, x, y) {
+        const enemy = new Enemy(scene, x, y, 'monkey_titan');
+        
+        // Brown/tan monkey coloring
+        enemy.sprite.setFillStyle(0x8B4513); // Saddle brown
+        enemy.sprite.setStrokeStyle(3, 0x5C4033); // Darker brown
+        
+        // Monkey stats - agile and ranged
+        enemy.health = 50;
+        enemy.maxHealth = 50;
+        enemy.speed = 120; // Faster movement
+        enemy.damage = 5; // Low melee damage (prefers throwing)
+        enemy.attackRange = 250; // Long range for throwing
+        enemy.detectionRange = 350; // Can see player from far
+        enemy.attackDelay = 2000; // Time between banana throws
+        
+        // Banana throwing properties
+        enemy.canThrowBanana = true;
+        enemy.bananaThrowCooldown = 0;
+        enemy.bananaThrowDelay = 2500; // ms between throws
+        enemy.bananasThrown = 0;
+        enemy.maxBananasPerBurst = 3;
+        enemy.burstCooldown = 5000; // Cooldown after throwing max bananas
+        
+        // Create monkey-specific visual elements
+        enemy.createMonkeyVisuals = function() {
+            // Monkey ears (circles on sides of head)
+            this.leftEar = scene.add.circle(this.sprite.x - 20, this.sprite.y - 20, 8, 0xDEB887);
+            this.leftEar.setStrokeStyle(2, 0x8B4513);
+            
+            this.rightEar = scene.add.circle(this.sprite.x + 20, this.sprite.y - 20, 8, 0xDEB887);
+            this.rightEar.setStrokeStyle(2, 0x8B4513);
+            
+            // Monkey face (lighter belly area simulation)
+            this.face = scene.add.ellipse(this.sprite.x, this.sprite.y - 5, 20, 25, 0xDEB887);
+            
+            // Monkey tail (curved line effect using circles)
+            this.tail = scene.add.ellipse(this.sprite.x + 25, this.sprite.y + 20, 30, 8, 0x8B4513);
+            this.tail.setRotation(-0.5);
+        };
+        
+        // Call to create visuals
+        enemy.createMonkeyVisuals();
+        
+        // Override updateVisuals to include monkey parts
+        const originalUpdateVisuals = enemy.updateVisuals;
+        enemy.updateVisuals = function() {
+            originalUpdateVisuals.call(this);
+            
+            // Update ear positions
+            if (this.leftEar) {
+                this.leftEar.x = this.sprite.x - (this.facingRight ? 18 : -18);
+                this.leftEar.y = this.sprite.y - 20;
+            }
+            if (this.rightEar) {
+                this.rightEar.x = this.sprite.x + (this.facingRight ? 18 : -18);
+                this.rightEar.y = this.sprite.y - 20;
+            }
+            if (this.face) {
+                this.face.x = this.sprite.x;
+                this.face.y = this.sprite.y - 5;
+            }
+            if (this.tail) {
+                this.tail.x = this.sprite.x + (this.facingRight ? -25 : 25);
+                this.tail.y = this.sprite.y + 20;
+                this.tail.setRotation(this.facingRight ? 0.5 : -0.5);
+            }
+        };
+        
+        // Override attack behavior to throw bananas
+        const originalAttackBehavior = enemy.attackBehavior;
+        enemy.attackBehavior = function(player) {
+            // Stop moving while throwing
+            this.body.setVelocityX(0);
+            
+            // Face the player
+            this.facingRight = player.sprite.x > this.sprite.x;
+            
+            // Throw banana!
+            this.throwBanana(player);
+            
+            this.attackCooldown = this.attackDelay;
+            this.changeState('chase');
+        };
+        
+        // Banana throwing method
+        enemy.throwBanana = function(player) {
+            console.log('🐒 Monkey Titan throws a banana!');
+            
+            // Check if BananaManager exists (banana mode active)
+            if (scene.bananaManager) {
+                scene.bananaManager.spawnBananaFrom(
+                    this.sprite.x,
+                    this.sprite.y - 10,
+                    player.sprite.x,
+                    player.sprite.y
+                );
+            } else {
+                // Create standalone banana if not in banana mode
+                if (window.Banana) {
+                    const dx = player.sprite.x - this.sprite.x;
+                    const dy = player.sprite.y - this.sprite.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const speed = 250;
+                    
+                    const velocityX = (dx / distance) * speed;
+                    const velocityY = (dy / distance) * speed - 80;
+                    
+                    const banana = new window.Banana(scene, this.sprite.x, this.sprite.y - 10, velocityX, velocityY);
+                    
+                    // Set up collision with platforms
+                    if (scene.platforms) {
+                        scene.physics.add.collider(banana.sprite, scene.platforms);
+                    }
+                    
+                    // Set up collision with player
+                    if (scene.player) {
+                        scene.physics.add.overlap(
+                            scene.player.sprite,
+                            banana.sprite,
+                            (playerSprite, bananaSprite) => {
+                                const bananaObj = bananaSprite.getData('banana');
+                                if (bananaObj && !bananaObj.destroyed && !bananaObj.isDeflected) {
+                                    if (scene.player.isAttacking) {
+                                        bananaObj.onDeflect(scene.player, 'kick');
+                                    } else {
+                                        bananaObj.onPlayerContact(scene.player);
+                                    }
+                                }
+                            }
+                        );
+                    }
+                }
+            }
+            
+            // Create throw animation effect
+            this.createThrowEffect();
+            
+            this.bananasThrown++;
+        };
+        
+        // Throw animation effect
+        enemy.createThrowEffect = function() {
+            const throwX = this.sprite.x + (this.facingRight ? 20 : -20);
+            const throwY = this.sprite.y - 10;
+            
+            // Arm swing effect
+            const arm = scene.add.rectangle(throwX, throwY, 15, 6, 0x8B4513);
+            arm.setRotation(this.facingRight ? -0.5 : 0.5);
+            
+            scene.tweens.add({
+                targets: arm,
+                rotation: this.facingRight ? 0.5 : -0.5,
+                scaleX: 1.2,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => arm.destroy()
+            });
+            
+            // Banana emoji pop effect
+            const emoji = scene.add.text(throwX, throwY - 20, '🍌', {
+                fontSize: '20px'
+            }).setOrigin(0.5);
+            
+            scene.tweens.add({
+                targets: emoji,
+                y: throwY - 50,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => emoji.destroy()
+            });
+        };
+        
+        // Override destroy to clean up monkey parts
+        const originalDestroy = enemy.destroy;
+        enemy.destroy = function() {
+            if (this.leftEar) this.leftEar.destroy();
+            if (this.rightEar) this.rightEar.destroy();
+            if (this.face) this.face.destroy();
+            if (this.tail) this.tail.destroy();
+            originalDestroy.call(this);
+        };
+        
+        // Make eyes yellow like a monkey
+        enemy.eyes.forEach(eye => eye.setFillStyle(0xFFD700));
+        
+        // Change red indicator to banana yellow
+        if (enemy.redLineIndicator) {
+            enemy.redLineIndicator.setFillStyle(0xFFE135);
+        }
+        
+        console.log('🐒 Monkey Titan created at:', x, y);
+        
+        return enemy;
     }
 };
