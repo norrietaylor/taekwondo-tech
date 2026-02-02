@@ -284,7 +284,158 @@ class MenuScene extends Phaser.Scene {
             case 'Credits':
                 this.showCredits();
                 break;
+                
+            case '🍌 Banana Mode':
+                this.showBananaModeMenu();
+                break;
         }
+    }
+
+    showBananaModeMenu() {
+        // Show banana mode selection overlay
+        const overlay = this.add.rectangle(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY,
+            450,
+            350,
+            0x8B4513,
+            0.95
+        ).setDepth(100);
+        
+        // Add banana pattern border
+        overlay.setStrokeStyle(6, 0xFFE135);
+        
+        // Title
+        const title = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 130,
+            '🍌 BANANA MODE 🍌',
+            {
+                fontSize: '36px',
+                fill: '#FFE135',
+                fontWeight: 'bold',
+                stroke: '#5C4033',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(101);
+        
+        // Description
+        const desc = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 80,
+            'Dodge bananas thrown by Monkey Titans!\nKick or punch to deflect them back!',
+            {
+                fontSize: '16px',
+                fill: '#ffffff',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(101);
+        
+        // Survival Mode button
+        const survivalBtn = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 10,
+            '🏆 Endless Survival',
+            {
+                fontSize: '24px',
+                fill: '#ffffff',
+                backgroundColor: '#228B22',
+                padding: { x: 25, y: 12 }
+            }
+        ).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
+        
+        const survivalDesc = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 30,
+            'Survive as long as you can! Waves get harder.',
+            {
+                fontSize: '12px',
+                fill: '#a8d5d1',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(101);
+        
+        // Bonus Mode info
+        const bonusInfo = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 70,
+            '💡 Bonus stages appear between levels\nin the main game!',
+            {
+                fontSize: '14px',
+                fill: '#FFD700',
+                align: 'center',
+                fontStyle: 'italic'
+            }
+        ).setOrigin(0.5).setDepth(101);
+        
+        // Close button
+        const closeBtn = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 130,
+            'Back to Menu',
+            {
+                fontSize: '20px',
+                fill: '#ffffff',
+                backgroundColor: '#ff6b6b',
+                padding: { x: 20, y: 10 }
+            }
+        ).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
+        
+        // Store elements for cleanup
+        const elements = [overlay, title, desc, survivalBtn, survivalDesc, bonusInfo, closeBtn];
+        
+        // Button handlers
+        survivalBtn.on('pointerdown', () => {
+            elements.forEach(e => e.destroy());
+            this.startBananaSurvival();
+        });
+        
+        survivalBtn.on('pointerover', () => survivalBtn.setScale(1.05));
+        survivalBtn.on('pointerout', () => survivalBtn.setScale(1.0));
+        
+        closeBtn.on('pointerdown', () => {
+            elements.forEach(e => e.destroy());
+        });
+        
+        closeBtn.on('pointerover', () => closeBtn.setScale(1.05));
+        closeBtn.on('pointerout', () => closeBtn.setScale(1.0));
+        
+        // Add floating banana decorations
+        for (let i = 0; i < 5; i++) {
+            const bananaX = this.cameras.main.centerX + (Math.random() - 0.5) * 350;
+            const bananaY = this.cameras.main.centerY + (Math.random() - 0.5) * 250;
+            
+            const banana = this.add.ellipse(bananaX, bananaY, 25, 10, 0xFFE135, 0.6);
+            banana.setRotation(-0.4 + Math.random() * 0.8);
+            banana.setDepth(100);
+            
+            elements.push(banana);
+            
+            this.tweens.add({
+                targets: banana,
+                y: banana.y + 15,
+                rotation: banana.rotation + 0.3,
+                duration: 1000 + Math.random() * 1000,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+    }
+
+    startBananaSurvival() {
+        console.log('🍌 Starting Banana Survival Mode...');
+        
+        // Request fullscreen
+        if (window.gameInstance && window.gameInstance.requestFullscreen) {
+            window.gameInstance.requestFullscreen();
+        }
+        
+        // Transition effect
+        this.cameras.main.fadeOut(500, 139, 69, 19); // Brown fade for banana theme
+        
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.start('BananaSurvivalScene');
+        });
     }
 
     startNewGame() {

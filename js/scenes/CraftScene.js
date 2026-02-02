@@ -555,8 +555,30 @@ class CraftScene extends Phaser.Scene {
             this.showOutfitSelection();
         });
         
+        // 🍌 Banana Mode button
+        const bananaButton = this.add.text(50, 150, '🍌 Banana Mode', {
+            fontSize: '18px',
+            fill: '#000000',
+            backgroundColor: '#FFE135',
+            padding: { x: 15, y: 8 }
+        }).setInteractive({ useHandCursor: true }).setDepth(50);
+        
+        bananaButton.on('pointerover', () => {
+            bananaButton.setScale(1.05);
+            bananaButton.setStyle({ backgroundColor: '#FFFF00' });
+        });
+        
+        bananaButton.on('pointerout', () => {
+            bananaButton.setScale(1.0);
+            bananaButton.setStyle({ backgroundColor: '#FFE135' });
+        });
+        
+        bananaButton.on('pointerdown', () => {
+            this.showBananaModeMenu();
+        });
+        
         // Continue to next level (if applicable)
-        if (window.gameInstance.gameData.currentLevel <= 5) {
+        if (window.gameInstance.gameData.currentLevel <= 6) {
             const continueButton = this.add.text(
                 this.cameras.main.width - 50, 
                 50, 
@@ -587,9 +609,9 @@ class CraftScene extends Phaser.Scene {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         
-        // Calculate responsive overlay height
+        // Calculate responsive overlay height - need 8 costumes now (including banana!)
         const screenHeight = this.cameras.main.height;
-        const overlayHeight = Math.min(screenHeight - 30, 560); // Taller overlay (560px max)
+        const overlayHeight = Math.min(screenHeight - 20, 560); // Fit 8 costumes (560px max)
         
         // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
@@ -616,14 +638,16 @@ class CraftScene extends Phaser.Scene {
             }
         ).setOrigin(0.5).setDepth(151);
         
-        // Available dragon costumes (including legendary)
-        const dragonCostumes = ['default', 'fire', 'ice', 'lightning', 'shadow', 'legendary'];
+        // Available dragon costumes (banana is early unlock after Level 1 like fire)
+        const dragonCostumes = ['default', 'fire', 'banana', 'ice', 'lightning', 'shadow', 'earth', 'legendary'];
+        console.log('🐉 Loading dragon costumes:', dragonCostumes);
+        console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
         
         const outfitElements = [overlay, title];
         
-        // Compact spacing to fit all 6 costumes
-        const itemSpacing = 58; // 6 items * 58px = 348px total
-        const startY = this.cameras.main.centerY - (overlayHeight / 2) + 55;
+        // Compact spacing to fit all 8 costumes
+        const itemSpacing = 45; // 8 items * 45px = 360px total
+        const startY = this.cameras.main.centerY - (overlayHeight / 2) + 60;
         
         dragonCostumes.forEach((costumeKey, index) => {
             const costume = window.gameInstance.getDragonCostume(costumeKey);
@@ -883,6 +907,9 @@ class CraftScene extends Phaser.Scene {
             case 'fire':
                 // Unlock after completing level 1
                 return gameData.currentLevel >= 2;
+            case 'banana':
+                // Unlock after completing level 1 (same as fire!)
+                return gameData.currentLevel >= 2;
             case 'ice':
                 // Unlock after collecting 5 robot parts
                 return window.gameInstance.getTotalPartsCollected() >= 5;
@@ -890,7 +917,10 @@ class CraftScene extends Phaser.Scene {
                 // Unlock after completing level 2
                 return gameData.currentLevel >= 3;
             case 'shadow':
-                // Unlock after completing all 5 levels
+                // Unlock after completing level 4
+                return gameData.currentLevel >= 5;
+            case 'earth':
+                // Unlock after completing level 5
                 return gameData.currentLevel >= 6;
             case 'legendary':
                 // Unlock after collecting all 5 robot part types
@@ -914,13 +944,17 @@ class CraftScene extends Phaser.Scene {
         switch (costumeKey) {
             case 'fire':
                 return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
+            case 'banana':
+                return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
             case 'ice':
                 const parts = window.gameInstance.getTotalPartsCollected();
                 return `🔒 Collect 5 parts (${parts}/5)`;
             case 'lightning':
                 return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
             case 'shadow':
-                return `🔒 Complete the game`;
+                return `🔒 Complete Level 4 (Current: Level ${gameData.currentLevel})`;
+            case 'earth':
+                return `🔒 Complete Level 5 (Current: Level ${gameData.currentLevel})`;
             case 'legendary':
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
                 const collectedTypes = partTypes.filter(type => 
@@ -1056,6 +1090,154 @@ class CraftScene extends Phaser.Scene {
     closeOutfitSelection(elements) {
         elements.forEach(element => {
             if (element) element.destroy();
+        });
+    }
+
+    // 🍌 Banana Mode Menu
+    showBananaModeMenu() {
+        // Show banana mode selection overlay
+        const overlay = this.add.rectangle(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY,
+            450,
+            380,
+            0x8B4513,
+            0.95
+        ).setDepth(160);
+        
+        // Add banana pattern border
+        overlay.setStrokeStyle(6, 0xFFE135);
+        
+        // Title
+        const title = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 150,
+            '🍌 BANANA MODE 🍌',
+            {
+                fontSize: '36px',
+                fill: '#FFE135',
+                fontWeight: 'bold',
+                stroke: '#5C4033',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(161);
+        
+        // Description
+        const desc = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 95,
+            'Dodge bananas thrown by Monkey Titans!\nKick or punch to deflect them back!',
+            {
+                fontSize: '16px',
+                fill: '#ffffff',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(161);
+        
+        // Survival Mode button
+        const survivalBtn = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - 20,
+            '🏆 Endless Survival',
+            {
+                fontSize: '24px',
+                fill: '#ffffff',
+                backgroundColor: '#228B22',
+                padding: { x: 25, y: 12 }
+            }
+        ).setOrigin(0.5).setDepth(161).setInteractive({ useHandCursor: true });
+        
+        const survivalDesc = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 25,
+            'Survive as long as you can! Waves get harder.',
+            {
+                fontSize: '12px',
+                fill: '#a8d5d1',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(161);
+        
+        // Bonus Mode info
+        const bonusInfo = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 70,
+            '💡 Bonus stages appear between levels\nin the main game!',
+            {
+                fontSize: '14px',
+                fill: '#FFD700',
+                align: 'center',
+                fontStyle: 'italic'
+            }
+        ).setOrigin(0.5).setDepth(161);
+        
+        // Close button
+        const closeBtn = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + 130,
+            'Back',
+            {
+                fontSize: '20px',
+                fill: '#ffffff',
+                backgroundColor: '#ff6b6b',
+                padding: { x: 30, y: 10 }
+            }
+        ).setOrigin(0.5).setDepth(161).setInteractive({ useHandCursor: true });
+        
+        // Store elements for cleanup
+        const elements = [overlay, title, desc, survivalBtn, survivalDesc, bonusInfo, closeBtn];
+        
+        // Add floating banana decorations
+        for (let i = 0; i < 6; i++) {
+            const bananaX = this.cameras.main.centerX + (Math.random() - 0.5) * 380;
+            const bananaY = this.cameras.main.centerY + (Math.random() - 0.5) * 300;
+            
+            const banana = this.add.ellipse(bananaX, bananaY, 25, 10, 0xFFE135, 0.6);
+            banana.setRotation(-0.4 + Math.random() * 0.8);
+            banana.setDepth(160);
+            
+            elements.push(banana);
+            
+            this.tweens.add({
+                targets: banana,
+                y: banana.y + 15,
+                rotation: banana.rotation + 0.3,
+                duration: 1000 + Math.random() * 1000,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+        
+        // Button handlers
+        survivalBtn.on('pointerdown', () => {
+            elements.forEach(e => e.destroy());
+            this.startBananaSurvival();
+        });
+        
+        survivalBtn.on('pointerover', () => survivalBtn.setScale(1.05));
+        survivalBtn.on('pointerout', () => survivalBtn.setScale(1.0));
+        
+        closeBtn.on('pointerdown', () => {
+            elements.forEach(e => e.destroy());
+        });
+        
+        closeBtn.on('pointerover', () => closeBtn.setScale(1.05));
+        closeBtn.on('pointerout', () => closeBtn.setScale(1.0));
+    }
+
+    startBananaSurvival() {
+        console.log('🍌 Starting Banana Survival Mode...');
+        
+        // Request fullscreen
+        if (window.gameInstance && window.gameInstance.requestFullscreen) {
+            window.gameInstance.requestFullscreen();
+        }
+        
+        // Transition effect
+        this.cameras.main.fadeOut(500, 139, 69, 19); // Brown fade for banana theme
+        
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.start('BananaSurvivalScene');
         });
     }
 

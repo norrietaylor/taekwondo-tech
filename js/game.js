@@ -30,7 +30,16 @@ class TaekwondoRobotBuilder {
                 hasWings: true,
                 wingColor: 0xff6347,
                 wingStyle: 'flame',
-                wingTipColor: 0xff0000
+                wingTipColor: 0xff0000,
+                // Fire Dragon Projectile - Fireballs
+                projectileEnabled: true,
+                projectileType: 'fireball',
+                projectileColor: 0xff4500,
+                projectileSecondaryColor: 0xff6347,
+                projectileDamage: 20,
+                projectileSpeed: 500,
+                projectileSize: 18,
+                projectileEffect: 'burn' // Leaves burning trail
             },
             'ice': {
                 name: 'Ice Dragon',
@@ -45,7 +54,16 @@ class TaekwondoRobotBuilder {
                 hasWings: true,
                 wingColor: 0xb0e0e6,
                 wingStyle: 'crystal',
-                wingTipColor: 0xffffff
+                wingTipColor: 0xffffff,
+                // Ice Dragon Projectile - Ice shards
+                projectileEnabled: true,
+                projectileType: 'ice',
+                projectileColor: 0x87ceeb,
+                projectileSecondaryColor: 0xffffff,
+                projectileDamage: 15,
+                projectileSpeed: 550,
+                projectileSize: 15,
+                projectileEffect: 'freeze' // Slows enemies
             },
             'lightning': {
                 name: 'Lightning Dragon',
@@ -60,7 +78,16 @@ class TaekwondoRobotBuilder {
                 hasWings: true,
                 wingColor: 0xffd700,
                 wingStyle: 'electric',
-                wingTipColor: 0x9370db
+                wingTipColor: 0x9370db,
+                // Lightning Dragon Projectile - Lightning bolts
+                projectileEnabled: true,
+                projectileType: 'lightning',
+                projectileColor: 0xffd700,
+                projectileSecondaryColor: 0xffff00,
+                projectileDamage: 22,
+                projectileSpeed: 700,
+                projectileSize: 20,
+                projectileEffect: 'chain' // Can chain to nearby enemies
             },
             'shadow': {
                 name: 'Shadow Dragon',
@@ -69,21 +96,54 @@ class TaekwondoRobotBuilder {
                 secondaryColor: 0x2f1b3c,
                 beltColor: 0x000000,
                 description: 'Master of darkness and stealth',
-                unlockCondition: 'Complete level 4',
+                unlockCondition: 'Complete Level 4',
                 effectColor: 0x9400d3,
                 unlocked: false,
                 hasWings: true,
                 wingColor: 0x2f1b3c,
                 wingStyle: 'shadow',
-                wingTipColor: 0x000000
+                wingTipColor: 0x000000,
+                // Shadow Dragon Projectile - Smoke clouds
+                projectileEnabled: true,
+                projectileType: 'smoke',
+                projectileColor: 0x2f1b3c,
+                projectileSecondaryColor: 0x4b0082,
+                projectileDamage: 18,
+                projectileSpeed: 350,
+                projectileSize: 25,
+                projectileEffect: 'expand' // Smoke expands as it travels
+            },
+            'earth': {
+                name: 'Earth Dragon',
+                icon: '🌍',
+                primaryColor: 0x8b4513,
+                secondaryColor: 0x654321,
+                beltColor: 0x228b22,
+                description: 'Shake the very foundations',
+                unlockCondition: 'Complete level 5',
+                effectColor: 0xa0522d,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x654321,
+                wingStyle: 'stone',
+                wingTipColor: 0x228b22,
+                // Earth Dragon Projectile - Earth quake/boulder
+                projectileEnabled: true,
+                projectileType: 'earthquake',
+                projectileColor: 0x8b4513,
+                projectileSecondaryColor: 0x654321,
+                projectileDamage: 25,
+                projectileSpeed: 400,
+                projectileSize: 30,
+                projectileEffect: 'shake' // Creates screen shake on hit
             },
             'legendary': {
                 name: 'Legendary Mode',
-                icon: '⚡🔥❄️🌙🥋',
+                icon: '⚡🔥❄️🌙🌍🥋',
                 primaryColor: 0xffd700, // Gold for main body
                 secondaryColor: 0xff4500, // Red-orange
                 beltColor: 0x8b4513, // Brown from default
-                description: 'Ultimate fusion of all 5 dragon powers!',
+                description: 'Ultimate fusion of all 6 dragon powers!',
                 unlockCondition: 'Collect all robot parts',
                 effectColor: 0xffffff, // White/rainbow
                 unlocked: false,
@@ -98,12 +158,42 @@ class TaekwondoRobotBuilder {
                     rightLeg: 'fire',   // Fire Dragon
                     leftArm: 'lightning', // Lightning Dragon
                     rightArm: 'shadow',  // Shadow Dragon
-                    body: 'default'      // Default Gi
+                    body: 'default',      // Default Gi
+                    head: 'earth'        // Earth Dragon
                 },
                 fireballEnabled: true,
                 fireballDamageMultiplier: 5,
-                fireballColors: [0xff4500, 0x87ceeb, 0xffd700, 0x4b0082, 0x4a9eff], // All dragon colors
+                fireballColors: [0xff4500, 0x87ceeb, 0xffd700, 0x4b0082, 0x8b4513, 0x4a9eff], // All dragon colors including earth
                 fireballCooldown: 3 // 3 shots before cooldown
+            },
+            'banana': {
+                name: 'Banana Dragon',
+                icon: '🍌🐉',
+                primaryColor: 0xFFE135, // Bright banana yellow
+                secondaryColor: 0xD4A017, // Darker banana gold
+                beltColor: 0x8B4513, // Brown stem color
+                description: 'The ultimate fruity dragon! Shoots bananas!',
+                unlockCondition: 'Complete Level 1',
+                effectColor: 0xFFE135, // Banana yellow particles
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xFFE135, // Yellow wings
+                wingStyle: 'banana', // Special banana-shaped wing style
+                wingTipColor: 0x5C4033, // Brown tips like banana ends
+                // Banana Dragon Projectile - BANANAS!
+                projectileEnabled: true,
+                projectileType: 'banana',
+                projectileColor: 0xFFE135,
+                projectileSecondaryColor: 0xD4A017,
+                projectileDamage: 18,
+                projectileSpeed: 450,
+                projectileSize: 22,
+                projectileEffect: 'slip', // Makes enemies slip and fall!
+                // Special banana dragon traits
+                isBananaDragon: true,
+                bananaTrail: true, // Leaves banana peels behind when running
+                bananaBreath: true, // Breathes banana-scented fire (yellow flames)
+                fruitPower: 1.5 // 50% bonus damage to enemies weak to fruit
             }
         };
 
@@ -145,7 +235,20 @@ class TaekwondoRobotBuilder {
                 console.log('MenuScene:', typeof MenuScene);
                 console.log('GameScene:', typeof GameScene);
                 console.log('CraftScene:', typeof CraftScene);
-                return [MenuScene, GameScene, CraftScene];
+                console.log('BananaSurvivalScene:', typeof BananaSurvivalScene);
+                console.log('BananaBonusScene:', typeof BananaBonusScene);
+                
+                // Build scenes array, only include banana scenes if they exist
+                const scenes = [MenuScene, GameScene, CraftScene];
+                if (typeof BananaSurvivalScene !== 'undefined') {
+                    scenes.push(BananaSurvivalScene);
+                    console.log('🍌 BananaSurvivalScene added');
+                }
+                if (typeof BananaBonusScene !== 'undefined') {
+                    scenes.push(BananaBonusScene);
+                    console.log('🍌 BananaBonusScene added');
+                }
+                return scenes;
             })()
         };
 
@@ -338,10 +441,25 @@ class TaekwondoRobotBuilder {
             }
         }
         
-        // Shadow Dragon - Complete the game (level 4 means all 5 levels done)
-        if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('shadow')) {
+        // Shadow Dragon - Complete level 4
+        if (this.gameData.currentLevel >= 5 && !this.gameData.outfits.unlocked.includes('shadow')) {
             if (this.unlockOutfit('shadow')) {
                 newUnlocks.push('shadow');
+            }
+        }
+        
+        // Earth Dragon - Complete level 5
+        if (this.gameData.currentLevel >= 6 && !this.gameData.outfits.unlocked.includes('earth')) {
+            if (this.unlockOutfit('earth')) {
+                newUnlocks.push('earth');
+            }
+        }
+        
+        // Banana Dragon - Complete Level 1
+        if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('banana')) {
+            if (this.unlockOutfit('banana')) {
+                newUnlocks.push('banana');
+                console.log('🍌🐉 BANANA DRAGON UNLOCKED! Time to throw some bananas!');
             }
         }
         
@@ -413,19 +531,59 @@ class TaekwondoRobotBuilder {
         console.log('🚀 nextLevel() called!');
         console.log('Current level before increment:', this.gameData.currentLevel);
         
+        const previousLevel = this.gameData.currentLevel;
         this.gameData.currentLevel++;
         console.log('Current level after increment:', this.gameData.currentLevel);
         
         this.saveGameData();
         console.log('Game data saved');
         
-        if (this.gameData.currentLevel > 5) {
+        if (this.gameData.currentLevel > 6) {
             console.log('🎊 Game completed! All levels finished');
             this.completeGame();
         } else {
-            console.log('🎨 Starting CraftScene for level', this.gameData.currentLevel);
-            this.game.scene.start('CraftScene');
+            // Check if banana bonus stage should be played
+            // Banana bonus appears after every level if enabled
+            if (this.shouldShowBananaBonus(previousLevel)) {
+                console.log('🍌 Starting Banana Bonus Stage!');
+                this.game.scene.start('BananaBonusScene', {
+                    previousLevel: previousLevel,
+                    nextLevel: this.gameData.currentLevel
+                });
+            } else {
+                console.log('🎨 Starting CraftScene for level', this.gameData.currentLevel);
+                this.game.scene.start('CraftScene');
+            }
         }
+    }
+
+    // Check if banana bonus stage should be shown
+    shouldShowBananaBonus(completedLevel) {
+        // Banana bonus appears after levels 1, 2, and 3 (50% chance)
+        // Level 4 has 75% chance, making it progressively more likely
+        if (typeof BananaBonusScene === 'undefined') {
+            return false; // Scene not loaded
+        }
+        
+        // Check if banana mode is enabled in settings
+        if (this.gameData.settings.bananaBonusEnabled === false) {
+            return false;
+        }
+        
+        // Probability based on level
+        const probability = {
+            1: 0.4,  // 40% after level 1
+            2: 0.5,  // 50% after level 2
+            3: 0.6,  // 60% after level 3
+            4: 0.75  // 75% after level 4
+        };
+        
+        const chance = probability[completedLevel] || 0.5;
+        const roll = Math.random();
+        
+        console.log(`🍌 Banana bonus roll: ${roll.toFixed(2)} vs ${chance} (level ${completedLevel})`);
+        
+        return roll < chance;
     }
 
     completeGame() {

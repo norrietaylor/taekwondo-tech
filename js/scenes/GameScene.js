@@ -137,7 +137,8 @@ class GameScene extends Phaser.Scene {
             2: { primary: 0xff6347, secondary: 0xff7f50, accent: 0xdc143c }, // Fire
             3: { primary: 0x9370db, secondary: 0xba55d3, accent: 0x8a2be2 }, // Power Bomb
             4: { primary: 0x1e3a8a, secondary: 0x3b82f6, accent: 0xfbbf24 }, // Lightning
-            5: { primary: 0x1a1a2e, secondary: 0x16213e, accent: 0x4a5568 }  // Shadow
+            5: { primary: 0x1a1a2e, secondary: 0x16213e, accent: 0x4a5568 }, // Shadow
+            6: { primary: 0x8b7355, secondary: 0x654321, accent: 0x228b22 }  // Earth
         };
         
         const theme = levelThemes[this.currentLevel] || levelThemes[1];
@@ -183,6 +184,22 @@ class GameScene extends Phaser.Scene {
                     
                 case 5: // Shadow level - dark wisps
                     element = this.add.ellipse(x, y, size, size * 1.5, theme.accent, 0.5);
+                    break;
+                    
+                case 6: // Earth level - floating rocks and leaves
+                    if (Math.random() > 0.5) {
+                        // Floating rock
+                        element = this.add.polygon(x, y, [
+                            -size/2, 0,
+                            0, -size/2,
+                            size/2, 0,
+                            size/3, size/2,
+                            -size/3, size/2
+                        ], theme.accent, 0.7);
+                    } else {
+                        // Leaf
+                        element = this.add.ellipse(x, y, size, size * 0.5, 0x228b22, 0.6);
+                    }
                     break;
                     
                 default:
@@ -238,6 +255,9 @@ class GameScene extends Phaser.Scene {
                 break;
             case 5:
                 this.createShadowLevelPlatforms(platformColor);
+                break;
+            case 6:
+                this.createEarthLevelPlatforms(platformColor);
                 break;
         }
     }
@@ -374,13 +394,66 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    createEarthLevelPlatforms(color) {
+        // Earth level - rocky platforms with varying heights, occasional shake
+        const platforms = [
+            { x: 240, y: 470, w: 110, h: 22 },
+            { x: 460, y: 410, w: 85, h: 22 },
+            { x: 680, y: 340, w: 100, h: 22 },
+            { x: 900, y: 280, w: 75, h: 22 },
+            { x: 1120, y: 220, w: 95, h: 22 },
+            { x: 1350, y: 280, w: 80, h: 22 },
+            { x: 1570, y: 350, w: 90, h: 22 },
+            { x: 1780, y: 420, w: 105, h: 22 },
+            { x: 1920, y: 380, w: 100, h: 22 }
+        ];
+        
+        platforms.forEach((p, index) => {
+            const platform = this.add.rectangle(p.x, p.y, p.w, p.h, color);
+            platform.setStrokeStyle(3, 0x228b22); // Green vegetation stroke
+            this.physics.add.existing(platform, true);
+            this.platforms.add(platform);
+            
+            // Add grass/moss on top of some platforms
+            if (index % 2 === 0) {
+                for (let i = 0; i < 3; i++) {
+                    const grassX = p.x - p.w/3 + (i * p.w/3);
+                    const grass = this.add.triangle(
+                        grassX, p.y - p.h/2 - 5,
+                        0, 10,
+                        5, 0,
+                        10, 10,
+                        0x228b22, 0.8
+                    );
+                    grass.setDepth(1);
+                }
+            }
+            
+            // Add rocky texture effect
+            const rockTexture = this.add.ellipse(p.x, p.y, p.w * 0.8, p.h * 0.6, 0x8b7355, 0.4);
+            rockTexture.setDepth(-1);
+            
+            // Subtle rumble animation for earth platforms
+            this.tweens.add({
+                targets: platform,
+                y: p.y + 2,
+                duration: 2000 + Math.random() * 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut',
+                delay: index * 200
+            });
+        });
+    }
+
     getLevelPlatformColor() {
         const colors = {
             1: 0xb0e0e6, // Light blue for ice
             2: 0x8b4513, // Brown for fire/rock
             3: 0x4b0082, // Indigo for power bomb
             4: 0x1e40af, // Deep blue for lightning
-            5: 0x0f172a  // Very dark blue for shadow
+            5: 0x0f172a, // Very dark blue for shadow
+            6: 0x654321  // Dark brown for earth
         };
         return colors[this.currentLevel] || colors[1];
     }
@@ -624,6 +697,13 @@ class GameScene extends Phaser.Scene {
                 locations.push({ x: 1530, y: 220, type: 'ultraBlast' });
                 locations.push({ x: 1750, y: 310, type: 'invincibility' });
                 break;
+            case 6: // Earth level
+                locations.push({ x: 460, y: 380, type: 'speedBoost' });
+                locations.push({ x: 900, y: 250, type: 'invincibility' });
+                locations.push({ x: 1350, y: 250, type: 'ultraBlast' });
+                locations.push({ x: 1570, y: 320, type: 'fireBreath' });
+                locations.push({ x: 1920, y: 350, type: 'flyMode' });
+                break;
         }
         
         return locations;
@@ -689,6 +769,9 @@ class GameScene extends Phaser.Scene {
                 case 5:
                     enemy = window.EnemyFactory.createShadowTitan(this, pos.x, pos.y);
                     break;
+                case 6:
+                    enemy = window.EnemyFactory.createEarthTitan(this, pos.x, pos.y);
+                    break;
                 default:
                     enemy = window.EnemyFactory.createTitan(this, pos.x, pos.y);
             }
@@ -735,6 +818,14 @@ class GameScene extends Phaser.Scene {
                 basePositions.push({ x: 1080, y: 200 });
                 basePositions.push({ x: 1530, y: 220 });
                 basePositions.push({ x: 1900, y: 390 });
+                break;
+            case 6: // Earth level
+                basePositions.push({ x: 460, y: 380 });
+                basePositions.push({ x: 680, y: 310 });
+                basePositions.push({ x: 900, y: 250 });
+                basePositions.push({ x: 1120, y: 190 });
+                basePositions.push({ x: 1350, y: 250 });
+                basePositions.push({ x: 1780, y: 390 });
                 break;
         }
         
@@ -1132,6 +1223,10 @@ class GameScene extends Phaser.Scene {
             case 5: // Shadow level - last platform at x: 1900, y: 420
                 finishX = 1900;
                 platformY = 420;
+                break;
+            case 6: // Earth level - last platform at x: 1920, y: 380
+                finishX = 1920;
+                platformY = 380;
                 break;
             default:
                 finishX = this.levelWidth - 200; // Fallback

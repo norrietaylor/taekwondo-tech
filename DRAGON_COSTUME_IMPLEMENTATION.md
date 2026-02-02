@@ -5,7 +5,7 @@
 
 ## Overview
 
-Successfully implemented a comprehensive dragon costume system that replaces the original holiday-themed outfits with 5 unique dragon-themed martial arts uniforms. The system includes progressive unlock conditions, multi-color visual effects, animated notifications, and comprehensive automated testing.
+Successfully implemented a comprehensive dragon costume system that replaces the original holiday-themed outfits with 6 unique dragon-themed martial arts uniforms. The system includes progressive unlock conditions, multi-color visual effects, animated notifications, dragon-specific projectile attacks, and comprehensive automated testing.
 
 ---
 
@@ -24,6 +24,7 @@ Successfully implemented a comprehensive dragon costume system that replaces the
 - **Unlock**: Complete Level 1
 - **Description**: Harness the power of flames
 - **Effect**: Orange flame particles
+- **Projectile**: Fireballs that leave burning trails
 
 ### 3. **Ice Dragon** ❄️
 - **Colors**: Sky Blue (#87ceeb) / Powder Blue (#b0e0e6)
@@ -31,6 +32,7 @@ Successfully implemented a comprehensive dragon costume system that replaces the
 - **Unlock**: Collect 5 robot parts
 - **Description**: Channel the cold of winter
 - **Effect**: Light blue ice particles
+- **Projectile**: Ice shards that slow enemies
 
 ### 4. **Lightning Dragon** ⚡
 - **Colors**: Gold (#ffd700) / Medium Purple (#9370db)
@@ -38,13 +40,23 @@ Successfully implemented a comprehensive dragon costume system that replaces the
 - **Unlock**: Complete Level 2
 - **Description**: Strike with electric fury
 - **Effect**: Yellow lightning particles
+- **Projectile**: Lightning bolts that chain to nearby enemies
 
 ### 5. **Shadow Dragon** 🌙
 - **Colors**: Indigo (#4b0082) / Dark Purple (#2f1b3c)
 - **Belt**: Black (#000000)
-- **Unlock**: Complete the game
+- **Unlock**: Complete Level 4
 - **Description**: Master of darkness and stealth
 - **Effect**: Dark violet particles
+- **Projectile**: Smoke clouds that expand as they travel
+
+### 6. **Earth Dragon** 🌍
+- **Colors**: Saddle Brown (#8b4513) / Dark Brown (#654321)
+- **Belt**: Forest Green (#228b22)
+- **Unlock**: Complete Level 5
+- **Description**: Shake the very foundations
+- **Effect**: Earth-toned particles
+- **Projectile**: Boulders that create screen shake on hit
 
 ---
 
@@ -201,7 +213,8 @@ const parts = window.gameInstance.getTotalPartsCollected();
 
 ## ✨ Key Features
 
-- ✅ **5 Unique Dragon Costumes** with distinct visual identities
+- ✅ **6 Unique Dragon Costumes** with distinct visual identities (Fire, Ice, Lightning, Shadow, Earth + Default)
+- ✅ **Dragon Projectile Attacks** - Each dragon shoots unique projectiles (fireballs, ice shards, lightning bolts, smoke, boulders)
 - ✅ **Animated Dragon Wings** - Each dragon costume displays animated wings during gameplay
 - ✅ **Wing Animations** - Wings flap, flutter, and breathe based on player state (jumping, running, idle)
 - ✅ **Progressive Unlock System** with varied conditions
@@ -265,10 +278,37 @@ const parts = window.gameInstance.getTotalPartsCollected();
 
 ---
 
+## 🐉 Dragon Projectile System
+
+Each dragon costume now has unique projectile attacks:
+
+### Projectile Types
+| Dragon | Projectile | Damage | Speed | Special Effect |
+|--------|------------|--------|-------|----------------|
+| **Fire** 🔥 | Fireballs | 20 | 500 | Leaves burning trail |
+| **Ice** ❄️ | Ice Shards | 15 | 550 | Slows enemies (freeze) |
+| **Lightning** ⚡ | Lightning Bolts | 22 | 700 | Chains to nearby enemies |
+| **Shadow** 🌙 | Smoke Clouds | 18 | 350 | Expands as it travels |
+| **Earth** 🌍 | Boulders | 25 | 400 | Creates screen shake |
+
+### How to Use
+- When wearing any dragon costume (except Default Gi), Kick or Punch shoots the dragon's projectile
+- Each projectile has unique visual effects and trails
+- Special effects trigger on enemy hit
+
+## 🌍 Earth Level (Level 6)
+
+A new level has been added featuring the Earth Dragon theme:
+- **Theme**: Rocky terrain with grass and vegetation
+- **Platform Style**: Brown rocky platforms with green moss accents
+- **Background**: Floating rocks and leaves
+- **Enemies**: Earth Titans with ground-pound attacks
+- **Power-ups**: Speed Boost, Invincibility, Ultra Blast, Fire Breath, Fly Mode
+
 ## 🔮 Future Enhancements
 
 Potential future additions:
-- Additional dragon types (Earth, Wind, etc.)
+- Additional dragon types (Wind, Water, etc.)
 - Dragon-specific abilities or stats  
 - Costume customization (mix/match parts)
 - Animated costume transitions

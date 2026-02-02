@@ -144,6 +144,11 @@ class Player {
             ultraBlast: 0
         };
         
+        // Earth Dragon teleport ability
+        this.teleportCooldown = 0;
+        this.teleportDistance = 200; // Pixels to teleport
+        this.teleportCooldownTime = 1500; // 1.5 seconds between teleports
+        
         // Visual effects
         this.attackEffect = null;
         this.footstepTimer = 0;
@@ -463,7 +468,8 @@ class Player {
             jump: false,
             kick: false,
             punch: false,
-            activate: false
+            activate: false,
+            teleport: false
         };
     }
 
@@ -492,6 +498,9 @@ class Player {
         
         // Handle power-up activation
         this.handlePowerUpActivation();
+        
+        // Handle Earth Dragon teleport
+        this.handleTeleport();
         
         // Update visual elements
         this.updateVisuals();
@@ -533,6 +542,11 @@ class Player {
                 this.specialAbilityCooldowns[ability] -= delta;
             }
         });
+        
+        // Update teleport cooldown
+        if (this.teleportCooldown > 0) {
+            this.teleportCooldown -= delta;
+        }
     }
 
     handleMovement() {
@@ -606,8 +620,20 @@ class Player {
             if (this.controls.isPunch() && !this.previousInputs.punch) {
                 this.shootFireball();
             }
+        } 
+        // Dragon costume with projectile - kick for elemental, punch for laser eyes
+        else if (costume.projectileEnabled) {
+            // Kick shoots elemental dragon projectile
+            if (this.controls.isKick() && !this.previousInputs.kick) {
+                this.shootDragonProjectile();
+            }
+            
+            // Punch shoots laser eyes
+            if (this.controls.isPunch() && !this.previousInputs.punch) {
+                this.shootLaserEyes();
+            }
         } else {
-            // Normal mode - regular attacks
+            // Normal mode - regular attacks (default gi)
             // Kick attack
             if (this.controls.isKick() && !this.previousInputs.kick) {
                 this.performKick();
@@ -637,6 +663,183 @@ class Player {
                 this.performUltraBlast();
             }
         }
+    }
+
+    handleTeleport() {
+        // Safety check for controls
+        if (!this.controls) {
+            return;
+        }
+        
+        // Check if player is wearing Earth Dragon costume
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'earth') {
+            return; // Only Earth Dragon can teleport
+        }
+        
+        // Check for teleport key press (edge detection - only on press, not hold)
+        if (this.controls.isTeleport() && !this.previousInputs.teleport) {
+            this.performTeleport();
+        }
+    }
+
+    performTeleport() {
+        // Check cooldown
+        if (this.teleportCooldown > 0) {
+            console.log('🌍 Teleport on cooldown!');
+            return;
+        }
+        
+        // Set cooldown
+        this.teleportCooldown = this.teleportCooldownTime;
+        
+        // Calculate teleport destination
+        const startX = this.sprite.x;
+        const startY = this.sprite.y;
+        const direction = this.facingRight ? 1 : -1;
+        let targetX = startX + (this.teleportDistance * direction);
+        
+        // Clamp to world bounds
+        const worldWidth = this.scene.levelWidth || 3000;
+        targetX = Math.max(40, Math.min(worldWidth - 40, targetX));
+        
+        // Create disappear effect at start position
+        this.createTeleportDisappearEffect(startX, startY);
+        
+        // Teleport the player
+        this.sprite.x = targetX;
+        
+        // Reset velocity on teleport for clean landing
+        this.body.setVelocityX(0);
+        
+        // Create appear effect at destination
+        this.createTeleportAppearEffect(targetX, startY);
+        
+        console.log(`🌍 Earth Dragon teleported from ${startX} to ${targetX}!`);
+    }
+
+    createTeleportDisappearEffect(x, y) {
+        const costume = this.getDragonCostume();
+        
+        // Create earth/rock particles bursting outward
+        for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 * i) / 12;
+            const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
+            const particle = this.scene.add.circle(
+                x + Math.cos(angle) * 10,
+                y + Math.sin(angle) * 10,
+                6 + Math.random() * 4,
+                colors[Math.floor(Math.random() * colors.length)],
+                0.9
+            );
+            particle.setDepth(100);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 60,
+                y: y + Math.sin(angle) * 60,
+                alpha: 0,
+                scale: 0,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Create dust cloud at origin
+        const dustCloud = this.scene.add.circle(x, y, 30, 0xa0522d, 0.6);
+        dustCloud.setDepth(99);
+        
+        this.scene.tweens.add({
+            targets: dustCloud,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => dustCloud.destroy()
+        });
+        
+        // Screen shake for dramatic effect
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(100, 0.01);
+        }
+    }
+
+    createTeleportAppearEffect(x, y) {
+        const costume = this.getDragonCostume();
+        
+        // Create earth/rock particles converging inward
+        for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 * i) / 12;
+            const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
+            const startRadius = 60;
+            const particle = this.scene.add.circle(
+                x + Math.cos(angle) * startRadius,
+                y + Math.sin(angle) * startRadius,
+                6 + Math.random() * 4,
+                colors[Math.floor(Math.random() * colors.length)],
+                0.9
+            );
+            particle.setDepth(100);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x,
+                y: y,
+                alpha: 0,
+                scale: 0.5,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Create ground burst effect
+        const groundBurst = this.scene.add.circle(x, y + 30, 10, 0x654321, 0.8);
+        groundBurst.setDepth(98);
+        
+        this.scene.tweens.add({
+            targets: groundBurst,
+            scaleX: 4,
+            scaleY: 1,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => groundBurst.destroy()
+        });
+        
+        // Create rising dust particles
+        for (let i = 0; i < 6; i++) {
+            const dust = this.scene.add.circle(
+                x + (Math.random() - 0.5) * 40,
+                y + 20,
+                4 + Math.random() * 4,
+                0xa0522d,
+                0.6
+            );
+            dust.setDepth(97);
+            
+            this.scene.tweens.add({
+                targets: dust,
+                y: y - 40 - Math.random() * 30,
+                alpha: 0,
+                duration: 500 + Math.random() * 200,
+                delay: i * 30,
+                onComplete: () => dust.destroy()
+            });
+        }
+        
+        // Flash effect
+        const flash = this.scene.add.circle(x, y, 40, 0x228b22, 0.5);
+        flash.setDepth(101);
+        
+        this.scene.tweens.add({
+            targets: flash,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => flash.destroy()
+        });
     }
 
     tryJump() {
@@ -756,7 +959,11 @@ class Player {
             glow: glow,
             damage: costume.fireballDamageMultiplier * 20, // 5x base damage (20)
             traveled: 0,
-            maxDistance: this.scene.levelWidth || 3000 // Travel across the map
+            maxDistance: this.scene.levelWidth || 3000, // Travel across the map
+            type: 'legendary',
+            effect: 'legendary',
+            color: fireballColor,
+            secondaryColor: 0xffffff
         });
         
         // Add collider with platforms for bouncing
@@ -771,23 +978,505 @@ class Player {
         console.log(`🔥 Fireball shot! (${this.fireballShotCount}/${this.fireballMaxShots})`);
     }
 
+    shootDragonProjectile() {
+        const costume = this.getDragonCostume();
+        
+        if (!costume.projectileEnabled) {
+            return;
+        }
+        
+        // Set brief attack cooldown
+        this.attackCooldown = 350;
+        
+        // Calculate projectile starting position and velocity
+        const startX = this.sprite.x + (this.facingRight ? 30 : -30);
+        const startY = this.sprite.y;
+        const velocityX = this.facingRight ? costume.projectileSpeed : -costume.projectileSpeed;
+        
+        // Create projectile based on dragon type
+        let projectile;
+        let glow;
+        
+        switch (costume.projectileType) {
+            case 'fireball':
+                projectile = this.createFireballProjectile(startX, startY, costume);
+                break;
+            case 'ice':
+                projectile = this.createIceProjectile(startX, startY, costume);
+                break;
+            case 'lightning':
+                projectile = this.createLightningProjectile(startX, startY, costume);
+                break;
+            case 'smoke':
+                projectile = this.createSmokeProjectile(startX, startY, costume);
+                break;
+            case 'earthquake':
+                projectile = this.createEarthquakeProjectile(startX, startY, costume);
+                break;
+            case 'banana':
+                projectile = this.createBananaProjectile(startX, startY, costume);
+                break;
+            default:
+                projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.9);
+        }
+        
+        projectile.setDepth(100);
+        
+        // Add physics to projectile
+        this.scene.physics.add.existing(projectile);
+        projectile.body.setVelocityX(velocityX);
+        projectile.body.setAllowGravity(false);
+        
+        // Create glow effect
+        glow = this.scene.add.circle(startX, startY, costume.projectileSize * 1.5, costume.projectileColor, 0.3);
+        glow.setDepth(99);
+        this.scene.physics.add.existing(glow);
+        glow.body.setVelocityX(velocityX);
+        glow.body.setAllowGravity(false);
+        
+        // Store projectile data
+        this.fireballs.push({
+            sprite: projectile,
+            glow: glow,
+            damage: costume.projectileDamage,
+            traveled: 0,
+            maxDistance: this.scene.levelWidth || 3000,
+            type: costume.projectileType,
+            effect: costume.projectileEffect,
+            color: costume.projectileColor,
+            secondaryColor: costume.projectileSecondaryColor
+        });
+        
+        // Add collider with platforms for bouncing (if applicable)
+        if (this.scene.platforms && costume.projectileType === 'earthquake') {
+            this.scene.physics.add.collider(projectile, this.scene.platforms, () => {
+                // Earth projectile creates shockwave on platform hit
+                this.createEarthquakeShockwave(projectile.x, projectile.y);
+            });
+        }
+        
+        // Create shooting effect at player
+        this.createDragonShootEffect(costume);
+        
+        console.log(`🐉 ${costume.name} projectile shot!`);
+    }
+
+    shootLaserEyes() {
+        const costume = this.getDragonCostume();
+        
+        // Set brief attack cooldown
+        this.attackCooldown = 250; // Faster than elemental
+        
+        // Laser colors based on dragon type
+        const laserColors = {
+            'fire': { primary: 0xff0000, secondary: 0xff6600 },
+            'ice': { primary: 0x00ffff, secondary: 0xffffff },
+            'lightning': { primary: 0xffff00, secondary: 0xffffff },
+            'shadow': { primary: 0x9400d3, secondary: 0x000000 },
+            'earth': { primary: 0x00ff00, secondary: 0x32cd32 },  // Green laser for earth
+            'banana': { primary: 0xFFE135, secondary: 0xD4A017 },  // Yellow banana laser!
+            'default': { primary: 0xff0000, secondary: 0xff6600 }
+        };
+        
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        const colors = laserColors[currentOutfit] || laserColors['default'];
+        
+        // Calculate laser starting position (from eyes)
+        const eyeOffsetY = costume.isLegendary ? -40 : -12;
+        const startX = this.sprite.x + (this.facingRight ? 10 : -10);
+        const startY = this.sprite.y + eyeOffsetY;
+        const laserLength = 600;
+        const laserSpeed = 1200; // Very fast!
+        
+        // Create two laser beams (from both eyes)
+        for (let eyeIndex = 0; eyeIndex < 2; eyeIndex++) {
+            const eyeX = startX + (eyeIndex === 0 ? -6 : 6) * (this.facingRight ? 1 : -1);
+            const eyeY = startY;
+            
+            // Create laser beam
+            const laserWidth = 6;
+            const laser = this.scene.add.rectangle(
+                eyeX,
+                eyeY,
+                40, // Initial length, will stretch
+                laserWidth,
+                colors.primary,
+                0.9
+            );
+            laser.setOrigin(this.facingRight ? 0 : 1, 0.5);
+            laser.setDepth(110);
+            
+            // Add glow effect
+            const laserGlow = this.scene.add.rectangle(
+                eyeX,
+                eyeY,
+                40,
+                laserWidth * 2,
+                colors.secondary,
+                0.4
+            );
+            laserGlow.setOrigin(this.facingRight ? 0 : 1, 0.5);
+            laserGlow.setDepth(109);
+            
+            // Add physics
+            this.scene.physics.add.existing(laser);
+            laser.body.setVelocityX(this.facingRight ? laserSpeed : -laserSpeed);
+            laser.body.setAllowGravity(false);
+            
+            this.scene.physics.add.existing(laserGlow);
+            laserGlow.body.setVelocityX(this.facingRight ? laserSpeed : -laserSpeed);
+            laserGlow.body.setAllowGravity(false);
+            
+            // Store laser data
+            this.fireballs.push({
+                sprite: laser,
+                glow: laserGlow,
+                damage: 18, // Good damage
+                traveled: 0,
+                maxDistance: laserLength,
+                type: 'laser',
+                effect: 'pierce', // Lasers pierce through
+                color: colors.primary,
+                secondaryColor: colors.secondary
+            });
+            
+            // Stretch animation for laser appearance
+            this.scene.tweens.add({
+                targets: [laser, laserGlow],
+                scaleX: 3,
+                duration: 100,
+                ease: 'Power2'
+            });
+        }
+        
+        // Create eye glow effect at player
+        this.createLaserEyeEffect(startX, startY, colors);
+        
+        console.log(`👁️ ${costume.name} laser eyes!`);
+    }
+
+    createLaserEyeEffect(x, y, colors) {
+        // Eye flash effect
+        for (let i = 0; i < 2; i++) {
+            const eyeX = x + (i === 0 ? -6 : 6) * (this.facingRight ? 1 : -1);
+            
+            // Bright flash at eyes
+            const flash = this.scene.add.circle(eyeX, y, 8, colors.primary, 1);
+            flash.setDepth(115);
+            
+            this.scene.tweens.add({
+                targets: flash,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 200,
+                onComplete: () => flash.destroy()
+            });
+            
+            // Outer glow
+            const glow = this.scene.add.circle(eyeX, y, 12, colors.secondary, 0.5);
+            glow.setDepth(114);
+            
+            this.scene.tweens.add({
+                targets: glow,
+                scaleX: 3,
+                scaleY: 3,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => glow.destroy()
+            });
+        }
+        
+        // Small screen flash for dramatic effect
+        const screenFlash = this.scene.add.rectangle(
+            this.scene.cameras.main.centerX,
+            this.scene.cameras.main.centerY,
+            this.scene.cameras.main.width,
+            this.scene.cameras.main.height,
+            colors.primary,
+            0.15
+        );
+        screenFlash.setScrollFactor(0);
+        screenFlash.setDepth(200);
+        
+        this.scene.tweens.add({
+            targets: screenFlash,
+            alpha: 0,
+            duration: 100,
+            onComplete: () => screenFlash.destroy()
+        });
+    }
+
+    createFireballProjectile(x, y, costume) {
+        const projectile = this.scene.add.circle(x, y, costume.projectileSize, costume.projectileColor, 0.9);
+        projectile.setStrokeStyle(2, costume.projectileSecondaryColor);
+        return projectile;
+    }
+
+    createIceProjectile(x, y, costume) {
+        // Ice shard - diamond shape using polygon
+        const size = costume.projectileSize;
+        const projectile = this.scene.add.polygon(x, y, [
+            0, -size,      // top
+            size * 0.6, 0, // right
+            0, size * 0.8, // bottom
+            -size * 0.6, 0 // left
+        ], costume.projectileColor, 0.9);
+        projectile.setStrokeStyle(2, costume.projectileSecondaryColor);
+        
+        // Add sparkle effect
+        this.scene.tweens.add({
+            targets: projectile,
+            alpha: 0.6,
+            duration: 100,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        return projectile;
+    }
+
+    createLightningProjectile(x, y, costume) {
+        // Lightning bolt - zigzag shape
+        const size = costume.projectileSize;
+        const projectile = this.scene.add.polygon(x, y, [
+            -size * 0.3, -size * 0.5,
+            size * 0.2, -size * 0.2,
+            0, 0,
+            size * 0.3, size * 0.3,
+            -size * 0.1, size * 0.5,
+            size * 0.1, size * 0.2
+        ], costume.projectileColor, 0.95);
+        projectile.setStrokeStyle(3, costume.projectileSecondaryColor);
+        
+        // Add electric flicker effect
+        this.scene.tweens.add({
+            targets: projectile,
+            scaleX: 1.2,
+            scaleY: 0.8,
+            duration: 50,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        return projectile;
+    }
+
+    createSmokeProjectile(x, y, costume) {
+        // Smoke cloud - expanding circle
+        const projectile = this.scene.add.circle(x, y, costume.projectileSize, costume.projectileColor, 0.7);
+        
+        // Smoke expands as it travels
+        this.scene.tweens.add({
+            targets: projectile,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0.4,
+            duration: 1500
+        });
+        
+        return projectile;
+    }
+
+    createEarthquakeProjectile(x, y, costume) {
+        // Boulder/rock - rough circle with earth colors
+        const size = costume.projectileSize;
+        const projectile = this.scene.add.polygon(x, y, [
+            -size * 0.4, -size * 0.5,
+            size * 0.3, -size * 0.6,
+            size * 0.6, -size * 0.1,
+            size * 0.4, size * 0.5,
+            -size * 0.2, size * 0.6,
+            -size * 0.6, size * 0.2
+        ], costume.projectileColor, 0.95);
+        projectile.setStrokeStyle(3, costume.projectileSecondaryColor);
+        
+        // Add rotation for rolling effect
+        this.scene.tweens.add({
+            targets: projectile,
+            rotation: this.facingRight ? Math.PI * 4 : -Math.PI * 4,
+            duration: 2000
+        });
+        
+        return projectile;
+    }
+
+    createBananaProjectile(x, y, costume) {
+        // 🍌 BANANA PROJECTILE - curved banana shape that spins!
+        const size = costume.projectileSize;
+        
+        // Create a container for the banana
+        const container = this.scene.add.container(x, y);
+        
+        // Main banana body - curved ellipse
+        const bananaBody = this.scene.add.ellipse(0, 0, size * 1.4, size * 0.5, 0xFFE135);
+        bananaBody.setStrokeStyle(2, 0xD4A017);
+        
+        // Banana tips (brown ends)
+        const tipLeft = this.scene.add.ellipse(-size * 0.6, 0, size * 0.25, size * 0.2, 0x8B4513);
+        const tipRight = this.scene.add.ellipse(size * 0.6, 0, size * 0.25, size * 0.2, 0x5C4033);
+        
+        // Highlight on banana
+        const highlight = this.scene.add.ellipse(0, -size * 0.1, size * 0.8, size * 0.15, 0xFFFF88, 0.6);
+        
+        // Add parts to container
+        container.add([bananaBody, tipLeft, tipRight, highlight]);
+        
+        // Initial curve rotation
+        container.setRotation(this.facingRight ? -0.3 : 0.3);
+        
+        // Add spinning animation - bananas spin when thrown!
+        this.scene.tweens.add({
+            targets: container,
+            rotation: this.facingRight ? Math.PI * 6 : -Math.PI * 6,
+            duration: 1500,
+            ease: 'Linear'
+        });
+        
+        // Add banana trail particles
+        this.createBananaTrail(container);
+        
+        console.log('🍌 Banana projectile created!');
+        
+        return container;
+    }
+    
+    createBananaTrail(bananaContainer) {
+        // Create yellow sparkle trail behind the banana
+        const trailTimer = this.scene.time.addEvent({
+            delay: 80,
+            callback: () => {
+                if (!bananaContainer || !bananaContainer.active) {
+                    trailTimer.destroy();
+                    return;
+                }
+                
+                // Small banana peel particles
+                const particle = this.scene.add.ellipse(
+                    bananaContainer.x + (Math.random() - 0.5) * 10,
+                    bananaContainer.y + (Math.random() - 0.5) * 5,
+                    8, 4,
+                    0xFFE135,
+                    0.7
+                );
+                particle.setDepth(95);
+                
+                this.scene.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    scaleX: 0.3,
+                    scaleY: 0.3,
+                    y: particle.y + 20,
+                    duration: 400,
+                    onComplete: () => particle.destroy()
+                });
+            },
+            repeat: 15 // Trail for about 1.2 seconds
+        });
+    }
+
+    createEarthquakeShockwave(x, y) {
+        // Screen shake effect
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.02);
+        }
+        
+        // Create ground crack effect
+        for (let i = 0; i < 5; i++) {
+            const crack = this.scene.add.rectangle(
+                x + (Math.random() - 0.5) * 60,
+                y + 10,
+                4 + Math.random() * 8,
+                20 + Math.random() * 30,
+                0x654321,
+                0.8
+            );
+            crack.setDepth(40);
+            
+            this.scene.tweens.add({
+                targets: crack,
+                scaleY: 0,
+                alpha: 0,
+                duration: 800,
+                delay: i * 50,
+                onComplete: () => crack.destroy()
+            });
+        }
+        
+        // Create dust cloud
+        for (let i = 0; i < 8; i++) {
+            const dust = this.scene.add.circle(
+                x + (Math.random() - 0.5) * 40,
+                y,
+                8 + Math.random() * 12,
+                0xa0522d,
+                0.6
+            );
+            dust.setDepth(45);
+            
+            this.scene.tweens.add({
+                targets: dust,
+                y: dust.y - 40 - Math.random() * 30,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 600 + Math.random() * 300,
+                onComplete: () => dust.destroy()
+            });
+        }
+    }
+
+    createDragonShootEffect(costume) {
+        const effectX = this.sprite.x + (this.facingRight ? 30 : -30);
+        const effectY = this.sprite.y;
+        
+        // Create shooting flash with dragon colors
+        for (let i = 0; i < 3; i++) {
+            const flashColor = i === 0 ? costume.projectileColor : costume.projectileSecondaryColor;
+            const flash = this.scene.add.circle(effectX, effectY, 12 + i * 4, flashColor, 0.7 - i * 0.2);
+            flash.setDepth(99);
+            
+            this.scene.tweens.add({
+                targets: flash,
+                scaleX: 1.8,
+                scaleY: 1.8,
+                alpha: 0,
+                duration: 180,
+                delay: i * 25,
+                onComplete: () => flash.destroy()
+            });
+        }
+    }
+
     updateFireballs(delta) {
-        // Update each fireball
+        // Update each projectile (fireballs and dragon projectiles)
         for (let i = this.fireballs.length - 1; i >= 0; i--) {
-            const fireball = this.fireballs[i];
+            const projectile = this.fireballs[i];
             
-            // Update traveled distance
-            const velocity = Math.abs(fireball.sprite.body.velocity.x);
-            fireball.traveled += velocity * (delta / 1000);
-            
-            // Update glow position
-            if (fireball.glow && !fireball.glow.destroyed) {
-                fireball.glow.x = fireball.sprite.x;
-                fireball.glow.y = fireball.sprite.y;
+            // Check if projectile was marked for destruction
+            if (projectile.shouldDestroy) {
+                this.destroyFireball(i);
+                continue;
             }
             
-            // Check if fireball hit max distance
-            if (fireball.traveled >= fireball.maxDistance) {
+            // Skip if sprite or body is already destroyed
+            if (!projectile.sprite || projectile.sprite.destroyed || !projectile.sprite.body) {
+                this.destroyFireball(i);
+                continue;
+            }
+            
+            // Update traveled distance
+            const velocity = Math.abs(projectile.sprite.body.velocity.x);
+            projectile.traveled += velocity * (delta / 1000);
+            
+            // Update glow position
+            if (projectile.glow && !projectile.glow.destroyed) {
+                projectile.glow.x = projectile.sprite.x;
+                projectile.glow.y = projectile.sprite.y;
+            }
+            
+            // Check if projectile hit max distance
+            if (projectile.traveled >= projectile.maxDistance) {
                 this.destroyFireball(i);
                 continue;
             }
@@ -795,54 +1484,532 @@ class Player {
             // Check collision with enemies
             if (this.scene.enemies) {
                 this.scene.enemies.children.entries.forEach(enemy => {
-                    if (enemy.active && fireball.sprite && !fireball.sprite.destroyed) {
+                    if (enemy.active && projectile.sprite && !projectile.sprite.destroyed) {
                         const distance = Phaser.Math.Distance.Between(
-                            fireball.sprite.x, fireball.sprite.y,
+                            projectile.sprite.x, projectile.sprite.y,
                             enemy.x, enemy.y
                         );
                         
-                        if (distance < 30) {
+                        // Smoke has larger hit radius
+                        const hitRadius = projectile.type === 'smoke' ? 50 : 30;
+                        
+                        if (distance < hitRadius) {
                             // Hit enemy!
                             if (enemy.getData && enemy.getData('enemy')) {
-                                enemy.getData('enemy').takeDamage(fireball.damage);
+                                const enemyObj = enemy.getData('enemy');
+                                enemyObj.takeDamage(projectile.damage);
+                                
+                                // Apply knockback to enemy
+                                this.applyProjectileKnockback(projectile, enemy);
+                                
+                                // Apply special effects based on projectile type
+                                this.applyProjectileEffect(projectile, enemy, enemyObj);
                             }
                             
-                            // Create explosion
-                            this.createFireballExplosion(fireball.sprite.x, fireball.sprite.y);
+                            // Create explosion based on projectile type
+                            this.createProjectileExplosion(projectile);
                             
-                            // Destroy fireball
-                            this.destroyFireball(i);
+                            // Lightning can chain to nearby enemies
+                            if (projectile.effect === 'chain') {
+                                this.chainLightning(projectile, enemy);
+                            }
+                            
+                            // Mark projectile for destruction (unless it's smoke which passes through)
+                            if (projectile.type !== 'smoke') {
+                                projectile.shouldDestroy = true;
+                            }
                         }
                     }
                 });
             }
             
-            // Add trailing particle effect
-            if (fireball.sprite && !fireball.sprite.destroyed && Math.random() < 0.3) {
-                const costume = this.getDragonCostume();
-                const trailColor = costume.fireballColors[Math.floor(Math.random() * costume.fireballColors.length)];
-                const trail = this.scene.add.circle(
-                    fireball.sprite.x + (Math.random() - 0.5) * 10,
-                    fireball.sprite.y + (Math.random() - 0.5) * 10,
-                    5,
-                    trailColor,
-                    0.6
-                );
-                trail.setDepth(98);
-                
-                this.scene.tweens.add({
-                    targets: trail,
-                    alpha: 0,
-                    scale: 0,
-                    duration: 300,
-                    onComplete: () => trail.destroy()
-                });
+            // Destroy projectile if marked (after forEach completes)
+            if (projectile.shouldDestroy) {
+                            this.destroyFireball(i);
+                continue;
+            }
+            
+            // Check collision with bananas (deflect them!)
+            this.checkProjectileBananaCollision(projectile, i);
+            
+            // Add trailing particle effect based on projectile type
+            if (projectile.sprite && !projectile.sprite.destroyed && Math.random() < 0.3) {
+                this.createProjectileTrail(projectile);
             }
         }
     }
 
+    checkProjectileBananaCollision(projectile, projectileIndex) {
+        if (!projectile || !projectile.sprite || projectile.sprite.destroyed) return;
+        if (!projectile.sprite.body) return; // Body might be destroyed
+        
+        // Check if scene has bananas (from BananaManager or standalone)
+        const bananas = [];
+        
+        // Check for BananaManager bananas
+        if (this.scene.bananaManager && this.scene.bananaManager.bananas) {
+            bananas.push(...this.scene.bananaManager.bananas);
+        }
+        
+        // Check for standalone bananas in physics groups
+        if (this.scene.children && this.scene.children.list) {
+            this.scene.children.list.forEach(child => {
+                if (child.getData && child.getData('banana')) {
+                    const bananaObj = child.getData('banana');
+                    if (bananaObj && !bananaObj.destroyed) {
+                        bananas.push(bananaObj);
+                        }
+                    }
+                });
+            }
+            
+        bananas.forEach(banana => {
+            if (!banana || banana.destroyed || !banana.sprite || banana.sprite.destroyed) return;
+            if (!projectile.sprite || projectile.sprite.destroyed) return;
+            
+            const distance = Phaser.Math.Distance.Between(
+                projectile.sprite.x, projectile.sprite.y,
+                banana.sprite.x, banana.sprite.y
+            );
+            
+            if (distance < 35) {
+                // Deflect the banana!
+                console.log(`🍌💥 Banana deflected by ${projectile.type} projectile!`);
+                
+                // Apply strong knockback to banana - check body exists
+                const velocityX = projectile.sprite.body ? projectile.sprite.body.velocity.x : (this.facingRight ? 1 : -1);
+                const knockbackDirection = velocityX > 0 ? 1 : -1;
+                const knockbackStrength = {
+                    'fireball': { x: 400, y: -250 },
+                    'ice': { x: 350, y: -200 },
+                    'lightning': { x: 500, y: -300 },
+                    'smoke': { x: 200, y: -150 },
+                    'earthquake': { x: 600, y: -400 },
+                    'legendary': { x: 700, y: -500 },
+                    'laser': { x: 300, y: -200 }
+                };
+                
+                const kb = knockbackStrength[projectile.type] || { x: 350, y: -200 };
+                
+                if (banana.sprite.body) {
+                    banana.sprite.body.setVelocity(knockbackDirection * kb.x, kb.y);
+                }
+                
+                // Mark banana as deflected if it has that property
+                if (banana.isDeflected !== undefined) {
+                    banana.isDeflected = true;
+                }
+                
+                // Create deflection effect
+                this.createBananaDeflectEffect(banana.sprite.x, banana.sprite.y, projectile.type);
+                
+                // Create projectile explosion
+                this.createProjectileExplosion(projectile);
+                
+                // Mark projectile for destruction (unless smoke) - don't destroy in forEach!
+                if (projectile.type !== 'smoke') {
+                    projectile.shouldDestroy = true;
+                }
+            }
+        });
+    }
+
+    createBananaDeflectEffect(x, y, projectileType) {
+        const colors = {
+            'fireball': 0xff4500,
+            'ice': 0x87ceeb,
+            'lightning': 0xffd700,
+            'smoke': 0x4b0082,
+            'earthquake': 0x8b4513,
+            'legendary': 0xffd700,
+            'laser': 0xff0000
+        };
+        
+        const color = colors[projectileType] || 0xffff00;
+        
+        // Banana emoji burst
+        const emoji = this.scene.add.text(x, y, '🍌💥', {
+            fontSize: '24px'
+        }).setOrigin(0.5).setDepth(110);
+        
+        this.scene.tweens.add({
+            targets: emoji,
+            y: y - 50,
+            alpha: 0,
+            scale: 1.5,
+            duration: 600,
+            onComplete: () => emoji.destroy()
+        });
+        
+        // Color burst based on element
+        for (let i = 0; i < 6; i++) {
+            const particle = this.scene.add.circle(
+                x + (Math.random() - 0.5) * 30,
+                y + (Math.random() - 0.5) * 30,
+                5 + Math.random() * 5,
+                color,
+                0.8
+            );
+            particle.setDepth(105);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: particle.x + (Math.random() - 0.5) * 60,
+                y: particle.y - 30 - Math.random() * 30,
+                alpha: 0,
+                scale: 0,
+                duration: 400,
+                delay: i * 30,
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+
+    applyProjectileKnockback(projectile, target) {
+        if (!target || !target.body) return;
+        if (!projectile || !projectile.sprite) return;
+        
+        // Calculate knockback direction (away from projectile) - safely check body
+        const velocityX = projectile.sprite.body ? projectile.sprite.body.velocity.x : (this.facingRight ? 1 : -1);
+        const knockbackDirection = velocityX > 0 ? 1 : -1;
+        
+        // Different knockback strengths based on projectile type
+        const knockbackStrength = {
+            'fireball': { x: 250, y: -150 },
+            'ice': { x: 200, y: -100 },
+            'lightning': { x: 350, y: -200 },  // Lightning has strong knockback
+            'smoke': { x: 100, y: -50 },       // Smoke has weak knockback
+            'earthquake': { x: 400, y: -300 }, // Earth has massive knockback
+            'legendary': { x: 500, y: -350 },  // Legendary has ultimate knockback
+            'laser': { x: 150, y: -80 }        // Laser has quick push
+        };
+        
+        const kb = knockbackStrength[projectile.type] || { x: 200, y: -100 };
+        
+        target.body.setVelocity(knockbackDirection * kb.x, kb.y);
+        
+        console.log(`💥 Knockback applied: ${projectile.type} -> ${kb.x}x, ${kb.y}y`);
+    }
+
+    applyProjectileEffect(projectile, enemySprite, enemyObj) {
+        switch (projectile.effect) {
+            case 'burn':
+                // Fire - add burning effect (damage over time visual)
+                this.createBurnEffect(enemySprite.x, enemySprite.y);
+                break;
+                
+            case 'freeze':
+                // Ice - slow enemy movement
+                if (enemySprite.body) {
+                    const originalVelocity = enemySprite.body.velocity.x;
+                    enemySprite.body.setVelocityX(originalVelocity * 0.3);
+                    // Add ice visual - use setFillStyle for rectangles
+                    const originalColor = enemySprite.fillColor;
+                    enemySprite.setFillStyle(0x87ceeb);
+                    // Create ice crystals effect around enemy
+                    for (let i = 0; i < 4; i++) {
+                        const crystal = this.scene.add.star(
+                            enemySprite.x + (Math.random() - 0.5) * 30,
+                            enemySprite.y + (Math.random() - 0.5) * 40,
+                            6, 3, 6, 0xffffff, 0.8
+                        );
+                        crystal.setDepth(60);
+                        this.scene.tweens.add({
+                            targets: crystal,
+                            alpha: 0,
+                            scale: 0,
+                            duration: 2000,
+                            onComplete: () => crystal.destroy()
+                        });
+                    }
+                    this.scene.time.delayedCall(2000, () => {
+                        if (enemySprite.active) {
+                            enemySprite.setFillStyle(originalColor || 0x4a4a4a);
+                        }
+                    });
+                }
+                break;
+                
+            case 'shake':
+                // Earth - screen shake and stun
+                if (this.scene.cameras && this.scene.cameras.main) {
+                    this.scene.cameras.main.shake(200, 0.015);
+                }
+                // Stun enemy briefly
+                if (enemySprite.body) {
+                    enemySprite.body.setVelocity(0, -100); // Knock up
+                }
+                break;
+                
+            case 'expand':
+                // Smoke - confuse/blind effect (visual only)
+                this.createSmokeCloudEffect(enemySprite.x, enemySprite.y);
+                break;
+        }
+    }
+
+    createBurnEffect(x, y) {
+        for (let i = 0; i < 5; i++) {
+            const flame = this.scene.add.circle(
+                x + (Math.random() - 0.5) * 20,
+                y + (Math.random() - 0.5) * 20,
+                5 + Math.random() * 5,
+                0xff4500,
+                0.8
+            );
+            flame.setDepth(60);
+            
+            this.scene.tweens.add({
+                targets: flame,
+                y: flame.y - 30,
+                alpha: 0,
+                scale: 0,
+                duration: 500 + Math.random() * 300,
+                delay: i * 100,
+                onComplete: () => flame.destroy()
+            });
+        }
+    }
+
+    createSmokeCloudEffect(x, y) {
+        for (let i = 0; i < 8; i++) {
+            const smoke = this.scene.add.circle(
+                x + (Math.random() - 0.5) * 40,
+                y + (Math.random() - 0.5) * 40,
+                10 + Math.random() * 15,
+                0x2f1b3c,
+                0.5
+            );
+            smoke.setDepth(55);
+            
+            this.scene.tweens.add({
+                targets: smoke,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 1000 + Math.random() * 500,
+                onComplete: () => smoke.destroy()
+            });
+        }
+    }
+
+    chainLightning(projectile, hitEnemy) {
+        // Find nearby enemies to chain to
+        if (!this.scene.enemies) return;
+        
+        const chainRange = 80;
+        const chainDamage = projectile.damage * 0.5;
+        let chainsRemaining = 2;
+        
+        this.scene.enemies.children.entries.forEach(enemy => {
+            if (chainsRemaining <= 0) return;
+            if (!enemy.active || enemy === hitEnemy) return;
+            
+            const distance = Phaser.Math.Distance.Between(
+                hitEnemy.x, hitEnemy.y,
+                enemy.x, enemy.y
+            );
+            
+            if (distance < chainRange) {
+                chainsRemaining--;
+                
+                // Deal chain damage
+                if (enemy.getData && enemy.getData('enemy')) {
+                    enemy.getData('enemy').takeDamage(chainDamage);
+                }
+                
+                // Create lightning arc visual
+                this.createLightningArc(hitEnemy.x, hitEnemy.y, enemy.x, enemy.y);
+            }
+        });
+    }
+
+    createLightningArc(x1, y1, x2, y2) {
+        const midX = (x1 + x2) / 2 + (Math.random() - 0.5) * 20;
+        const midY = (y1 + y2) / 2 + (Math.random() - 0.5) * 20;
+        
+        // Draw lightning segments
+        const points = [
+            { x: x1, y: y1 },
+            { x: midX, y: midY },
+            { x: x2, y: y2 }
+        ];
+        
+        points.forEach((point, idx) => {
+            if (idx === 0) return;
+            const prevPoint = points[idx - 1];
+            
+            const bolt = this.scene.add.line(
+                0, 0,
+                prevPoint.x, prevPoint.y,
+                point.x, point.y,
+                0xffff00
+            );
+            bolt.setLineWidth(3);
+            bolt.setDepth(70);
+            
+            this.scene.tweens.add({
+                targets: bolt,
+                alpha: 0,
+                duration: 200,
+                onComplete: () => bolt.destroy()
+            });
+        });
+    }
+
+    createProjectileExplosion(projectile) {
+        const x = projectile.sprite.x;
+        const y = projectile.sprite.y;
+        const color = projectile.color || 0xff4500;
+        const secondaryColor = projectile.secondaryColor || color;
+        
+        // Create explosion rings
+        for (let i = 0; i < 3; i++) {
+            const ringColor = i % 2 === 0 ? color : secondaryColor;
+            const explosion = this.scene.add.circle(x, y, 10, ringColor, 0.8);
+            explosion.setDepth(101);
+            
+            this.scene.tweens.add({
+                targets: explosion,
+                scaleX: 2 + i,
+                scaleY: 2 + i,
+                alpha: 0,
+                duration: 350,
+                delay: i * 40,
+                onComplete: () => explosion.destroy()
+            });
+        }
+        
+        // Create particle burst
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const particleColor = i % 2 === 0 ? color : secondaryColor;
+            const particle = this.scene.add.circle(
+                x + Math.cos(angle) * 8,
+                y + Math.sin(angle) * 8,
+                5,
+                particleColor,
+                0.9
+            );
+            particle.setDepth(100);
+                
+                this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 40,
+                y: y + Math.sin(angle) * 40,
+                    alpha: 0,
+                    scale: 0,
+                duration: 400,
+                onComplete: () => particle.destroy()
+                });
+            }
+        }
+
+    createProjectileTrail(projectile) {
+        const color = projectile.color || 0xff4500;
+        const type = projectile.type || 'fireball';
+        
+        let trailEffect;
+        
+        switch (type) {
+            case 'ice':
+                // Sparkly ice trail
+                trailEffect = this.scene.add.star(
+                    projectile.sprite.x + (Math.random() - 0.5) * 10,
+                    projectile.sprite.y + (Math.random() - 0.5) * 10,
+                    6, 2, 4,
+                    0xffffff,
+                    0.8
+                );
+                break;
+                
+            case 'lightning':
+                // Electric sparks
+                trailEffect = this.scene.add.circle(
+                    projectile.sprite.x + (Math.random() - 0.5) * 15,
+                    projectile.sprite.y + (Math.random() - 0.5) * 15,
+                    2 + Math.random() * 3,
+                    0xffff00,
+                    0.9
+                );
+                break;
+                
+            case 'smoke':
+                // Dark smoke wisps
+                trailEffect = this.scene.add.circle(
+                    projectile.sprite.x + (Math.random() - 0.5) * 20,
+                    projectile.sprite.y + (Math.random() - 0.5) * 20,
+                    8 + Math.random() * 8,
+                    0x2f1b3c,
+                    0.4
+                );
+                break;
+                
+            case 'earthquake':
+                // Dust/rock particles
+                trailEffect = this.scene.add.rectangle(
+                    projectile.sprite.x + (Math.random() - 0.5) * 15,
+                    projectile.sprite.y + Math.random() * 10,
+                    4 + Math.random() * 4,
+                    4 + Math.random() * 4,
+                    0x654321,
+                    0.7
+                );
+                break;
+                
+            case 'legendary':
+                // Rainbow trail for legendary
+                const legendaryColors = [0xff4500, 0x87ceeb, 0xffd700, 0x4b0082, 0x8b4513];
+                const randColor = legendaryColors[Math.floor(Math.random() * legendaryColors.length)];
+                trailEffect = this.scene.add.star(
+                    projectile.sprite.x + (Math.random() - 0.5) * 15,
+                    projectile.sprite.y + (Math.random() - 0.5) * 15,
+                    5, 3, 6,
+                    randColor,
+                    0.8
+                );
+                break;
+            
+            case 'laser':
+                // Bright beam trail
+                trailEffect = this.scene.add.rectangle(
+                    projectile.sprite.x + (Math.random() - 0.5) * 10,
+                    projectile.sprite.y + (Math.random() - 0.5) * 4,
+                    8 + Math.random() * 8,
+                    2,
+                    color,
+                    0.7
+                );
+                break;
+                
+            default:
+                // Default fire trail
+                trailEffect = this.scene.add.circle(
+                    projectile.sprite.x + (Math.random() - 0.5) * 10,
+                    projectile.sprite.y + (Math.random() - 0.5) * 10,
+                    4,
+                    color,
+                    0.6
+                );
+        }
+        
+        trailEffect.setDepth(98);
+        
+        this.scene.tweens.add({
+            targets: trailEffect,
+            alpha: 0,
+            scale: 0,
+            duration: 300,
+            onComplete: () => trailEffect.destroy()
+        });
+    }
+
     destroyFireball(index) {
+        // Safety check - ensure index is valid and fireball exists
+        if (index < 0 || index >= this.fireballs.length) return;
+        
         const fireball = this.fireballs[index];
+        if (!fireball) return;
         
         if (fireball.sprite && !fireball.sprite.destroyed) {
             fireball.sprite.destroy();
@@ -1170,6 +2337,7 @@ class Player {
         this.previousInputs.kick = this.controls.isKick();
         this.previousInputs.punch = this.controls.isPunch();
         this.previousInputs.activate = this.controls.isActivate();
+        this.previousInputs.teleport = this.controls.isTeleport();
     }
 
     // Power-up queue methods
