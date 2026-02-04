@@ -194,6 +194,35 @@ class TaekwondoRobotBuilder {
                 bananaTrail: true, // Leaves banana peels behind when running
                 bananaBreath: true, // Breathes banana-scented fire (yellow flames)
                 fruitPower: 1.5 // 50% bonus damage to enemies weak to fruit
+            },
+            'present': {
+                name: 'Present Dragon',
+                icon: '🎁🐉',
+                primaryColor: 0xff0000, // Festive red
+                secondaryColor: 0x228b22, // Christmas green
+                beltColor: 0xffd700, // Gold ribbon belt
+                description: 'A festive dragon that throws presents that explode into dragon allies!',
+                unlockCondition: 'Complete Level 3',
+                effectColor: 0xff0000, // Red particles
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x228b22, // Green wings
+                wingStyle: 'festive', // Special festive wing style
+                wingTipColor: 0xffd700, // Gold tips
+                // Present Dragon Projectile - WRAPPED PRESENTS THAT BECOME BOMBS!
+                projectileEnabled: true,
+                projectileType: 'present', // Special present bomb type
+                projectileColor: 0xff0000,
+                projectileSecondaryColor: 0xffd700,
+                projectileDamage: 60, // Explosion damage
+                projectileSpeed: 400,
+                projectileSize: 24,
+                projectileEffect: 'summon', // Summons dragon ally!
+                // Special present dragon traits
+                isPresentDragon: true,
+                festiveAura: true, // Has sparkly aura
+                allyDuration: 8000, // Dragon ally lasts 8 seconds
+                allyDamage: 25 // Dragon ally fireball damage
             }
         };
 
@@ -463,6 +492,14 @@ class TaekwondoRobotBuilder {
             }
         }
         
+        // Present Dragon - Complete Level 3
+        if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('present')) {
+            if (this.unlockOutfit('present')) {
+                newUnlocks.push('present');
+                console.log('🎁🐉 PRESENT DRAGON UNLOCKED! Throw presents that summon dragon allies!');
+            }
+        }
+        
         // Legendary Mode - Collect all robot parts (5 part types, need at least 1 of each)
         const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
         const allPartsCollected = partTypes.every(type => 
@@ -555,6 +592,35 @@ class TaekwondoRobotBuilder {
                 this.game.scene.start('CraftScene');
             }
         }
+    }
+
+    // Check if banana bonus stage should be shown
+    shouldShowBananaBonus(completedLevel) {
+        // Banana bonus appears after levels 1, 2, and 3 (50% chance)
+        // Level 4 has 75% chance, making it progressively more likely
+        if (typeof BananaBonusScene === 'undefined') {
+            return false; // Scene not loaded
+        }
+        
+        // Check if banana mode is enabled in settings
+        if (this.gameData.settings.bananaBonusEnabled === false) {
+            return false;
+        }
+        
+        // Probability based on level
+        const probability = {
+            1: 0.4,  // 40% after level 1
+            2: 0.5,  // 50% after level 2
+            3: 0.6,  // 60% after level 3
+            4: 0.75  // 75% after level 4
+        };
+        
+        const chance = probability[completedLevel] || 0.5;
+        const roll = Math.random();
+        
+        console.log(`🍌 Banana bonus roll: ${roll.toFixed(2)} vs ${chance} (level ${completedLevel})`);
+        
+        return roll < chance;
     }
 
     // Check if banana bonus stage should be shown

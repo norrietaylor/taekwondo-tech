@@ -30,6 +30,7 @@ The power-up system has been completely redesigned to give players strategic con
   - 🦋 **Fly Mode** (Light Green)
   - 🛡️ **Invincibility** (Gold)
   - ⚡ **Speed Boost** (Pink)
+  - 🎁 **Present Bomb** (Red)
 
 #### Active Power-Up Display
 - Shows currently active power-up
@@ -65,6 +66,40 @@ All power-ups now follow the queue system:
    - Duration: 10 seconds
    - Effect: 1.5x movement speed
    - Strategic Use: Quickly traverse levels or escape danger
+
+6. **Present Bomb** 🎁
+   - Duration: 10 seconds
+   - Effect: Replaces elemental attack with wrapped presents that land and transform into bombs. After 1 second, the bomb explodes AND spawns a friendly dragon ally that fights for you for 8 seconds!
+   - Dragon Ally Stats:
+     - Automatically targets and attacks nearby enemies
+     - Shoots fireballs dealing 25 damage
+     - Hovers and follows enemies
+     - Lasts 8 seconds before flying away
+   - Strategic Use: Area denial, summoning backup in tough fights, and creating explosive chaos!
+
+## Present Dragon Costume 🎁🐉
+
+A special dragon costume that uses the Present Bomb attack as its **default elemental attack** (no power-up needed!).
+
+### How to Unlock
+- Complete Level 3
+
+### Appearance
+- **Primary Color**: Festive red
+- **Secondary Color**: Christmas green
+- **Belt**: Gold ribbon
+- **Wings**: Green with gold tips (festive style)
+
+### Abilities
+- **Default Attack (Kick)**: Shoots wrapped presents that become bombs and summon dragon allies
+- **Laser Eyes (Punch)**: Red laser beams
+
+### Stats
+- Explosion damage: 60
+- Dragon ally duration: 8 seconds
+- Dragon ally damage: 25 per fireball
+
+This is the only dragon that can summon allies as part of its normal attack kit!
 
 ## Gameplay Strategy
 

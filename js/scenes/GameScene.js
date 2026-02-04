@@ -676,30 +676,33 @@ class GameScene extends Phaser.Scene {
             case 1: // Ice level
                 locations.push({ x: 500, y: 320, type: 'speedBoost' });
                 locations.push({ x: 1300, y: 170, type: 'fireBreath' });
+                locations.push({ x: 900, y: 250, type: 'presentBomb' }); // Added present bomb
                 break;
             case 2: // Fire level
                 locations.push({ x: 750, y: 290, type: 'invincibility' });
                 locations.push({ x: 1500, y: 290, type: 'ultraBlast' });
+                locations.push({ x: 1100, y: 260, type: 'presentBomb' }); // Added present bomb
                 break;
             case 3: // Power bomb level
                 locations.push({ x: 650, y: 330, type: 'flyMode' });
-                locations.push({ x: 1050, y: 210, type: 'fireBreath' });
+                locations.push({ x: 1050, y: 210, type: 'presentBomb' }); // Replaced fireBreath with presentBomb
                 locations.push({ x: 1450, y: 210, type: 'ultraBlast' });
                 break;
             case 4: // Lightning level
                 locations.push({ x: 780, y: 280, type: 'speedBoost' });
-                locations.push({ x: 1320, y: 170, type: 'ultraBlast' });
+                locations.push({ x: 1320, y: 170, type: 'presentBomb' }); // Replaced ultraBlast with presentBomb
                 locations.push({ x: 1580, y: 250, type: 'invincibility' });
                 break;
             case 5: // Shadow level
                 locations.push({ x: 630, y: 340, type: 'flyMode' });
-                locations.push({ x: 1080, y: 200, type: 'fireBreath' });
+                locations.push({ x: 1080, y: 200, type: 'presentBomb' }); // Replaced fireBreath with presentBomb
                 locations.push({ x: 1530, y: 220, type: 'ultraBlast' });
                 locations.push({ x: 1750, y: 310, type: 'invincibility' });
                 break;
             case 6: // Earth level
                 locations.push({ x: 460, y: 380, type: 'speedBoost' });
                 locations.push({ x: 900, y: 250, type: 'invincibility' });
+                locations.push({ x: 1200, y: 200, type: 'presentBomb' }); // Added present bomb
                 locations.push({ x: 1350, y: 250, type: 'ultraBlast' });
                 locations.push({ x: 1570, y: 320, type: 'fireBreath' });
                 locations.push({ x: 1920, y: 350, type: 'flyMode' });
@@ -1678,7 +1681,8 @@ class GameScene extends Phaser.Scene {
             'ultraBlast': 'Blast',
             'flyMode': 'Fly',
             'invincibility': 'Shield',
-            'speedBoost': 'Speed'
+            'speedBoost': 'Speed',
+            'presentBomb': 'Present'
         };
         
         const powerUpColors = {
@@ -1686,7 +1690,8 @@ class GameScene extends Phaser.Scene {
             'ultraBlast': 0x00ffff,
             'flyMode': 0x98fb98,
             'invincibility': 0xffd700,
-            'speedBoost': 0xff69b4
+            'speedBoost': 0xff69b4,
+            'presentBomb': 0xff0000
         };
         
         const powerUpIcons = {
@@ -1694,7 +1699,8 @@ class GameScene extends Phaser.Scene {
             'ultraBlast': '💥',
             'flyMode': '🦋',
             'invincibility': '🛡️',
-            'speedBoost': '⚡'
+            'speedBoost': '⚡',
+            'presentBomb': '🎁'
         };
         
         // Update each slot
@@ -1726,7 +1732,8 @@ class GameScene extends Phaser.Scene {
             'ultraBlast': 'Ultra Blast',
             'flyMode': 'Fly Mode',
             'invincibility': 'Invincibility',
-            'speedBoost': 'Speed Boost'
+            'speedBoost': 'Speed Boost',
+            'presentBomb': 'Present Bomb'
         };
         
         const powerUpColors = {
@@ -1734,7 +1741,8 @@ class GameScene extends Phaser.Scene {
             'ultraBlast': 0x00ffff,
             'flyMode': 0x98fb98,
             'invincibility': 0xffd700,
-            'speedBoost': 0xff69b4
+            'speedBoost': 0xff69b4,
+            'presentBomb': 0xff0000
         };
         
         if (powerType) {
