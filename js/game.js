@@ -194,6 +194,35 @@ class TaekwondoRobotBuilder {
                 bananaTrail: true, // Leaves banana peels behind when running
                 bananaBreath: true, // Breathes banana-scented fire (yellow flames)
                 fruitPower: 1.5 // 50% bonus damage to enemies weak to fruit
+            },
+            'present': {
+                name: 'Present Dragon',
+                icon: '🎁🐉',
+                primaryColor: 0xff0000, // Festive red
+                secondaryColor: 0x228b22, // Christmas green
+                beltColor: 0xffd700, // Gold ribbon belt
+                description: 'A festive dragon that throws presents that explode into dragon allies!',
+                unlockCondition: 'Complete Level 3',
+                effectColor: 0xff0000, // Red particles
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x228b22, // Green wings
+                wingStyle: 'festive', // Special festive wing style
+                wingTipColor: 0xffd700, // Gold tips
+                // Present Dragon Projectile - WRAPPED PRESENTS THAT BECOME BOMBS!
+                projectileEnabled: true,
+                projectileType: 'present', // Special present bomb type
+                projectileColor: 0xff0000,
+                projectileSecondaryColor: 0xffd700,
+                projectileDamage: 60, // Explosion damage
+                projectileSpeed: 400,
+                projectileSize: 24,
+                projectileEffect: 'summon', // Summons dragon ally!
+                // Special present dragon traits
+                isPresentDragon: true,
+                festiveAura: true, // Has sparkly aura
+                allyDuration: 8000, // Dragon ally lasts 8 seconds
+                allyDamage: 25 // Dragon ally fireball damage
             }
         };
 
@@ -460,6 +489,14 @@ class TaekwondoRobotBuilder {
             if (this.unlockOutfit('banana')) {
                 newUnlocks.push('banana');
                 console.log('🍌🐉 BANANA DRAGON UNLOCKED! Time to throw some bananas!');
+            }
+        }
+        
+        // Present Dragon - Complete Level 3
+        if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('present')) {
+            if (this.unlockOutfit('present')) {
+                newUnlocks.push('present');
+                console.log('🎁🐉 PRESENT DRAGON UNLOCKED! Throw presents that summon dragon allies!');
             }
         }
         

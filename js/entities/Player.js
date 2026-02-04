@@ -135,14 +135,19 @@ class Player {
             ultraBlast: false,
             flyMode: false,
             invincibility: false,
-            speedBoost: false
+            speedBoost: false,
+            presentBomb: false
         };
         
         // Special abilities cooldowns
         this.specialAbilityCooldowns = {
             fireBreath: 0,
-            ultraBlast: 0
+            ultraBlast: 0,
+            presentBomb: 0
         };
+        
+        // Present bomb tracking (for active presents/bombs)
+        this.activePresentBombs = [];
         
         // Earth Dragon teleport ability
         this.teleportCooldown = 0;
@@ -623,9 +628,17 @@ class Player {
         } 
         // Dragon costume with projectile - kick for elemental, punch for laser eyes
         else if (costume.projectileEnabled) {
-            // Kick shoots elemental dragon projectile
-            if (this.controls.isKick() && !this.previousInputs.kick) {
-                this.shootDragonProjectile();
+            // If presentBomb power-up is active, shoot presents instead of elemental
+            if (this.powerUps.presentBomb) {
+                // Kick shoots wrapped present
+                if (this.controls.isKick() && !this.previousInputs.kick && this.specialAbilityCooldowns.presentBomb <= 0) {
+                    this.shootPresentBomb();
+                }
+            } else {
+                // Kick shoots elemental dragon projectile
+                if (this.controls.isKick() && !this.previousInputs.kick) {
+                    this.shootDragonProjectile();
+                }
             }
             
             // Punch shoots laser eyes
@@ -661,6 +674,13 @@ class Player {
             // Simple implementation - check for quick double punch
             if (this.controls.isPunch() && !this.previousInputs.punch && this.comboCount >= 2) {
                 this.performUltraBlast();
+            }
+        }
+        
+        // Present bomb (replaces elemental attack when active - kick to shoot)
+        if (this.powerUps.presentBomb && this.specialAbilityCooldowns.presentBomb <= 0) {
+            if (this.controls.isKick() && !this.previousInputs.kick) {
+                this.shootPresentBomb();
             }
         }
     }
@@ -1016,6 +1036,10 @@ class Player {
             case 'banana':
                 projectile = this.createBananaProjectile(startX, startY, costume);
                 break;
+            case 'present':
+                // Present Dragon uses the present bomb attack directly
+                this.shootPresentBomb();
+                return; // Exit early - shootPresentBomb handles everything
             default:
                 projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.9);
         }
@@ -2496,6 +2520,21 @@ class Player {
                     this.updateOutfitColor(); // Reset to original outfit color
                 }
                 break;
+                
+            case 'presentBomb':
+                if (activate) {
+                    // Festive color change - red and gold theme
+                    if (!isLegendary && this.sprite.setFillStyle) {
+                        this.sprite.setFillStyle(0xff0000); // Red for present theme
+                    }
+                    // Show activation message
+                    if (this.scene && this.scene.showPowerUpMessage) {
+                        this.scene.showPowerUpMessage('🎁 Present Bomb Active!', 0xff0000);
+                    }
+                } else {
+                    this.updateOutfitColor(); // Reset to original outfit color
+                }
+                break;
         }
     }
 
@@ -2615,6 +2654,872 @@ class Player {
                     }
                 }
             }
+        });
+    }
+
+    // Present Bomb power-up attack
+    shootPresentBomb() {
+        if (this.specialAbilityCooldowns.presentBomb > 0) return;
+        
+        console.log('🎁 Present Bomb launched!');
+        
+        // Set cooldown (faster than other special abilities)
+        this.specialAbilityCooldowns.presentBomb = 800; // 0.8 seconds between presents
+        this.attackCooldown = 400;
+        
+        // Calculate present starting position and velocity
+        const startX = this.sprite.x + (this.facingRight ? 35 : -35);
+        const startY = this.sprite.y - 10;
+        const velocityX = this.facingRight ? 400 : -400;
+        const velocityY = -150; // Arc upward slightly
+        
+        // Create wrapped present container
+        const presentContainer = this.scene.add.container(startX, startY);
+        presentContainer.setDepth(100);
+        
+        // Present box (wrapped gift)
+        const presentBox = this.scene.add.rectangle(0, 0, 24, 24, 0xff0000); // Red box
+        presentBox.setStrokeStyle(2, 0xffd700); // Gold border
+        
+        // Ribbon horizontal
+        const ribbonH = this.scene.add.rectangle(0, 0, 24, 5, 0xffd700);
+        
+        // Ribbon vertical
+        const ribbonV = this.scene.add.rectangle(0, 0, 5, 24, 0xffd700);
+        
+        // Bow on top
+        const bowLeft = this.scene.add.circle(-4, -14, 5, 0xffd700);
+        const bowRight = this.scene.add.circle(4, -14, 5, 0xffd700);
+        const bowCenter = this.scene.add.circle(0, -12, 4, 0xff6600);
+        
+        presentContainer.add([presentBox, ribbonH, ribbonV, bowLeft, bowRight, bowCenter]);
+        
+        // Add physics to present
+        this.scene.physics.add.existing(presentContainer);
+        presentContainer.body.setVelocity(velocityX, velocityY);
+        presentContainer.body.setGravityY(400); // Affected by gravity
+        presentContainer.body.setSize(24, 24);
+        presentContainer.body.setOffset(-12, -12);
+        presentContainer.body.setBounce(0.3);
+        
+        // Add spinning animation to present
+        this.scene.tweens.add({
+            targets: presentContainer,
+            rotation: Math.PI * 4,
+            duration: 1500,
+            ease: 'Linear'
+        });
+        
+        // Store present data
+        const presentData = {
+            container: presentContainer,
+            isPresent: true,
+            hasLanded: false,
+            bombTimer: null,
+            bombSprite: null
+        };
+        
+        this.activePresentBombs.push(presentData);
+        
+        // Add collider with platforms - when present lands, start bomb transformation
+        if (this.scene.platforms) {
+            this.scene.physics.add.collider(presentContainer, this.scene.platforms, () => {
+                if (!presentData.hasLanded) {
+                    presentData.hasLanded = true;
+                    this.transformPresentToBomb(presentData);
+                }
+            });
+        }
+        
+        // Also trigger bomb if it hits an enemy directly
+        if (this.scene.enemies) {
+            this.scene.physics.add.overlap(presentContainer, this.scene.enemies, (present, enemy) => {
+                if (!presentData.hasLanded && presentData.isPresent) {
+                    presentData.hasLanded = true;
+                    this.transformPresentToBomb(presentData, true); // Immediate explosion
+                }
+            });
+        }
+        
+        // Create shooting effect at player
+        this.createPresentShootEffect();
+        
+        // Fallback: if present doesn't land after 3 seconds, transform anyway
+        this.scene.time.delayedCall(3000, () => {
+            if (!presentData.hasLanded && presentData.container && presentData.container.active) {
+                presentData.hasLanded = true;
+                this.transformPresentToBomb(presentData);
+            }
+        });
+    }
+    
+    transformPresentToBomb(presentData, immediate = false) {
+        if (!presentData.container || !presentData.container.active) return;
+        
+        console.log('🎁➡️💣 Present opening into bomb!');
+        
+        const container = presentData.container;
+        const x = container.x;
+        const y = container.y;
+        
+        // Stop the container's physics
+        if (container.body) {
+            container.body.setVelocity(0, 0);
+            container.body.setGravityY(0);
+        }
+        
+        // Create "opening" effect - present bursts open
+        const burstColors = [0xff0000, 0xffd700, 0x00ff00, 0x00ffff, 0xff00ff];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const particle = this.scene.add.star(
+                x + Math.cos(angle) * 5,
+                y + Math.sin(angle) * 5,
+                5, 3, 6,
+                burstColors[i % burstColors.length],
+                0.9
+            );
+            particle.setDepth(101);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 40,
+                y: y + Math.sin(angle) * 40,
+                alpha: 0,
+                scaleX: 0.3,
+                scaleY: 0.3,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Hide/remove present graphics
+        container.removeAll(true);
+        
+        // Create the bomb that appears from the present
+        const bombContainer = this.scene.add.container(x, y);
+        bombContainer.setDepth(100);
+        
+        // Bomb body (round black bomb)
+        const bombBody = this.scene.add.circle(0, 0, 15, 0x1a1a1a);
+        bombBody.setStrokeStyle(2, 0x333333);
+        
+        // Bomb highlight
+        const highlight = this.scene.add.circle(-5, -5, 4, 0x555555, 0.6);
+        
+        // Fuse spark at top
+        const fuseBase = this.scene.add.rectangle(0, -15, 4, 8, 0x8b4513);
+        
+        // Sparking fuse
+        const spark = this.scene.add.circle(0, -20, 5, 0xff6600);
+        spark.setDepth(102);
+        
+        bombContainer.add([bombBody, highlight, fuseBase, spark]);
+        
+        presentData.bombSprite = bombContainer;
+        presentData.isPresent = false;
+        
+        // Animate the spark/fuse
+        this.scene.tweens.add({
+            targets: spark,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            alpha: { from: 1, to: 0.5 },
+            duration: 150,
+            yoyo: true,
+            repeat: immediate ? 2 : 6, // Fewer flashes for immediate explosion
+            onUpdate: () => {
+                // Create spark particles
+                if (Math.random() > 0.5) {
+                    const sparkParticle = this.scene.add.circle(
+                        x + (Math.random() - 0.5) * 10,
+                        y - 20 + (Math.random() - 0.5) * 10,
+                        2,
+                        Math.random() > 0.5 ? 0xff6600 : 0xffff00,
+                        0.9
+                    );
+                    sparkParticle.setDepth(103);
+                    
+                    this.scene.tweens.add({
+                        targets: sparkParticle,
+                        y: sparkParticle.y - 15,
+                        alpha: 0,
+                        duration: 200,
+                        onComplete: () => sparkParticle.destroy()
+                    });
+                }
+            }
+        });
+        
+        // Set explosion timer (1 second, or immediate if hit enemy)
+        const explosionDelay = immediate ? 200 : 1000;
+        presentData.bombTimer = this.scene.time.delayedCall(explosionDelay, () => {
+            this.explodeBomb(presentData);
+        });
+        
+        // Clean up original container
+        container.destroy();
+    }
+    
+    explodeBomb(presentData) {
+        if (!presentData.bombSprite || !presentData.bombSprite.active) return;
+        
+        console.log('💥 BOOM! Present bomb explodes!');
+        
+        const x = presentData.bombSprite.x;
+        const y = presentData.bombSprite.y;
+        const explosionRadius = 80;
+        const explosionDamage = 60;
+        
+        // Destroy bomb sprite
+        presentData.bombSprite.destroy();
+        
+        // Create epic explosion effect
+        // Main explosion flash
+        const mainFlash = this.scene.add.circle(x, y, 20, 0xffffff, 1);
+        mainFlash.setDepth(150);
+        
+        this.scene.tweens.add({
+            targets: mainFlash,
+            scaleX: 4,
+            scaleY: 4,
+            alpha: 0,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => mainFlash.destroy()
+        });
+        
+        // Fire ring 1
+        const fireRing1 = this.scene.add.circle(x, y, 30, 0xff6600, 0.8);
+        fireRing1.setDepth(149);
+        
+        this.scene.tweens.add({
+            targets: fireRing1,
+            scaleX: 3,
+            scaleY: 3,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power1',
+            onComplete: () => fireRing1.destroy()
+        });
+        
+        // Fire ring 2 (delayed)
+        const fireRing2 = this.scene.add.circle(x, y, 20, 0xff0000, 0.7);
+        fireRing2.setDepth(148);
+        
+        this.scene.tweens.add({
+            targets: fireRing2,
+            scaleX: 4,
+            scaleY: 4,
+            alpha: 0,
+            duration: 500,
+            delay: 50,
+            ease: 'Power1',
+            onComplete: () => fireRing2.destroy()
+        });
+        
+        // Smoke clouds
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const distance = 20 + Math.random() * 20;
+            const smokeCloud = this.scene.add.circle(
+                x + Math.cos(angle) * distance,
+                y + Math.sin(angle) * distance,
+                15 + Math.random() * 10,
+                0x555555,
+                0.7
+            );
+            smokeCloud.setDepth(145);
+            
+            this.scene.tweens.add({
+                targets: smokeCloud,
+                x: smokeCloud.x + Math.cos(angle) * 40,
+                y: smokeCloud.y + Math.sin(angle) * 40 - 30,
+                scaleX: 2,
+                scaleY: 2,
+                alpha: 0,
+                duration: 600 + Math.random() * 200,
+                ease: 'Power1',
+                onComplete: () => smokeCloud.destroy()
+            });
+        }
+        
+        // Debris particles
+        const debrisColors = [0xff6600, 0xff0000, 0xffff00, 0xff3300, 0xffa500];
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2 + Math.random() * 0.3;
+            const speed = 60 + Math.random() * 40;
+            const debris = this.scene.add.rectangle(
+                x,
+                y,
+                4 + Math.random() * 4,
+                4 + Math.random() * 4,
+                debrisColors[Math.floor(Math.random() * debrisColors.length)],
+                0.9
+            );
+            debris.setDepth(146);
+            debris.setRotation(Math.random() * Math.PI * 2);
+            
+            this.scene.tweens.add({
+                targets: debris,
+                x: x + Math.cos(angle) * speed,
+                y: y + Math.sin(angle) * speed,
+                rotation: debris.rotation + Math.PI * 2,
+                alpha: 0,
+                duration: 500 + Math.random() * 300,
+                ease: 'Power2',
+                onComplete: () => debris.destroy()
+            });
+        }
+        
+        // Screen shake for impact
+        this.scene.cameras.main.shake(200, 0.015);
+        
+        // Damage enemies in explosion radius
+        if (this.scene.enemies) {
+            this.scene.enemies.children.entries.forEach(enemy => {
+                if (enemy.active) {
+                    const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
+                    
+                    if (distance < explosionRadius) {
+                        if (enemy.getData && enemy.getData('enemy')) {
+                            // Damage falloff based on distance
+                            const damageFalloff = 1 - (distance / explosionRadius) * 0.5;
+                            const actualDamage = Math.round(explosionDamage * damageFalloff);
+                            enemy.getData('enemy').takeDamage(actualDamage);
+                            
+                            // Knockback effect
+                            const knockbackAngle = Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y);
+                            const knockbackForce = (1 - distance / explosionRadius) * 400;
+                            enemy.body.setVelocity(
+                                Math.cos(knockbackAngle) * knockbackForce,
+                                Math.sin(knockbackAngle) * knockbackForce - 150
+                            );
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Remove from active list
+        const index = this.activePresentBombs.indexOf(presentData);
+        if (index > -1) {
+            this.activePresentBombs.splice(index, 1);
+        }
+        
+        // Spawn a friendly dragon ally from the explosion!
+        this.spawnDragonAlly(x, y);
+    }
+    
+    spawnDragonAlly(x, y) {
+        console.log('🐉 Friendly Dragon Ally spawned!');
+        
+        // Create dragon ally container
+        const dragonAlly = this.scene.add.container(x, y - 20);
+        dragonAlly.setDepth(80);
+        
+        // Dragon colors (festive theme to match presents)
+        const bodyColor = 0x32cd32; // Lime green
+        const accentColor = 0xff6600; // Orange
+        const wingColor = 0x228b22; // Forest green
+        
+        // Dragon body
+        const body = this.scene.add.ellipse(0, 0, 35, 25, bodyColor);
+        body.setStrokeStyle(2, accentColor);
+        
+        // Dragon head
+        const head = this.scene.add.circle(18, -8, 12, bodyColor);
+        head.setStrokeStyle(2, accentColor);
+        
+        // Dragon snout
+        const snout = this.scene.add.ellipse(28, -6, 8, 5, accentColor);
+        
+        // Dragon eyes
+        const eye = this.scene.add.circle(22, -12, 4, 0xffffff);
+        const pupil = this.scene.add.circle(23, -12, 2, 0x000000);
+        
+        // Dragon nostrils
+        const nostril1 = this.scene.add.circle(30, -8, 1.5, 0x000000);
+        const nostril2 = this.scene.add.circle(30, -4, 1.5, 0x000000);
+        
+        // Dragon horns
+        const horn1 = this.scene.add.triangle(14, -22, 0, 12, 4, 0, 8, 12, accentColor);
+        const horn2 = this.scene.add.triangle(22, -20, 0, 10, 4, 0, 8, 10, accentColor);
+        
+        // Dragon wings
+        const wing1 = this.scene.add.triangle(-5, -15, 0, 25, -25, 0, -25, 25, wingColor, 0.8);
+        const wing2 = this.scene.add.triangle(-5, -10, 0, 20, -20, 0, -20, 20, wingColor, 0.6);
+        
+        // Dragon tail
+        const tail = this.scene.add.polygon(-25, 5, [
+            [0, 0],
+            [-15, -5],
+            [-25, 0],
+            [-30, 5],
+            [-25, 8],
+            [-15, 5],
+            [0, 8]
+        ], bodyColor);
+        tail.setStrokeStyle(1, accentColor);
+        
+        // Tail spikes
+        const spike1 = this.scene.add.triangle(-30, 2, 0, 5, -5, -5, -5, 5, accentColor);
+        const spike2 = this.scene.add.triangle(-35, 5, 0, 4, -4, -4, -4, 4, accentColor);
+        
+        // Dragon legs
+        const leg1 = this.scene.add.rectangle(8, 15, 6, 12, bodyColor);
+        const leg2 = this.scene.add.rectangle(-5, 15, 6, 12, bodyColor);
+        const foot1 = this.scene.add.ellipse(10, 22, 10, 5, accentColor);
+        const foot2 = this.scene.add.ellipse(-3, 22, 10, 5, accentColor);
+        
+        // Add all parts to container
+        dragonAlly.add([
+            tail, spike1, spike2,
+            wing1, wing2,
+            leg1, leg2, foot1, foot2,
+            body,
+            head, snout, eye, pupil, nostril1, nostril2,
+            horn1, horn2
+        ]);
+        
+        // Add physics to dragon ally
+        this.scene.physics.add.existing(dragonAlly);
+        dragonAlly.body.setSize(40, 35);
+        dragonAlly.body.setOffset(-20, -15);
+        dragonAlly.body.setAllowGravity(false); // Floats in air
+        
+        // Dragon ally stats
+        const allyData = {
+            container: dragonAlly,
+            health: 50,
+            damage: 25,
+            attackCooldown: 0,
+            attackRange: 150,
+            lifetime: 8000, // 8 seconds
+            spawnTime: Date.now(),
+            facingRight: true,
+            targetEnemy: null,
+            wing1: wing1,
+            wing2: wing2
+        };
+        
+        // Store ally reference
+        if (!this.dragonAllies) {
+            this.dragonAllies = [];
+        }
+        this.dragonAllies.push(allyData);
+        
+        // Spawn animation - pop in with sparkles
+        dragonAlly.setScale(0);
+        dragonAlly.setAlpha(0);
+        
+        this.scene.tweens.add({
+            targets: dragonAlly,
+            scaleX: 1,
+            scaleY: 1,
+            alpha: 1,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+        
+        // Create spawn sparkles
+        this.createDragonSpawnEffect(x, y);
+        
+        // Wing flapping animation
+        this.scene.tweens.add({
+            targets: wing1,
+            rotation: -0.3,
+            duration: 200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        this.scene.tweens.add({
+            targets: wing2,
+            rotation: -0.2,
+            duration: 200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            delay: 50
+        });
+        
+        // Hovering animation
+        this.scene.tweens.add({
+            targets: dragonAlly,
+            y: dragonAlly.y - 10,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Set up AI update loop
+        const updateEvent = this.scene.time.addEvent({
+            delay: 100,
+            callback: () => this.updateDragonAlly(allyData),
+            repeat: -1
+        });
+        allyData.updateEvent = updateEvent;
+        
+        // Self-destruct after lifetime
+        this.scene.time.delayedCall(allyData.lifetime, () => {
+            this.despawnDragonAlly(allyData);
+        });
+    }
+    
+    createDragonSpawnEffect(x, y) {
+        // Magical spawn sparkles
+        const sparkleColors = [0x32cd32, 0xffd700, 0xff6600, 0x00ff00];
+        
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const distance = 30 + Math.random() * 20;
+            
+            const sparkle = this.scene.add.star(
+                x,
+                y,
+                5, 3, 7,
+                sparkleColors[Math.floor(Math.random() * sparkleColors.length)],
+                0.9
+            );
+            sparkle.setDepth(85);
+            
+            this.scene.tweens.add({
+                targets: sparkle,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance,
+                rotation: Math.PI * 2,
+                alpha: 0,
+                scaleX: 0.3,
+                scaleY: 0.3,
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => sparkle.destroy()
+            });
+        }
+        
+        // Central magic circle
+        const magicCircle = this.scene.add.circle(x, y, 25, 0x32cd32, 0.5);
+        magicCircle.setDepth(79);
+        
+        this.scene.tweens.add({
+            targets: magicCircle,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 500,
+            ease: 'Power2',
+            onComplete: () => magicCircle.destroy()
+        });
+    }
+    
+    updateDragonAlly(allyData) {
+        if (!allyData.container || !allyData.container.active) return;
+        
+        const dragon = allyData.container;
+        
+        // Update cooldown
+        if (allyData.attackCooldown > 0) {
+            allyData.attackCooldown -= 100;
+        }
+        
+        // Find nearest enemy
+        let nearestEnemy = null;
+        let nearestDistance = Infinity;
+        
+        if (this.scene.enemies) {
+            this.scene.enemies.children.entries.forEach(enemy => {
+                if (enemy.active && enemy.getData('enemy') && enemy.getData('enemy').health > 0) {
+                    const distance = Phaser.Math.Distance.Between(
+                        dragon.x, dragon.y,
+                        enemy.x, enemy.y
+                    );
+                    
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance;
+                        nearestEnemy = enemy;
+                    }
+                }
+            });
+        }
+        
+        allyData.targetEnemy = nearestEnemy;
+        
+        if (nearestEnemy) {
+            // Move towards enemy
+            const targetX = nearestEnemy.x;
+            const targetY = nearestEnemy.y - 50; // Hover above enemy
+            
+            // Smooth movement towards target
+            const moveSpeed = 3;
+            const dx = targetX - dragon.x;
+            const dy = targetY - dragon.y;
+            
+            dragon.x += dx * 0.05 * moveSpeed;
+            dragon.y += dy * 0.05 * moveSpeed;
+            
+            // Face the enemy
+            if (dx > 0 && !allyData.facingRight) {
+                allyData.facingRight = true;
+                dragon.setScale(1, 1);
+            } else if (dx < 0 && allyData.facingRight) {
+                allyData.facingRight = false;
+                dragon.setScale(-1, 1); // Flip horizontally
+            }
+            
+            // Attack if in range and cooldown is ready
+            if (nearestDistance < allyData.attackRange && allyData.attackCooldown <= 0) {
+                this.dragonAllyAttack(allyData, nearestEnemy);
+            }
+        }
+    }
+    
+    dragonAllyAttack(allyData, enemy) {
+        if (!allyData.container || !allyData.container.active) return;
+        
+        console.log('🐉🔥 Dragon ally attacks!');
+        
+        // Set cooldown
+        allyData.attackCooldown = 1200; // 1.2 seconds between attacks
+        
+        const dragon = allyData.container;
+        const startX = dragon.x + (allyData.facingRight ? 25 : -25);
+        const startY = dragon.y;
+        
+        // Create fireball projectile
+        const fireballColors = [0xff6600, 0xff0000, 0xffff00];
+        const fireballColor = fireballColors[Math.floor(Math.random() * fireballColors.length)];
+        
+        const fireball = this.scene.add.circle(startX, startY, 10, fireballColor, 0.9);
+        fireball.setDepth(90);
+        
+        // Fireball glow
+        const glow = this.scene.add.circle(startX, startY, 15, fireballColor, 0.4);
+        glow.setDepth(89);
+        
+        // Calculate velocity towards enemy
+        const angle = Phaser.Math.Angle.Between(startX, startY, enemy.x, enemy.y);
+        const speed = 350;
+        const velocityX = Math.cos(angle) * speed;
+        const velocityY = Math.sin(angle) * speed;
+        
+        // Add physics
+        this.scene.physics.add.existing(fireball);
+        fireball.body.setVelocity(velocityX, velocityY);
+        fireball.body.setAllowGravity(false);
+        
+        this.scene.physics.add.existing(glow);
+        glow.body.setVelocity(velocityX, velocityY);
+        glow.body.setAllowGravity(false);
+        
+        // Trail effect
+        const trailEvent = this.scene.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (fireball.active) {
+                    const trail = this.scene.add.circle(
+                        fireball.x,
+                        fireball.y,
+                        5 + Math.random() * 3,
+                        fireballColor,
+                        0.6
+                    );
+                    trail.setDepth(88);
+                    
+                    this.scene.tweens.add({
+                        targets: trail,
+                        scaleX: 0.3,
+                        scaleY: 0.3,
+                        alpha: 0,
+                        duration: 200,
+                        onComplete: () => trail.destroy()
+                    });
+                }
+            },
+            repeat: 20
+        });
+        
+        // Collision with enemies
+        this.scene.physics.add.overlap(fireball, this.scene.enemies, (fb, enemySprite) => {
+            const enemyObj = enemySprite.getData('enemy');
+            if (enemyObj && enemyObj.health > 0) {
+                // Deal damage
+                enemyObj.takeDamage(allyData.damage);
+                
+                // Create hit effect
+                this.createDragonAllyHitEffect(fireball.x, fireball.y, fireballColor);
+                
+                // Destroy fireball
+                trailEvent.destroy();
+                fireball.destroy();
+                glow.destroy();
+            }
+        });
+        
+        // Destroy after traveling distance
+        this.scene.time.delayedCall(1500, () => {
+            if (fireball.active) {
+                trailEvent.destroy();
+                fireball.destroy();
+                glow.destroy();
+            }
+        });
+        
+        // Dragon attack animation - quick lunge
+        const originalX = dragon.x;
+        this.scene.tweens.add({
+            targets: dragon,
+            x: dragon.x + (allyData.facingRight ? 15 : -15),
+            duration: 100,
+            yoyo: true,
+            ease: 'Power2'
+        });
+    }
+    
+    createDragonAllyHitEffect(x, y, color) {
+        // Impact flash
+        const flash = this.scene.add.circle(x, y, 15, 0xffffff, 0.9);
+        flash.setDepth(100);
+        
+        this.scene.tweens.add({
+            targets: flash,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 150,
+            onComplete: () => flash.destroy()
+        });
+        
+        // Fire particles
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const particle = this.scene.add.circle(
+                x,
+                y,
+                4 + Math.random() * 3,
+                color,
+                0.8
+            );
+            particle.setDepth(99);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 30,
+                y: y + Math.sin(angle) * 30,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+    
+    despawnDragonAlly(allyData) {
+        if (!allyData.container || !allyData.container.active) return;
+        
+        console.log('🐉✨ Dragon ally departing!');
+        
+        const dragon = allyData.container;
+        
+        // Stop update loop
+        if (allyData.updateEvent) {
+            allyData.updateEvent.destroy();
+        }
+        
+        // Farewell animation - fly up and fade
+        this.scene.tweens.add({
+            targets: dragon,
+            y: dragon.y - 100,
+            alpha: 0,
+            scaleX: 0.5,
+            scaleY: 0.5,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => {
+                dragon.destroy();
+            }
+        });
+        
+        // Farewell sparkles
+        const x = dragon.x;
+        const y = dragon.y;
+        
+        for (let i = 0; i < 8; i++) {
+            this.scene.time.delayedCall(i * 50, () => {
+                const sparkle = this.scene.add.star(
+                    x + (Math.random() - 0.5) * 40,
+                    y - (i * 10) + (Math.random() - 0.5) * 20,
+                    5, 3, 6,
+                    0xffd700,
+                    0.8
+                );
+                sparkle.setDepth(85);
+                
+                this.scene.tweens.add({
+                    targets: sparkle,
+                    y: sparkle.y - 30,
+                    alpha: 0,
+                    rotation: Math.PI,
+                    duration: 400,
+                    onComplete: () => sparkle.destroy()
+                });
+            });
+        }
+        
+        // Remove from allies list
+        const index = this.dragonAllies.indexOf(allyData);
+        if (index > -1) {
+            this.dragonAllies.splice(index, 1);
+        }
+    }
+    
+    createPresentShootEffect() {
+        // Create a festive shoot effect
+        const x = this.sprite.x + (this.facingRight ? 20 : -20);
+        const y = this.sprite.y;
+        
+        // Confetti burst
+        const confettiColors = [0xff0000, 0x00ff00, 0xffd700, 0xff69b4, 0x00ffff];
+        for (let i = 0; i < 8; i++) {
+            const confetti = this.scene.add.rectangle(
+                x,
+                y,
+                4 + Math.random() * 4,
+                4 + Math.random() * 4,
+                confettiColors[Math.floor(Math.random() * confettiColors.length)],
+                0.9
+            );
+            confetti.setDepth(90);
+            confetti.setRotation(Math.random() * Math.PI * 2);
+            
+            const angle = (Math.random() - 0.5) * Math.PI;
+            const distance = 20 + Math.random() * 20;
+            
+            this.scene.tweens.add({
+                targets: confetti,
+                x: x + Math.cos(angle) * distance * (this.facingRight ? 1 : -1),
+                y: y + Math.sin(angle) * distance,
+                rotation: confetti.rotation + Math.PI * 2,
+                alpha: 0,
+                duration: 400,
+                ease: 'Power1',
+                onComplete: () => confetti.destroy()
+            });
+        }
+        
+        // Launch poof effect
+        const poof = this.scene.add.circle(x, y, 15, 0xffffff, 0.6);
+        poof.setDepth(89);
+        
+        this.scene.tweens.add({
+            targets: poof,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => poof.destroy()
         });
     }
 

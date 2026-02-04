@@ -609,9 +609,9 @@ class CraftScene extends Phaser.Scene {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         
-        // Calculate responsive overlay height - need 8 costumes now (including banana!)
+        // Calculate responsive overlay height - need 9 costumes now (including banana and present!)
         const screenHeight = this.cameras.main.height;
-        const overlayHeight = Math.min(screenHeight - 20, 560); // Fit 8 costumes (560px max)
+        const overlayHeight = Math.min(screenHeight - 20, 520); // Fit 9 costumes (520px max)
         
         // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
@@ -638,15 +638,16 @@ class CraftScene extends Phaser.Scene {
             }
         ).setOrigin(0.5).setDepth(151);
         
-        // Available dragon costumes (banana is early unlock after Level 1 like fire)
-        const dragonCostumes = ['default', 'fire', 'banana', 'ice', 'lightning', 'shadow', 'earth', 'legendary'];
+        // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
+        const dragonCostumes = ['default', 'fire', 'banana', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
         console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
+        console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
         
         const outfitElements = [overlay, title];
         
-        // Compact spacing to fit all 8 costumes
-        const itemSpacing = 45; // 8 items * 45px = 360px total
+        // Compact spacing to fit all 9 costumes
+        const itemSpacing = 40; // 9 items * 40px = 360px total
         const startY = this.cameras.main.centerY - (overlayHeight / 2) + 60;
         
         dragonCostumes.forEach((costumeKey, index) => {

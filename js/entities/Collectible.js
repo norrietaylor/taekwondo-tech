@@ -102,7 +102,8 @@ class Collectible {
             'ultraBlast': 0x00ffff,
             'flyMode': 0x98fb98,
             'invincibility': 0xffd700,
-            'speedBoost': 0xff69b4
+            'speedBoost': 0xff69b4,
+            'presentBomb': 0xff0000  // Red for wrapped present theme
         };
         
         const color = powerUpColors[this.rarity] || powerUpColors.fireBreath;
