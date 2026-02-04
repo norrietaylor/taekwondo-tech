@@ -223,6 +223,37 @@ class TaekwondoRobotBuilder {
                 festiveAura: true, // Has sparkly aura
                 allyDuration: 8000, // Dragon ally lasts 8 seconds
                 allyDamage: 25 // Dragon ally fireball damage
+            },
+            'stone': {
+                name: 'Stone Dragon',
+                icon: '🪨🐉',
+                primaryColor: 0x696969, // Dim gray (stone color)
+                secondaryColor: 0x808080, // Gray
+                beltColor: 0x2f4f4f, // Dark slate gray
+                description: 'Ancient stone power! Press T+S for laser-to-boulder blast!',
+                unlockCondition: 'Complete Level 1',
+                effectColor: 0x778899, // Light slate gray particles
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x708090, // Slate gray wings
+                wingStyle: 'stone', // Rocky wing style
+                wingTipColor: 0x2f4f4f, // Dark tips
+                // Stone Dragon Projectile - Stone shards (normal attack)
+                projectileEnabled: true,
+                projectileType: 'stone',
+                projectileColor: 0x696969,
+                projectileSecondaryColor: 0x808080,
+                projectileDamage: 22,
+                projectileSpeed: 450,
+                projectileSize: 20,
+                projectileEffect: 'shatter', // Breaks into smaller rocks on hit
+                // Special Stone Dragon traits
+                isStoneDragon: true,
+                stoneBlastEnabled: true, // T+S special move
+                stoneBlastCooldown: 3000, // 3 second cooldown
+                laserDamage: 15, // Initial laser damage
+                boulderDamage: 50, // Explosion damage
+                boulderRadius: 80 // Explosion radius
             }
         };
 
@@ -489,6 +520,14 @@ class TaekwondoRobotBuilder {
             if (this.unlockOutfit('banana')) {
                 newUnlocks.push('banana');
                 console.log('🍌🐉 BANANA DRAGON UNLOCKED! Time to throw some bananas!');
+            }
+        }
+        
+        // Stone Dragon - Complete Level 1
+        if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('stone')) {
+            if (this.unlockOutfit('stone')) {
+                newUnlocks.push('stone');
+                console.log('🪨🐉 STONE DRAGON UNLOCKED! Press T+S for laser-to-boulder blast!');
             }
         }
         

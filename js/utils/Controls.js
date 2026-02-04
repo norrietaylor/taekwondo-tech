@@ -407,6 +407,11 @@ class Controls {
         return this.keys['KeyT'];
     }
 
+    isStoneBlast() {
+        // Stone Dragon special move - T and S pressed together
+        return this.keys['KeyT'] && this.keys['KeyS'];
+    }
+
     // For one-time key presses (not held)
     wasJustPressed(keyMethod) {
         if (!this.lastFrameState) this.lastFrameState = {};

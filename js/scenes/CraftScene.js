@@ -609,9 +609,9 @@ class CraftScene extends Phaser.Scene {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         
-        // Calculate responsive overlay height - need 9 costumes now (including banana and present!)
+        // Calculate responsive overlay height - need 10 costumes now (including stone dragon!)
         const screenHeight = this.cameras.main.height;
-        const overlayHeight = Math.min(screenHeight - 20, 520); // Fit 9 costumes (520px max)
+        const overlayHeight = Math.min(screenHeight - 10, 576); // Fit 10 costumes (full height)
         
         // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
@@ -639,16 +639,16 @@ class CraftScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(151);
         
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'fire', 'banana', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
         console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
         console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
         
         const outfitElements = [overlay, title];
         
-        // Compact spacing to fit all 9 costumes
-        const itemSpacing = 40; // 9 items * 40px = 360px total
-        const startY = this.cameras.main.centerY - (overlayHeight / 2) + 60;
+        // Compact spacing to fit all 10 costumes
+        const itemSpacing = 48; // 10 items * 48px = 480px total
+        const startY = this.cameras.main.centerY - (overlayHeight / 2) + 55;
         
         dragonCostumes.forEach((costumeKey, index) => {
             const costume = window.gameInstance.getDragonCostume(costumeKey);
@@ -662,8 +662,8 @@ class CraftScene extends Phaser.Scene {
             const previewBg = this.add.rectangle(
                 this.cameras.main.centerX - 250,
                 y,
-                50,
-                50,
+                44,
+                40,
                 isUnlocked ? costume.primaryColor : 0x333333,
                 isUnlocked ? 1 : 0.3
             ).setDepth(151);
@@ -672,21 +672,21 @@ class CraftScene extends Phaser.Scene {
             
             // Secondary color accent
             const accentRect = this.add.rectangle(
-                this.cameras.main.centerX - 243,
+                this.cameras.main.centerX - 241,
                 y,
-                16,
-                50,
+                14,
+                40,
                 isUnlocked ? costume.secondaryColor : 0x222222,
                 isUnlocked ? 0.8 : 0.3
             ).setDepth(152);
             
             // Dragon icon
             const icon = this.add.text(
-                this.cameras.main.centerX - 250,
-                y - 18,
+                this.cameras.main.centerX - 253,
+                y,
                 costume.icon,
                 {
-                    fontSize: '18px'
+                    fontSize: '16px'
                 }
             ).setOrigin(0.5).setDepth(153).setAlpha(isUnlocked ? 1 : 0.3);
             
@@ -694,13 +694,13 @@ class CraftScene extends Phaser.Scene {
             if (isNewlyUnlocked) {
                 const newBadge = this.add.text(
                     this.cameras.main.centerX - 220,
-                    y - 35,
+                    y - 20,
                     'NEW!',
                     {
-                        fontSize: '14px',
+                        fontSize: '10px',
                         fill: '#ffff00',
                         backgroundColor: '#ff0000',
-                        padding: { x: 5, y: 2 },
+                        padding: { x: 4, y: 1 },
                         fontWeight: 'bold'
                     }
                 ).setOrigin(0.5).setDepth(154);
@@ -708,7 +708,7 @@ class CraftScene extends Phaser.Scene {
                 // Pulse animation for NEW badge
                 this.tweens.add({
                     targets: newBadge,
-                    scale: 1.2,
+                    scale: 1.15,
                     duration: 500,
                     yoyo: true,
                     repeat: -1
@@ -719,23 +719,23 @@ class CraftScene extends Phaser.Scene {
             
             // Dragon costume name
             const nameText = this.add.text(
-                this.cameras.main.centerX - 170,
-                y - 16,
+                this.cameras.main.centerX - 215,
+                y - 12,
                 costume.name,
                 {
-                    fontSize: '17px',
+                    fontSize: '14px',
                     fill: isUnlocked ? '#ffffff' : '#666666',
                     fontWeight: 'bold'
                 }
             ).setOrigin(0, 0.5).setDepth(151);
             
-            // Description
+            // Description (truncate if too long)
             const descText = this.add.text(
-                this.cameras.main.centerX - 170,
+                this.cameras.main.centerX - 215,
                 y + 2,
-                costume.description,
+                costume.description.length > 45 ? costume.description.substring(0, 42) + '...' : costume.description,
                 {
-                    fontSize: '11px',
+                    fontSize: '10px',
                     fill: isUnlocked ? '#aaaaaa' : '#444444',
                     fontStyle: 'italic'
                 }
@@ -743,11 +743,11 @@ class CraftScene extends Phaser.Scene {
             
             // Unlock condition / progress
             const conditionText = this.add.text(
-                this.cameras.main.centerX - 170,
-                y + 16,
+                this.cameras.main.centerX - 215,
+                y + 15,
                 this.getUnlockProgressText(costumeKey),
                 {
-                    fontSize: '10px',
+                    fontSize: '9px',
                     fill: isUnlocked ? '#00ff00' : '#ff8800'
                 }
             ).setOrigin(0, 0.5).setDepth(151);
@@ -756,38 +756,38 @@ class CraftScene extends Phaser.Scene {
             let button;
             if (!isUnlocked) {
                 button = this.add.text(
-                    this.cameras.main.centerX + 220,
+                    this.cameras.main.centerX + 260,
                     y,
                     '🔒 LOCKED',
                     {
-                        fontSize: '16px',
+                        fontSize: '11px',
                         fill: '#666666',
                         backgroundColor: '#333333',
-                        padding: { x: 12, y: 8 }
+                        padding: { x: 8, y: 6 }
                     }
                 ).setOrigin(0.5).setDepth(155);
             } else if (isCurrent) {
                 button = this.add.text(
-                    this.cameras.main.centerX + 220,
+                    this.cameras.main.centerX + 260,
                     y,
                     '✓ EQUIPPED',
                     {
-                        fontSize: '16px',
+                        fontSize: '11px',
                         fill: '#ffffff',
                         backgroundColor: '#4a9eff',
-                        padding: { x: 12, y: 8 }
+                        padding: { x: 8, y: 6 }
                     }
                 ).setOrigin(0.5).setDepth(155);
             } else {
                 button = this.add.text(
-                    this.cameras.main.centerX + 220,
+                    this.cameras.main.centerX + 260,
                     y,
                     'EQUIP',
                     {
-                        fontSize: '16px',
+                        fontSize: '11px',
                         fill: '#ffffff',
                         backgroundColor: '#00aa00',
-                        padding: { x: 12, y: 8 }
+                        padding: { x: 12, y: 6 }
                     }
                 ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(155);
                 
@@ -911,6 +911,9 @@ class CraftScene extends Phaser.Scene {
             case 'banana':
                 // Unlock after completing level 1 (same as fire!)
                 return gameData.currentLevel >= 2;
+            case 'stone':
+                // Unlock after completing level 1 (same as fire!)
+                return gameData.currentLevel >= 2;
             case 'ice':
                 // Unlock after collecting 5 robot parts
                 return window.gameInstance.getTotalPartsCollected() >= 5;
@@ -946,6 +949,8 @@ class CraftScene extends Phaser.Scene {
             case 'fire':
                 return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
             case 'banana':
+                return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
+            case 'stone':
                 return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
             case 'ice':
                 const parts = window.gameInstance.getTotalPartsCollected();
