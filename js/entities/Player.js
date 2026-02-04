@@ -154,6 +154,11 @@ class Player {
         this.teleportDistance = 200; // Pixels to teleport
         this.teleportCooldownTime = 1500; // 1.5 seconds between teleports
         
+        // Stone Dragon special move (T+S laser-to-boulder blast)
+        this.stoneBlastCooldown = 0;
+        this.stoneBlastCooldownTime = 3000; // 3 seconds between blasts
+        this.stoneLasers = []; // Track active stone lasers
+        
         // Visual effects
         this.attackEffect = null;
         this.footstepTimer = 0;
@@ -552,6 +557,11 @@ class Player {
         if (this.teleportCooldown > 0) {
             this.teleportCooldown -= delta;
         }
+        
+        // Update stone blast cooldown
+        if (this.stoneBlastCooldown > 0) {
+            this.stoneBlastCooldown -= delta;
+        }
     }
 
     handleMovement() {
@@ -682,6 +692,422 @@ class Player {
             if (this.controls.isKick() && !this.previousInputs.kick) {
                 this.shootPresentBomb();
             }
+        }
+        
+        // Stone Dragon special move (T+S for laser-to-boulder blast)
+        this.handleStoneBlast();
+    }
+
+    handleStoneBlast() {
+        // Safety check for controls
+        if (!this.controls) {
+            return;
+        }
+        
+        // Check if player is wearing Stone Dragon costume
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'stone') {
+            return; // Only Stone Dragon can use this move
+        }
+        
+        // Check for T+S key combo (edge detection - only on press)
+        if (this.controls.isStoneBlast() && !this.previousInputs.stoneBlast) {
+            this.performStoneBlast();
+        }
+    }
+
+    performStoneBlast() {
+        // Check cooldown
+        if (this.stoneBlastCooldown > 0) {
+            console.log('🪨 Stone Blast on cooldown!', Math.ceil(this.stoneBlastCooldown / 1000), 's remaining');
+            return;
+        }
+        
+        console.log('🪨💥 STONE DRAGON LASER-TO-BOULDER BLAST!');
+        
+        // Set cooldown
+        this.stoneBlastCooldown = this.stoneBlastCooldownTime;
+        
+        // Calculate starting position
+        const startX = this.sprite.x + (this.facingRight ? 30 : -30);
+        const startY = this.sprite.y - 5;
+        const direction = this.facingRight ? 1 : -1;
+        
+        // Phase 1: Create stone laser beam
+        this.createStoneLaserBeam(startX, startY, direction);
+        
+        // Play visual feedback
+        this.createStoneBlastChargeEffect(startX, startY);
+        
+        // Screen shake for dramatic effect
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(200, 0.015);
+        }
+    }
+
+    createStoneLaserBeam(startX, startY, direction) {
+        const costume = this.getDragonCostume();
+        const laserSpeed = 600;
+        const laserDistance = 400; // How far laser travels before becoming boulder
+        
+        // Create the laser beam (elongated stone energy)
+        const laserWidth = 80;
+        const laserHeight = 12;
+        
+        const laser = this.scene.add.rectangle(
+            startX, 
+            startY, 
+            laserWidth, 
+            laserHeight, 
+            0x696969, // Stone gray
+            0.9
+        );
+        laser.setStrokeStyle(2, 0x2f4f4f);
+        laser.setDepth(100);
+        
+        // Add glow effect
+        const glow = this.scene.add.rectangle(
+            startX, 
+            startY, 
+            laserWidth + 10, 
+            laserHeight + 8, 
+            0x808080, 
+            0.4
+        );
+        glow.setDepth(99);
+        
+        // Add physics
+        this.scene.physics.add.existing(laser);
+        laser.body.setVelocityX(laserSpeed * direction);
+        laser.body.setAllowGravity(false);
+        
+        this.scene.physics.add.existing(glow);
+        glow.body.setVelocityX(laserSpeed * direction);
+        glow.body.setAllowGravity(false);
+        
+        // Track laser position
+        const laserData = {
+            sprite: laser,
+            glow: glow,
+            startX: startX,
+            direction: direction,
+            hasTransformed: false
+        };
+        
+        this.stoneLasers.push(laserData);
+        
+        // Create trailing particles
+        this.createStoneLaserTrail(laser, direction);
+        
+        // Set up collision with enemies for initial laser damage
+        if (this.scene.enemies) {
+            const laserOverlap = this.scene.physics.add.overlap(
+                laser,
+                this.scene.enemies,
+                (laserSprite, enemySprite) => {
+                    const enemy = enemySprite.getData('enemy');
+                    if (enemy && enemy.health > 0) {
+                        enemy.takeDamage(costume.laserDamage || 15, 'stoneLaser');
+                        this.createStoneLaserHitEffect(laserSprite.x, laserSprite.y);
+                    }
+                }
+            );
+        }
+        
+        // After traveling a distance, transform into boulder
+        this.scene.time.delayedCall(laserDistance / laserSpeed * 1000, () => {
+            if (!laserData.hasTransformed && laser.active) {
+                laserData.hasTransformed = true;
+                this.transformLaserToBoulder(laser, glow, direction);
+            }
+        });
+        
+        // Safety cleanup after max time
+        this.scene.time.delayedCall(3000, () => {
+            if (laser.active) laser.destroy();
+            if (glow.active) glow.destroy();
+        });
+    }
+
+    createStoneLaserTrail(laser, direction) {
+        // Create particle trail effect
+        const trailInterval = this.scene.time.addEvent({
+            delay: 50,
+            repeat: 15,
+            callback: () => {
+                if (!laser.active) {
+                    trailInterval.remove();
+                    return;
+                }
+                
+                const colors = [0x696969, 0x808080, 0x778899, 0x2f4f4f];
+                const particle = this.scene.add.circle(
+                    laser.x - (direction * 20) + (Math.random() - 0.5) * 10,
+                    laser.y + (Math.random() - 0.5) * 8,
+                    3 + Math.random() * 4,
+                    colors[Math.floor(Math.random() * colors.length)],
+                    0.7
+                );
+                particle.setDepth(98);
+                
+                this.scene.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    scale: 0.3,
+                    duration: 300,
+                    onComplete: () => particle.destroy()
+                });
+            }
+        });
+    }
+
+    transformLaserToBoulder(laser, glow, direction) {
+        const x = laser.x;
+        const y = laser.y;
+        const costume = this.getDragonCostume();
+        
+        console.log('🪨➡️💥 Laser transforming into BOULDER at', x, y);
+        
+        // Destroy the laser
+        laser.destroy();
+        glow.destroy();
+        
+        // Create transformation flash
+        const flash = this.scene.add.circle(x, y, 30, 0xffffff, 0.8);
+        flash.setDepth(101);
+        this.scene.tweens.add({
+            targets: flash,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => flash.destroy()
+        });
+        
+        // Create the boulder
+        const boulderSize = 40;
+        const boulder = this.scene.add.polygon(x, y, [
+            -boulderSize * 0.5, -boulderSize * 0.6,
+            boulderSize * 0.4, -boulderSize * 0.7,
+            boulderSize * 0.7, -boulderSize * 0.1,
+            boulderSize * 0.5, boulderSize * 0.6,
+            -boulderSize * 0.3, boulderSize * 0.7,
+            -boulderSize * 0.7, boulderSize * 0.2
+        ], 0x696969, 0.95);
+        boulder.setStrokeStyle(4, 0x2f4f4f);
+        boulder.setDepth(100);
+        
+        // Add physics
+        this.scene.physics.add.existing(boulder);
+        boulder.body.setVelocityX(200 * direction); // Slower than laser
+        boulder.body.setVelocityY(50); // Slight drop
+        boulder.body.setAllowGravity(true);
+        boulder.body.setGravityY(-600); // Reduced gravity for floaty boulder
+        
+        // Add rolling rotation
+        this.scene.tweens.add({
+            targets: boulder,
+            rotation: direction * Math.PI * 3,
+            duration: 1500
+        });
+        
+        // Boulder explodes after a short time or on platform collision
+        const explodeBoulder = () => {
+            if (boulder.active) {
+                this.createBoulderExplosion(boulder.x, boulder.y, costume);
+                boulder.destroy();
+            }
+        };
+        
+        // Platform collision
+        if (this.scene.platforms) {
+            this.scene.physics.add.collider(boulder, this.scene.platforms, () => {
+                explodeBoulder();
+            });
+        }
+        
+        // Explode after 1.5 seconds if no collision
+        this.scene.time.delayedCall(1500, explodeBoulder);
+        
+        // Enemy collision during flight
+        if (this.scene.enemies) {
+            this.scene.physics.add.overlap(boulder, this.scene.enemies, (boulderSprite, enemySprite) => {
+                const enemy = enemySprite.getData('enemy');
+                if (enemy && enemy.health > 0) {
+                    // Direct hit deals partial damage
+                    enemy.takeDamage(25, 'boulder');
+                }
+            });
+        }
+    }
+
+    createBoulderExplosion(x, y, costume) {
+        console.log('💥🪨 BOULDER EXPLOSION at', x, y);
+        
+        const explosionRadius = costume?.boulderRadius || 80;
+        const explosionDamage = costume?.boulderDamage || 50;
+        
+        // Create explosion circle
+        const explosion = this.scene.add.circle(x, y, 10, 0xff4500, 0.9);
+        explosion.setDepth(110);
+        
+        this.scene.tweens.add({
+            targets: explosion,
+            scaleX: explosionRadius / 10,
+            scaleY: explosionRadius / 10,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => explosion.destroy()
+        });
+        
+        // Create rock debris
+        for (let i = 0; i < 16; i++) {
+            const angle = (Math.PI * 2 * i) / 16;
+            const distance = 30 + Math.random() * (explosionRadius - 30);
+            const colors = [0x696969, 0x808080, 0x654321, 0x2f4f4f];
+            
+            const debris = this.scene.add.polygon(
+                x + Math.cos(angle) * 10,
+                y + Math.sin(angle) * 10,
+                [
+                    -5, -6,
+                    4, -5,
+                    6, 2,
+                    -2, 7,
+                    -6, 1
+                ],
+                colors[Math.floor(Math.random() * colors.length)],
+                0.9
+            );
+            debris.setRotation(Math.random() * Math.PI * 2);
+            debris.setDepth(105);
+            
+            this.scene.tweens.add({
+                targets: debris,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance - 20,
+                rotation: debris.rotation + Math.PI * 2,
+                alpha: 0,
+                duration: 500 + Math.random() * 300,
+                ease: 'Power2',
+                onComplete: () => debris.destroy()
+            });
+        }
+        
+        // Create dust cloud
+        for (let i = 0; i < 8; i++) {
+            const dustX = x + (Math.random() - 0.5) * 60;
+            const dustY = y + (Math.random() - 0.5) * 40;
+            const dust = this.scene.add.circle(dustX, dustY, 15 + Math.random() * 15, 0xa0522d, 0.5);
+            dust.setDepth(104);
+            
+            this.scene.tweens.add({
+                targets: dust,
+                scaleX: 2.5,
+                scaleY: 2.5,
+                alpha: 0,
+                y: dustY - 30,
+                duration: 600 + Math.random() * 200,
+                onComplete: () => dust.destroy()
+            });
+        }
+        
+        // Damage enemies in radius
+        if (this.scene.enemies) {
+            this.scene.enemies.children.entries.forEach(enemySprite => {
+                const enemy = enemySprite.getData('enemy');
+                if (enemy && enemy.health > 0) {
+                    const distance = Phaser.Math.Distance.Between(x, y, enemySprite.x, enemySprite.y);
+                    if (distance <= explosionRadius) {
+                        // Damage falls off with distance
+                        const damageFactor = 1 - (distance / explosionRadius) * 0.5;
+                        const damage = Math.floor(explosionDamage * damageFactor);
+                        enemy.takeDamage(damage, 'boulderExplosion');
+                        
+                        // Knockback effect
+                        const knockbackAngle = Math.atan2(enemySprite.y - y, enemySprite.x - x);
+                        const knockbackForce = 300 * (1 - distance / explosionRadius);
+                        if (enemySprite.body) {
+                            enemySprite.body.setVelocity(
+                                Math.cos(knockbackAngle) * knockbackForce,
+                                Math.sin(knockbackAngle) * knockbackForce - 100
+                            );
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Major screen shake
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.03);
+        }
+    }
+
+    createStoneBlastChargeEffect(x, y) {
+        // Create charging particles converging on player
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const startRadius = 50;
+            const colors = [0x696969, 0x808080, 0x778899];
+            
+            const particle = this.scene.add.circle(
+                x + Math.cos(angle) * startRadius,
+                y + Math.sin(angle) * startRadius,
+                5,
+                colors[Math.floor(Math.random() * colors.length)],
+                0.8
+            );
+            particle.setDepth(102);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x,
+                y: y,
+                alpha: 0,
+                scale: 0.5,
+                duration: 200,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Flash around player
+        const chargeFlash = this.scene.add.circle(x, y, 25, 0x808080, 0.6);
+        chargeFlash.setDepth(101);
+        
+        this.scene.tweens.add({
+            targets: chargeFlash,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => chargeFlash.destroy()
+        });
+    }
+
+    createStoneLaserHitEffect(x, y) {
+        // Sparks when laser hits enemy
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const particle = this.scene.add.circle(
+                x,
+                y,
+                3,
+                0x778899,
+                0.9
+            );
+            particle.setDepth(105);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 25,
+                y: y + Math.sin(angle) * 25,
+                alpha: 0,
+                duration: 200,
+                onComplete: () => particle.destroy()
+            });
         }
     }
 
@@ -1213,6 +1639,9 @@ class Player {
             case 'banana':
                 projectile = this.createBananaProjectile(startX, startY, costume);
                 break;
+            case 'stone':
+                projectile = this.createStoneProjectile(startX, startY, costume);
+                break;
             case 'present':
                 // Present Dragon uses the present bomb attack directly
                 this.shootPresentBomb();
@@ -1573,6 +2002,83 @@ class Player {
                 });
             },
             repeat: 15 // Trail for about 1.2 seconds
+        });
+    }
+
+    createStoneProjectile(x, y, costume) {
+        // 🪨 STONE PROJECTILE - jagged rock shard that shatters on impact!
+        const size = costume.projectileSize;
+        
+        // Create a rocky polygon shape
+        const projectile = this.scene.add.polygon(x, y, [
+            -size * 0.4, -size * 0.6,
+            size * 0.2, -size * 0.7,
+            size * 0.6, -size * 0.2,
+            size * 0.5, size * 0.4,
+            0, size * 0.6,
+            -size * 0.5, size * 0.3,
+            -size * 0.6, -size * 0.1
+        ], costume.projectileColor, 0.95);
+        projectile.setStrokeStyle(2, costume.projectileSecondaryColor);
+        
+        // Add slight rotation for visual interest
+        projectile.setRotation(this.facingRight ? -0.2 : 0.2);
+        
+        // Add spinning animation
+        this.scene.tweens.add({
+            targets: projectile,
+            rotation: this.facingRight ? Math.PI * 3 : -Math.PI * 3,
+            duration: 1200,
+            ease: 'Linear'
+        });
+        
+        // Add stone trail particles
+        this.createStoneTrail(projectile);
+        
+        console.log('🪨 Stone projectile created!');
+        
+        return projectile;
+    }
+    
+    createStoneTrail(stoneProjectile) {
+        // Create rocky debris trail behind the stone
+        const trailTimer = this.scene.time.addEvent({
+            delay: 60,
+            callback: () => {
+                if (!stoneProjectile || !stoneProjectile.active) {
+                    trailTimer.destroy();
+                    return;
+                }
+                
+                // Small rock particles
+                const colors = [0x696969, 0x808080, 0x778899, 0x2f4f4f];
+                const particle = this.scene.add.polygon(
+                    stoneProjectile.x + (Math.random() - 0.5) * 10,
+                    stoneProjectile.y + (Math.random() - 0.5) * 10,
+                    [
+                        -3, -4,
+                        2, -3,
+                        4, 1,
+                        0, 4,
+                        -3, 2
+                    ],
+                    colors[Math.floor(Math.random() * colors.length)],
+                    0.7
+                );
+                particle.setRotation(Math.random() * Math.PI * 2);
+                particle.setDepth(95);
+                
+                this.scene.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    scaleX: 0.3,
+                    scaleY: 0.3,
+                    y: particle.y + 15,
+                    duration: 350,
+                    onComplete: () => particle.destroy()
+                });
+            },
+            repeat: 12 // Trail for about 0.7 seconds
         });
     }
 
@@ -2539,6 +3045,7 @@ class Player {
         this.previousInputs.punch = this.controls.isPunch();
         this.previousInputs.activate = this.controls.isActivate();
         this.previousInputs.teleport = this.controls.isTeleport();
+        this.previousInputs.stoneBlast = this.controls.isStoneBlast();
     }
 
     // Power-up queue methods
