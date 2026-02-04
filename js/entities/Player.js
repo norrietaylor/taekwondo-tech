@@ -862,6 +862,183 @@ class Player {
         });
     }
 
+    handleTeleport() {
+        // Safety check for controls
+        if (!this.controls) {
+            return;
+        }
+        
+        // Check if player is wearing Earth Dragon costume
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'earth') {
+            return; // Only Earth Dragon can teleport
+        }
+        
+        // Check for teleport key press (edge detection - only on press, not hold)
+        if (this.controls.isTeleport() && !this.previousInputs.teleport) {
+            this.performTeleport();
+        }
+    }
+
+    performTeleport() {
+        // Check cooldown
+        if (this.teleportCooldown > 0) {
+            console.log('🌍 Teleport on cooldown!');
+            return;
+        }
+        
+        // Set cooldown
+        this.teleportCooldown = this.teleportCooldownTime;
+        
+        // Calculate teleport destination
+        const startX = this.sprite.x;
+        const startY = this.sprite.y;
+        const direction = this.facingRight ? 1 : -1;
+        let targetX = startX + (this.teleportDistance * direction);
+        
+        // Clamp to world bounds
+        const worldWidth = this.scene.levelWidth || 3000;
+        targetX = Math.max(40, Math.min(worldWidth - 40, targetX));
+        
+        // Create disappear effect at start position
+        this.createTeleportDisappearEffect(startX, startY);
+        
+        // Teleport the player
+        this.sprite.x = targetX;
+        
+        // Reset velocity on teleport for clean landing
+        this.body.setVelocityX(0);
+        
+        // Create appear effect at destination
+        this.createTeleportAppearEffect(targetX, startY);
+        
+        console.log(`🌍 Earth Dragon teleported from ${startX} to ${targetX}!`);
+    }
+
+    createTeleportDisappearEffect(x, y) {
+        const costume = this.getDragonCostume();
+        
+        // Create earth/rock particles bursting outward
+        for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 * i) / 12;
+            const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
+            const particle = this.scene.add.circle(
+                x + Math.cos(angle) * 10,
+                y + Math.sin(angle) * 10,
+                6 + Math.random() * 4,
+                colors[Math.floor(Math.random() * colors.length)],
+                0.9
+            );
+            particle.setDepth(100);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 60,
+                y: y + Math.sin(angle) * 60,
+                alpha: 0,
+                scale: 0,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Create dust cloud at origin
+        const dustCloud = this.scene.add.circle(x, y, 30, 0xa0522d, 0.6);
+        dustCloud.setDepth(99);
+        
+        this.scene.tweens.add({
+            targets: dustCloud,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => dustCloud.destroy()
+        });
+        
+        // Screen shake for dramatic effect
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(100, 0.01);
+        }
+    }
+
+    createTeleportAppearEffect(x, y) {
+        const costume = this.getDragonCostume();
+        
+        // Create earth/rock particles converging inward
+        for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 * i) / 12;
+            const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
+            const startRadius = 60;
+            const particle = this.scene.add.circle(
+                x + Math.cos(angle) * startRadius,
+                y + Math.sin(angle) * startRadius,
+                6 + Math.random() * 4,
+                colors[Math.floor(Math.random() * colors.length)],
+                0.9
+            );
+            particle.setDepth(100);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x,
+                y: y,
+                alpha: 0,
+                scale: 0.5,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Create ground burst effect
+        const groundBurst = this.scene.add.circle(x, y + 30, 10, 0x654321, 0.8);
+        groundBurst.setDepth(98);
+        
+        this.scene.tweens.add({
+            targets: groundBurst,
+            scaleX: 4,
+            scaleY: 1,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => groundBurst.destroy()
+        });
+        
+        // Create rising dust particles
+        for (let i = 0; i < 6; i++) {
+            const dust = this.scene.add.circle(
+                x + (Math.random() - 0.5) * 40,
+                y + 20,
+                4 + Math.random() * 4,
+                0xa0522d,
+                0.6
+            );
+            dust.setDepth(97);
+            
+            this.scene.tweens.add({
+                targets: dust,
+                y: y - 40 - Math.random() * 30,
+                alpha: 0,
+                duration: 500 + Math.random() * 200,
+                delay: i * 30,
+                onComplete: () => dust.destroy()
+            });
+        }
+        
+        // Flash effect
+        const flash = this.scene.add.circle(x, y, 40, 0x228b22, 0.5);
+        flash.setDepth(101);
+        
+        this.scene.tweens.add({
+            targets: flash,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => flash.destroy()
+        });
+    }
+
     tryJump() {
         const canCoyoteJump = (Date.now() - this.lastGroundTime) < this.coyoteTime;
         

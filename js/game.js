@@ -623,6 +623,35 @@ class TaekwondoRobotBuilder {
         return roll < chance;
     }
 
+    // Check if banana bonus stage should be shown
+    shouldShowBananaBonus(completedLevel) {
+        // Banana bonus appears after levels 1, 2, and 3 (50% chance)
+        // Level 4 has 75% chance, making it progressively more likely
+        if (typeof BananaBonusScene === 'undefined') {
+            return false; // Scene not loaded
+        }
+        
+        // Check if banana mode is enabled in settings
+        if (this.gameData.settings.bananaBonusEnabled === false) {
+            return false;
+        }
+        
+        // Probability based on level
+        const probability = {
+            1: 0.4,  // 40% after level 1
+            2: 0.5,  // 50% after level 2
+            3: 0.6,  // 60% after level 3
+            4: 0.75  // 75% after level 4
+        };
+        
+        const chance = probability[completedLevel] || 0.5;
+        const roll = Math.random();
+        
+        console.log(`🍌 Banana bonus roll: ${roll.toFixed(2)} vs ${chance} (level ${completedLevel})`);
+        
+        return roll < chance;
+    }
+
     completeGame() {
         console.log('🎉 Game completed! Super robot built!');
         // Could show victory screen or credits
