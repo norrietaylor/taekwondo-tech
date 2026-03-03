@@ -26,6 +26,12 @@ class CraftScene extends Phaser.Scene {
     create() {
         console.log('CraftScene created');
         
+        // Check for new dragon costume unlocks when entering CraftScene
+        const newUnlocks = window.gameInstance.checkDragonUnlocks();
+        if (newUnlocks.length > 0) {
+            console.log('🐉 New costumes unlocked on CraftScene entry:', newUnlocks);
+        }
+        
         // Set up responsive layout now that cameras are available
         this.setupLayout();
         
@@ -609,9 +615,9 @@ class CraftScene extends Phaser.Scene {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         
-        // Calculate responsive overlay height - need 10 costumes now (including stone dragon!)
+        // Calculate responsive overlay height - need 11 costumes now (including Dino Grimlock!)
         const screenHeight = this.cameras.main.height;
-        const overlayHeight = Math.min(screenHeight - 10, 576); // Fit 10 costumes (full height)
+        const overlayHeight = Math.min(screenHeight - 10, 576); // Fit 11 costumes (full height)
         
         // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
@@ -639,10 +645,11 @@ class CraftScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(151);
         
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'grimlock', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
         console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
         console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
+        console.log('🦖🤖 Grimlock costume data:', window.gameInstance.getDragonCostume('grimlock'));
         
         const outfitElements = [overlay, title];
         
@@ -926,6 +933,9 @@ class CraftScene extends Phaser.Scene {
             case 'earth':
                 // Unlock after completing level 5
                 return gameData.currentLevel >= 6;
+            case 'grimlock':
+                // Unlock after completing level 2 (same as lightning)
+                return gameData.currentLevel >= 3;
             case 'legendary':
                 // Unlock after collecting all 5 robot part types
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
@@ -961,6 +971,8 @@ class CraftScene extends Phaser.Scene {
                 return `🔒 Complete Level 4 (Current: Level ${gameData.currentLevel})`;
             case 'earth':
                 return `🔒 Complete Level 5 (Current: Level ${gameData.currentLevel})`;
+            case 'grimlock':
+                return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
             case 'legendary':
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
                 const collectedTypes = partTypes.filter(type => 

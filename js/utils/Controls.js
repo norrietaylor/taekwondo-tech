@@ -412,6 +412,16 @@ class Controls {
         return this.keys['KeyT'] && this.keys['KeyS'];
     }
 
+    isGrimlockTransform() {
+        // Dino Grimlock transformation - Press 2 to transform between Robot and Dinosaur
+        return this.keys['Digit2'] || this.keys['Numpad2'];
+    }
+
+    isDuckLaser() {
+        // Dino Grimlock duck laser - Press L to fire duck-transforming laser
+        return this.keys['KeyL'];
+    }
+
     // For one-time key presses (not held)
     wasJustPressed(keyMethod) {
         if (!this.lastFrameState) this.lastFrameState = {};

@@ -58,6 +58,19 @@ Successfully implemented a comprehensive dragon costume system that replaces the
 - **Effect**: Earth-toned particles
 - **Projectile**: Boulders that create screen shake on hit
 
+### 7. **Dino Grimlock** 🦖🤖
+- **Colors**: Grey (#808080) / Red (#ff0000) / Yellow (#ffd700)
+- **Belt**: Yellow/Gold (#ffd700)
+- **Unlock**: Complete Level 2
+- **Description**: GRIMLOCK STRONGEST! Press 2 to transform! Breathes fire AND lightning!
+- **Effect**: Orange-red particles
+- **Projectile**: Combined Fire + Lightning breath (burns AND chains to enemies)
+- **Special Abilities**:
+  - **Transform (Press 2)**: Switch between Robot and Dinosaur forms
+    - Robot Form: Faster, more agile
+    - Dinosaur Form: Slower but 50% more damage, 30% larger
+  - **Duck Laser (Press L)**: Fires a laser that transforms bad titans into ducks for 8 seconds!
+
 ---
 
 ## 🔧 Technical Implementation
@@ -290,6 +303,7 @@ Each dragon costume now has unique projectile attacks:
 | **Lightning** ⚡ | Lightning Bolts | 22 | 700 | Chains to nearby enemies |
 | **Shadow** 🌙 | Smoke Clouds | 18 | 350 | Expands as it travels |
 | **Earth** 🌍 | Boulders | 25 | 400 | Creates screen shake |
+| **Dino Grimlock** 🦖🤖 | Fire+Lightning Breath | 28 | 600 | Burns AND chains to enemies |
 
 ### How to Use
 - When wearing any dragon costume (except Default Gi), Kick or Punch shoots the dragon's projectile
