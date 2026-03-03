@@ -348,6 +348,81 @@ class TaekwondoRobotBuilder {
                 dogDuration: 8000,
                 robotColors: { primary: 0xffd700, secondary: 0x000000, accent: 0x333333 },
                 carColors: { primary: 0xffcc00, secondary: 0x1a1a1a, accent: 0xffd700 }
+            },
+            'hotrod': {
+                name: 'Hot Rod',
+                icon: '🏎️🤖',
+                primaryColor: 0xe63946,
+                secondaryColor: 0xc0c0c0,
+                beltColor: 0x333333,
+                description: 'Hot Rod! Press 2 to transform! L = sonic laughter disables enemies!',
+                unlockCondition: 'Complete Level 2',
+                effectColor: 0xe63946,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xc0c0c0,
+                wingStyle: 'mechanical',
+                wingTipColor: 0xe63946,
+                projectileEnabled: true,
+                projectileType: 'fireball',
+                projectileColor: 0xe63946,
+                projectileSecondaryColor: 0xff6b6b,
+                projectileDamage: 20,
+                projectileSpeed: 520,
+                projectileSize: 18,
+                projectileEffect: 'burn',
+                isHotrodDragon: true,
+                canTransform: true,
+                transformKey: 'Digit2',
+                currentForm: 'robot',
+                robotSpeed: 210,
+                robotJump: 420,
+                robotDamage: 1.0,
+                carSpeed: 320,
+                carJump: 380,
+                carDamage: 0.9,
+                carSize: 1.05,
+                robotColors: { primary: 0xe63946, secondary: 0xc0c0c0, accent: 0x333333 },
+                carColors: { primary: 0xcc3333, secondary: 0x2d2d2d, accent: 0xe63946 },
+                laughterPowerEnabled: true,
+                laughterCooldown: 6000,
+                laughterStunDuration: 2500,
+                laughterRange: 280
+            },
+            'elita': {
+                name: 'Elita',
+                icon: '🏍️🤖',
+                primaryColor: 0xe91e8c,
+                secondaryColor: 0xffffff,
+                beltColor: 0x4a148c,
+                description: 'Elita! Press 2 to transform! Guns shoot dog bullets—no lasers!',
+                unlockCondition: 'Complete Level 4',
+                effectColor: 0xe91e8c,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xf8bbd9,
+                wingStyle: 'mechanical',
+                wingTipColor: 0xe91e8c,
+                projectileEnabled: true,
+                projectileType: 'elitaDogBullet',
+                projectileColor: 0x8d6e63,
+                projectileSecondaryColor: 0x5d4037,
+                projectileDamage: 24,
+                projectileSpeed: 640,
+                projectileSize: 14,
+                projectileEffect: 'dogBullet',
+                isElitaDragon: true,
+                canTransform: true,
+                transformKey: 'Digit2',
+                currentForm: 'robot',
+                robotSpeed: 205,
+                robotJump: 430,
+                robotDamage: 1.0,
+                bikeSpeed: 300,
+                bikeJump: 360,
+                bikeDamage: 0.95,
+                robotColors: { primary: 0xe91e8c, secondary: 0xffffff, accent: 0x4a148c },
+                bikeColors: { primary: 0xc2185b, secondary: 0x2d2d2d, accent: 0xe91e8c }
             }
         };
 
@@ -653,6 +728,22 @@ class TaekwondoRobotBuilder {
             if (this.unlockOutfit('bumblebee')) {
                 newUnlocks.push('bumblebee');
                 console.log('🐝🚗 BUMBLEBEE UNLOCKED! Press 2 to transform! L for dog laser!');
+            }
+        }
+        
+        // Hot Rod - Complete Level 2
+        if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('hotrod')) {
+            if (this.unlockOutfit('hotrod')) {
+                newUnlocks.push('hotrod');
+                console.log('🏎️🤖 HOT ROD UNLOCKED! Press 2 to transform between sports car and robot!');
+            }
+        }
+        
+        // Elita - Complete Level 4 (motorcycle transformer, guns = dog bullets)
+        if (this.gameData.currentLevel >= 5 && !this.gameData.outfits.unlocked.includes('elita')) {
+            if (this.unlockOutfit('elita')) {
+                newUnlocks.push('elita');
+                console.log('🏍️🤖 ELITA UNLOCKED! Press 2 to transform! Guns shoot dog bullets!');
             }
         }
         

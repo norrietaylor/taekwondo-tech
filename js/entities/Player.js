@@ -180,6 +180,22 @@ class Player {
         this.dogLaserCooldown = 0;
         this.dogLaserCooldownTime = 5000;
         this.doggedEnemies = [];
+        // Hot Rod transformation (sports car / robot) - unlocks after level 2
+        this.hotrodForm = 'robot';
+        this.hotrodVisuals = [];
+        this.hotrodCurrentForm = null;
+        this.hotrodLastFacingRight = null;
+        this.hotrodTransformCooldown = 0;
+        this.hotrodTransformCooldownTime = 1000;
+        this.hotrodLaughterCooldown = 0;
+        this.hotrodLaughterCooldownTime = 6000;
+        // Elita transformation (motorcycle / robot) - guns only, no lasers
+        this.elitaForm = 'robot';
+        this.elitaVisuals = [];
+        this.elitaCurrentForm = null;
+        this.elitaLastFacingRight = null;
+        this.elitaTransformCooldown = 0;
+        this.elitaTransformCooldownTime = 1000;
         
         // Visual effects
         this.attackEffect = null;
@@ -418,8 +434,8 @@ class Player {
         const costume = this.getDragonCostume();
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         
-        // Hide wings for Grimlock/Bumblebee (have their own visuals) or if costume doesn't have them
-        if (currentOutfit === 'grimlock' || currentOutfit === 'bumblebee' || !costume.hasWings) {
+        // Hide wings for Grimlock/Bumblebee/Hot Rod (have their own visuals) or if costume doesn't have them
+        if (currentOutfit === 'grimlock' || currentOutfit === 'bumblebee' || currentOutfit === 'hotrod' || currentOutfit === 'elita' || !costume.hasWings) {
             this.leftWing.setVisible(false);
             this.rightWing.setVisible(false);
             return;
@@ -548,6 +564,8 @@ class Player {
         // Update Grimlock visuals if in grimlock costume
         this.updateGrimlockVisualsIfNeeded();
         this.updateBumblebeeVisualsIfNeeded();
+        this.updateHotrodVisualsIfNeeded();
+        this.updateElitaVisualsIfNeeded();
         
         // Update grounded state
         this.updateGroundedState();
@@ -606,6 +624,15 @@ class Player {
         }
         if (this.bumblebeeTransformCooldown > 0) {
             this.bumblebeeTransformCooldown -= delta;
+        }
+        if (this.hotrodTransformCooldown > 0) {
+            this.hotrodTransformCooldown -= delta;
+        }
+        if (this.hotrodLaughterCooldown > 0) {
+            this.hotrodLaughterCooldown -= delta;
+        }
+        if (this.elitaTransformCooldown > 0) {
+            this.elitaTransformCooldown -= delta;
         }
         
         // Update ducked enemies (restore them after duration)
@@ -753,6 +780,11 @@ class Player {
         // Bumblebee special abilities
         this.handleBumblebeeTransform();
         this.handleDogLaser();
+        // Hot Rod special abilities (transform + L = sonic laughter)
+        this.handleHotrodTransform();
+        this.handleHotrodLaughter();
+        // Elita special abilities (no lasers, gun = dog bullets)
+        this.handleElitaTransform();
     }
 
     handleStoneBlast() {
@@ -2212,6 +2244,488 @@ class Player {
         }
     }
 
+    // ============================================
+    // HOT ROD TRANSFORMER (Sports Car / Robot) - Unlocks after Level 2
+    // ============================================
+
+    handleHotrodTransform() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'hotrod') return;
+        if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
+            this.performHotrodTransform();
+        }
+    }
+
+    performHotrodTransform() {
+        if (this.hotrodTransformCooldown > 0) return;
+        this.hotrodTransformCooldown = this.hotrodTransformCooldownTime;
+        const costume = this.getDragonCostume();
+        const wasRobot = this.hotrodForm === 'robot';
+        this.hotrodForm = wasRobot ? 'car' : 'robot';
+        this.createHotrodTransformEffect(wasRobot);
+        if (this.hotrodForm === 'car') {
+            this.speed = costume.carSpeed || 320;
+            this.jumpPower = costume.carJump || 380;
+            this.damageMultiplier = costume.carDamage || 0.9;
+        } else {
+            this.speed = costume.robotSpeed || 210;
+            this.jumpPower = costume.robotJump || 420;
+            this.damageMultiplier = costume.robotDamage || 1.0;
+        }
+        this.updateHotrodVisuals();
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.02);
+        }
+    }
+
+    handleHotrodLaughter() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'hotrod') return;
+        const costume = this.getDragonCostume();
+        if (!costume.laughterPowerEnabled) return;
+        if (this.controls.isDuckLaser() && !this.previousInputs.duckLaser) {
+            this.performHotrodLaughter();
+        }
+    }
+
+    performHotrodLaughter() {
+        if (this.hotrodLaughterCooldown > 0) return;
+        const costume = this.getDragonCostume();
+        this.hotrodLaughterCooldown = costume.laughterCooldown || this.hotrodLaughterCooldownTime;
+        const range = costume.laughterRange || 280;
+        const stunDuration = costume.laughterStunDuration || 2500;
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        if (this.scene.enemies) {
+            this.scene.enemies.getChildren().forEach(enemySprite => {
+                const enemy = enemySprite.getData ? enemySprite.getData('enemy') : null;
+                if (!enemy || enemy.health <= 0) return;
+                if (!enemy.sprite) return;
+                const dist = Phaser.Math.Distance.Between(px, py, enemy.sprite.x, enemy.sprite.y);
+                if (dist > range) return;
+                if (typeof enemy.applySonicStun === 'function') {
+                    enemy.applySonicStun(stunDuration);
+                } else if (typeof enemy.changeState === 'function') {
+                    enemy.pendingStunDuration = stunDuration;
+                    enemy.changeState('stunned');
+                }
+            });
+        }
+        this.createHotrodLaughterEffect();
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(400, 0.03);
+        }
+    }
+
+    createHotrodLaughterEffect() {
+        const x = this.sprite.x;
+        const y = this.sprite.y - 20;
+        for (let i = 0; i < 3; i++) {
+            const ring = this.scene.add.circle(x, y, 30 + i * 25, 0xffd700, 0);
+            ring.setStrokeStyle(3, 0xe63946);
+            ring.setDepth(100);
+            this.scene.tweens.add({
+                targets: ring,
+                scaleX: 2.5,
+                scaleY: 2.5,
+                alpha: 0.5,
+                duration: 200,
+                delay: i * 80,
+                yoyo: true,
+                hold: 100,
+                onComplete: () => ring.destroy()
+            });
+        }
+        const laughText = this.scene.add.text(x, y - 45, 'HA HA HA!',
+            { fontSize: '24px', fill: '#ffd700', stroke: '#e63946', strokeThickness: 4, fontWeight: 'bold' }
+        ).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: laughText,
+            y: y - 70,
+            alpha: 0,
+            duration: 1200,
+            onComplete: () => laughText.destroy()
+        });
+    }
+
+    updateHotrodVisuals() {
+        if (this.hotrodVisuals && this.hotrodVisuals.length > 0) {
+            this.hotrodVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+        }
+        this.hotrodVisuals = [];
+        if (this.hotrodForm === 'car') {
+            this.createHotrodCarVisuals();
+        } else {
+            this.createHotrodRobotVisuals();
+        }
+    }
+
+    createHotrodRobotVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const red = 0xe63946;
+        const silver = 0xc0c0c0;
+        const dark = 0x333333;
+        const chest = this.scene.add.rectangle(px, py, 24, 28, red);
+        chest.setStrokeStyle(2, dark);
+        chest.setDepth(51);
+        this.hotrodVisuals.push(chest);
+        this.hotrodChest = chest;
+        const head = this.scene.add.rectangle(px, py - 20, 18, 14, silver);
+        head.setStrokeStyle(2, dark);
+        head.setDepth(52);
+        this.hotrodVisuals.push(head);
+        this.hotrodHead = head;
+        const visor = this.scene.add.rectangle(px, py - 20, 14, 4, 0x1a1a1a);
+        visor.setDepth(53);
+        this.hotrodVisuals.push(visor);
+        this.hotrodVisor = visor;
+        const leftArm = this.scene.add.rectangle(px - 16, py - 2, 8, 18, red);
+        leftArm.setStrokeStyle(1, dark);
+        leftArm.setDepth(50);
+        this.hotrodVisuals.push(leftArm);
+        this.hotrodLeftArm = leftArm;
+        const rightArm = this.scene.add.rectangle(px + 16, py - 2, 8, 18, red);
+        rightArm.setStrokeStyle(1, dark);
+        rightArm.setDepth(50);
+        this.hotrodVisuals.push(rightArm);
+        this.hotrodRightArm = rightArm;
+        const leftLeg = this.scene.add.rectangle(px - 7, py + 20, 10, 14, silver);
+        leftLeg.setStrokeStyle(1, red);
+        leftLeg.setDepth(50);
+        this.hotrodVisuals.push(leftLeg);
+        this.hotrodLeftLeg = leftLeg;
+        const rightLeg = this.scene.add.rectangle(px + 7, py + 20, 10, 14, silver);
+        rightLeg.setStrokeStyle(1, red);
+        rightLeg.setDepth(50);
+        this.hotrodVisuals.push(rightLeg);
+        this.hotrodRightLeg = rightLeg;
+        const leftFoot = this.scene.add.rectangle(px - 7, py + 30, 12, 6, dark);
+        leftFoot.setStrokeStyle(1, red);
+        leftFoot.setDepth(50);
+        this.hotrodVisuals.push(leftFoot);
+        this.hotrodLeftFoot = leftFoot;
+        const rightFoot = this.scene.add.rectangle(px + 7, py + 30, 12, 6, dark);
+        rightFoot.setStrokeStyle(1, red);
+        rightFoot.setDepth(50);
+        this.hotrodVisuals.push(rightFoot);
+        this.hotrodRightFoot = rightFoot;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createHotrodCarVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        const red = 0xe63946;
+        const silver = 0xc0c0c0;
+        const dark = 0x2d2d2d;
+        const body = this.scene.add.ellipse(px, py, 52, 20, red);
+        body.setStrokeStyle(2, dark);
+        body.setDepth(51);
+        this.hotrodVisuals.push(body);
+        this.hotrodBody = body;
+        const hood = this.scene.add.ellipse(px + dir * 22, py - 4, 18, 12, 0xcc3333);
+        hood.setStrokeStyle(1, dark);
+        hood.setDepth(52);
+        this.hotrodVisuals.push(hood);
+        this.hotrodHood = hood;
+        const rear = this.scene.add.ellipse(px - dir * 22, py - 2, 14, 10, silver);
+        rear.setStrokeStyle(1, dark);
+        rear.setDepth(52);
+        this.hotrodVisuals.push(rear);
+        this.hotrodRear = rear;
+        const wheel1 = this.scene.add.circle(px - dir * 20, py + 10, 10, dark);
+        wheel1.setStrokeStyle(2, silver);
+        wheel1.setDepth(50);
+        this.hotrodVisuals.push(wheel1);
+        this.hotrodWheel1 = wheel1;
+        const wheel2 = this.scene.add.circle(px + dir * 20, py + 10, 10, dark);
+        wheel2.setStrokeStyle(2, silver);
+        wheel2.setDepth(50);
+        this.hotrodVisuals.push(wheel2);
+        this.hotrodWheel2 = wheel2;
+        const stripe = this.scene.add.rectangle(px, py - 4, 36, 4, silver);
+        stripe.setDepth(53);
+        this.hotrodVisuals.push(stripe);
+        this.hotrodStripe = stripe;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createHotrodTransformEffect(towardsCar) {
+        const x = this.sprite.x;
+        const y = this.sprite.y;
+        const colors = towardsCar ? [0xe63946, 0x2d2d2d, 0xc0c0c0] : [0xc0c0c0, 0x2d2d2d, 0xe63946];
+        const ring = this.scene.add.circle(x, y, 20, colors[0], 0);
+        ring.setStrokeStyle(4, colors[1]);
+        ring.setDepth(100);
+        this.scene.tweens.add({
+            targets: ring,
+            scaleX: 3, scaleY: 3, alpha: 0,
+            duration: 500,
+            onComplete: () => ring.destroy()
+        });
+        const transformText = this.scene.add.text(x, y - 50,
+            towardsCar ? '🏎️ CAR MODE!' : '🤖 ROBOT MODE!',
+            { fontSize: '20px', fill: '#e63946', stroke: '#1a1a1a', strokeThickness: 4, fontWeight: 'bold' }
+        ).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: transformText,
+            y: y - 80, alpha: 0,
+            duration: 1000,
+            onComplete: () => transformText.destroy()
+        });
+    }
+
+    updateHotrodVisualsIfNeeded() {
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'hotrod') {
+            if (this.hotrodVisuals && this.hotrodVisuals.length > 0) {
+                this.hotrodVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+                this.hotrodVisuals = [];
+                this.hotrodCurrentForm = null;
+                if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(1);
+            }
+            return;
+        }
+        const directionChanged = this.hotrodLastFacingRight !== undefined && this.hotrodLastFacingRight !== this.facingRight;
+        const needsRecreate = !this.hotrodVisuals || this.hotrodVisuals.length === 0 ||
+            this.hotrodCurrentForm !== this.hotrodForm ||
+            (this.hotrodForm === 'car' && directionChanged);
+        if (needsRecreate) {
+            this.hotrodCurrentForm = this.hotrodForm;
+            this.hotrodLastFacingRight = this.facingRight;
+            this.updateHotrodVisuals();
+        }
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        if (this.hotrodVisuals && this.hotrodVisuals.length > 0) {
+            if (this.hotrodForm === 'robot') {
+                if (this.hotrodChest) { this.hotrodChest.x = px; this.hotrodChest.y = py; }
+                if (this.hotrodHead) { this.hotrodHead.x = px; this.hotrodHead.y = py - 20; }
+                if (this.hotrodVisor) { this.hotrodVisor.x = px; this.hotrodVisor.y = py - 20; }
+                if (this.hotrodLeftArm) { this.hotrodLeftArm.x = px - 16; this.hotrodLeftArm.y = py - 2; }
+                if (this.hotrodRightArm) { this.hotrodRightArm.x = px + 16; this.hotrodRightArm.y = py - 2; }
+                if (this.hotrodLeftLeg) { this.hotrodLeftLeg.x = px - 7; this.hotrodLeftLeg.y = py + 20; }
+                if (this.hotrodRightLeg) { this.hotrodRightLeg.x = px + 7; this.hotrodRightLeg.y = py + 20; }
+                if (this.hotrodLeftFoot) { this.hotrodLeftFoot.x = px - 7; this.hotrodLeftFoot.y = py + 30; }
+                if (this.hotrodRightFoot) { this.hotrodRightFoot.x = px + 7; this.hotrodRightFoot.y = py + 30; }
+            } else {
+                if (this.hotrodBody) { this.hotrodBody.x = px; this.hotrodBody.y = py; }
+                if (this.hotrodHood) { this.hotrodHood.x = px + dir * 22; this.hotrodHood.y = py - 4; }
+                if (this.hotrodRear) { this.hotrodRear.x = px - dir * 22; this.hotrodRear.y = py - 2; }
+                if (this.hotrodWheel1) { this.hotrodWheel1.x = px - dir * 20; this.hotrodWheel1.y = py + 10; }
+                if (this.hotrodWheel2) { this.hotrodWheel2.x = px + dir * 20; this.hotrodWheel2.y = py + 10; }
+                if (this.hotrodStripe) { this.hotrodStripe.x = px; this.hotrodStripe.y = py - 4; }
+            }
+        }
+    }
+
+    // ============================================
+    // ELITA TRANSFORMER (Motorcycle / Robot) - Guns shoot dog bullets, no lasers
+    // ============================================
+
+    handleElitaTransform() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'elita') return;
+        if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
+            this.performElitaTransform();
+        }
+    }
+
+    performElitaTransform() {
+        if (this.elitaTransformCooldown > 0) return;
+        this.elitaTransformCooldown = this.elitaTransformCooldownTime;
+        const costume = this.getDragonCostume();
+        const wasRobot = this.elitaForm === 'robot';
+        this.elitaForm = wasRobot ? 'bike' : 'robot';
+        this.createElitaTransformEffect(wasRobot);
+        if (this.elitaForm === 'bike') {
+            this.speed = costume.bikeSpeed || 300;
+            this.jumpPower = costume.bikeJump || 360;
+            this.damageMultiplier = costume.bikeDamage || 0.95;
+        } else {
+            this.speed = costume.robotSpeed || 205;
+            this.jumpPower = costume.robotJump || 430;
+            this.damageMultiplier = costume.robotDamage || 1.0;
+        }
+        this.updateElitaVisuals();
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.02);
+        }
+    }
+
+    updateElitaVisuals() {
+        if (this.elitaVisuals && this.elitaVisuals.length > 0) {
+            this.elitaVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+        }
+        this.elitaVisuals = [];
+        if (this.elitaForm === 'bike') {
+            this.createElitaBikeVisuals();
+        } else {
+            this.createElitaRobotVisuals();
+        }
+    }
+
+    createElitaRobotVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const pink = 0xe91e8c;
+        const white = 0xffffff;
+        const dark = 0x4a148c;
+        const chest = this.scene.add.rectangle(px, py, 24, 28, pink);
+        chest.setStrokeStyle(2, dark);
+        chest.setDepth(51);
+        this.elitaVisuals.push(chest);
+        this.elitaChest = chest;
+        const head = this.scene.add.rectangle(px, py - 20, 18, 14, white);
+        head.setStrokeStyle(2, dark);
+        head.setDepth(52);
+        this.elitaVisuals.push(head);
+        this.elitaHead = head;
+        const visor = this.scene.add.rectangle(px, py - 20, 14, 4, 0x2d2d2d);
+        visor.setDepth(53);
+        this.elitaVisuals.push(visor);
+        this.elitaVisor = visor;
+        const leftArm = this.scene.add.rectangle(px - 16, py - 2, 8, 18, pink);
+        leftArm.setStrokeStyle(1, dark);
+        leftArm.setDepth(50);
+        this.elitaVisuals.push(leftArm);
+        this.elitaLeftArm = leftArm;
+        const rightArm = this.scene.add.rectangle(px + 16, py - 2, 8, 18, pink);
+        rightArm.setStrokeStyle(1, dark);
+        rightArm.setDepth(50);
+        this.elitaVisuals.push(rightArm);
+        this.elitaRightArm = rightArm;
+        const leftLeg = this.scene.add.rectangle(px - 7, py + 20, 10, 14, white);
+        leftLeg.setStrokeStyle(1, pink);
+        leftLeg.setDepth(50);
+        this.elitaVisuals.push(leftLeg);
+        this.elitaLeftLeg = leftLeg;
+        const rightLeg = this.scene.add.rectangle(px + 7, py + 20, 10, 14, white);
+        rightLeg.setStrokeStyle(1, pink);
+        rightLeg.setDepth(50);
+        this.elitaVisuals.push(rightLeg);
+        this.elitaRightLeg = rightLeg;
+        const leftFoot = this.scene.add.rectangle(px - 7, py + 30, 12, 6, dark);
+        leftFoot.setStrokeStyle(1, pink);
+        leftFoot.setDepth(50);
+        this.elitaVisuals.push(leftFoot);
+        this.elitaLeftFoot = leftFoot;
+        const rightFoot = this.scene.add.rectangle(px + 7, py + 30, 12, 6, dark);
+        rightFoot.setStrokeStyle(1, pink);
+        rightFoot.setDepth(50);
+        this.elitaVisuals.push(rightFoot);
+        this.elitaRightFoot = rightFoot;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createElitaBikeVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        const pink = 0xe91e8c;
+        const dark = 0x2d2d2d;
+        const body = this.scene.add.rectangle(px, py, 48, 14, pink);
+        body.setStrokeStyle(2, dark);
+        body.setDepth(51);
+        this.elitaVisuals.push(body);
+        this.elitaBody = body;
+        const seat = this.scene.add.ellipse(px, py - 4, 16, 8, 0xc2185b);
+        seat.setStrokeStyle(1, dark);
+        seat.setDepth(52);
+        this.elitaVisuals.push(seat);
+        this.elitaSeat = seat;
+        const wheel1 = this.scene.add.circle(px - dir * 22, py + 8, 12, dark);
+        wheel1.setStrokeStyle(2, 0x888888);
+        wheel1.setDepth(50);
+        this.elitaVisuals.push(wheel1);
+        this.elitaWheel1 = wheel1;
+        const wheel2 = this.scene.add.circle(px + dir * 22, py + 8, 12, dark);
+        wheel2.setStrokeStyle(2, 0x888888);
+        wheel2.setDepth(50);
+        this.elitaVisuals.push(wheel2);
+        this.elitaWheel2 = wheel2;
+        const stripe = this.scene.add.rectangle(px, py - 2, 32, 3, 0xffffff);
+        stripe.setDepth(53);
+        this.elitaVisuals.push(stripe);
+        this.elitaStripe = stripe;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createElitaTransformEffect(towardsBike) {
+        const x = this.sprite.x;
+        const y = this.sprite.y;
+        const colors = towardsBike ? [0xe91e8c, 0x4a148c, 0xffffff] : [0xffffff, 0x4a148c, 0xe91e8c];
+        const ring = this.scene.add.circle(x, y, 20, colors[0], 0);
+        ring.setStrokeStyle(4, colors[1]);
+        ring.setDepth(100);
+        this.scene.tweens.add({
+            targets: ring,
+            scaleX: 3, scaleY: 3, alpha: 0,
+            duration: 500,
+            onComplete: () => ring.destroy()
+        });
+        const transformText = this.scene.add.text(x, y - 50,
+            towardsBike ? '🏍️ BIKE MODE!' : '🤖 ROBOT MODE!',
+            { fontSize: '20px', fill: '#e91e8c', stroke: '#4a148c', strokeThickness: 4, fontWeight: 'bold' }
+        ).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: transformText,
+            y: y - 80, alpha: 0,
+            duration: 1000,
+            onComplete: () => transformText.destroy()
+        });
+    }
+
+    updateElitaVisualsIfNeeded() {
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'elita') {
+            if (this.elitaVisuals && this.elitaVisuals.length > 0) {
+                this.elitaVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+                this.elitaVisuals = [];
+                this.elitaCurrentForm = null;
+                if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(1);
+            }
+            return;
+        }
+        const directionChanged = this.elitaLastFacingRight !== undefined && this.elitaLastFacingRight !== this.facingRight;
+        const needsRecreate = !this.elitaVisuals || this.elitaVisuals.length === 0 ||
+            this.elitaCurrentForm !== this.elitaForm ||
+            (this.elitaForm === 'bike' && directionChanged);
+        if (needsRecreate) {
+            this.elitaCurrentForm = this.elitaForm;
+            this.elitaLastFacingRight = this.facingRight;
+            this.updateElitaVisuals();
+        }
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        if (this.elitaVisuals && this.elitaVisuals.length > 0) {
+            if (this.elitaForm === 'robot') {
+                if (this.elitaChest) { this.elitaChest.x = px; this.elitaChest.y = py; }
+                if (this.elitaHead) { this.elitaHead.x = px; this.elitaHead.y = py - 20; }
+                if (this.elitaVisor) { this.elitaVisor.x = px; this.elitaVisor.y = py - 20; }
+                if (this.elitaLeftArm) { this.elitaLeftArm.x = px - 16; this.elitaLeftArm.y = py - 2; }
+                if (this.elitaRightArm) { this.elitaRightArm.x = px + 16; this.elitaRightArm.y = py - 2; }
+                if (this.elitaLeftLeg) { this.elitaLeftLeg.x = px - 7; this.elitaLeftLeg.y = py + 20; }
+                if (this.elitaRightLeg) { this.elitaRightLeg.x = px + 7; this.elitaRightLeg.y = py + 20; }
+                if (this.elitaLeftFoot) { this.elitaLeftFoot.x = px - 7; this.elitaLeftFoot.y = py + 30; }
+                if (this.elitaRightFoot) { this.elitaRightFoot.x = px + 7; this.elitaRightFoot.y = py + 30; }
+            } else {
+                if (this.elitaBody) { this.elitaBody.x = px; this.elitaBody.y = py; }
+                if (this.elitaSeat) { this.elitaSeat.x = px; this.elitaSeat.y = py - 4; }
+                if (this.elitaWheel1) { this.elitaWheel1.x = px - dir * 22; this.elitaWheel1.y = py + 8; }
+                if (this.elitaWheel2) { this.elitaWheel2.x = px + dir * 22; this.elitaWheel2.y = py + 8; }
+                if (this.elitaStripe) { this.elitaStripe.x = px; this.elitaStripe.y = py - 2; }
+            }
+        }
+    }
+
     handleDuckLaser() {
         // Safety check for controls
         if (!this.controls) {
@@ -2920,6 +3434,11 @@ class Player {
                 // Bumblebee stinger blast - yellow/black
                 projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.95);
                 projectile.setStrokeStyle(2, costume.projectileSecondaryColor || 0x000000);
+                break;
+            case 'elitaDogBullet':
+                // Elita's gun - dog bullets (brown/tan)
+                projectile = this.scene.add.ellipse(startX, startY, costume.projectileSize * 1.2, costume.projectileSize, costume.projectileColor, 0.95);
+                projectile.setStrokeStyle(2, costume.projectileSecondaryColor || 0x5d4037);
                 break;
             default:
                 projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.9);
