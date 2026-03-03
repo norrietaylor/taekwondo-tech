@@ -170,6 +170,16 @@ class Player {
         this.duckedEnemies = []; // Track enemies turned into ducks
         this.grimlockVisuals = []; // Visual elements for grimlock forms
         this.grimlockTeeth = []; // Store teeth separately for easier updates
+        // Bumblebee transformation and dog laser
+        this.bumblebeeForm = 'robot'; // 'robot' or 'car'
+        this.bumblebeeVisuals = [];
+        this.bumblebeeCurrentForm = null;
+        this.bumblebeeLastFacingRight = null;
+        this.bumblebeeTransformCooldown = 0;
+        this.bumblebeeTransformCooldownTime = 1000;
+        this.dogLaserCooldown = 0;
+        this.dogLaserCooldownTime = 5000;
+        this.doggedEnemies = [];
         
         // Visual effects
         this.attackEffect = null;
@@ -408,8 +418,8 @@ class Player {
         const costume = this.getDragonCostume();
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         
-        // Hide wings for Grimlock (has its own visuals) or if costume doesn't have them
-        if (currentOutfit === 'grimlock' || !costume.hasWings) {
+        // Hide wings for Grimlock/Bumblebee (have their own visuals) or if costume doesn't have them
+        if (currentOutfit === 'grimlock' || currentOutfit === 'bumblebee' || !costume.hasWings) {
             this.leftWing.setVisible(false);
             this.rightWing.setVisible(false);
             return;
@@ -495,7 +505,8 @@ class Player {
             teleport: false,
             stoneBlast: false,
             grimlockTransform: false,
-            duckLaser: false
+            duckLaser: false,
+            dogLaser: false
         };
     }
 
@@ -536,6 +547,7 @@ class Player {
         
         // Update Grimlock visuals if in grimlock costume
         this.updateGrimlockVisualsIfNeeded();
+        this.updateBumblebeeVisualsIfNeeded();
         
         // Update grounded state
         this.updateGroundedState();
@@ -589,9 +601,17 @@ class Player {
         if (this.duckLaserCooldown > 0) {
             this.duckLaserCooldown -= delta;
         }
+        if (this.dogLaserCooldown > 0) {
+            this.dogLaserCooldown -= delta;
+        }
+        if (this.bumblebeeTransformCooldown > 0) {
+            this.bumblebeeTransformCooldown -= delta;
+        }
         
         // Update ducked enemies (restore them after duration)
         this.updateDuckedEnemies(delta);
+        // Update dogged enemies (restore them after duration)
+        this.updateDoggedEnemies(delta);
     }
 
     handleMovement() {
@@ -730,6 +750,9 @@ class Player {
         // Dino Grimlock special abilities
         this.handleGrimlockTransform();
         this.handleDuckLaser();
+        // Bumblebee special abilities
+        this.handleBumblebeeTransform();
+        this.handleDogLaser();
     }
 
     handleStoneBlast() {
@@ -1984,6 +2007,211 @@ class Player {
         });
     }
 
+    // ============================================
+    // BUMBLEBEE TRANSFORMER (Car / Robot)
+    // ============================================
+
+    handleBumblebeeTransform() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'bumblebee') return;
+        if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
+            this.performBumblebeeTransform();
+        }
+    }
+
+    performBumblebeeTransform() {
+        if (this.bumblebeeTransformCooldown > 0) return;
+        this.bumblebeeTransformCooldown = this.bumblebeeTransformCooldownTime;
+        const costume = this.getDragonCostume();
+        const wasRobot = this.bumblebeeForm === 'robot';
+        this.bumblebeeForm = wasRobot ? 'car' : 'robot';
+        this.createBumblebeeTransformEffect(wasRobot);
+        if (this.bumblebeeForm === 'car') {
+            this.speed = costume.carSpeed || 280;
+            this.jumpPower = costume.carJump || 350;
+            this.damageMultiplier = costume.carDamage || 0.8;
+        } else {
+            this.speed = costume.robotSpeed || 200;
+            this.jumpPower = 600;
+            this.damageMultiplier = costume.robotDamage || 1.0;
+        }
+        this.updateBumblebeeVisuals();
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.02);
+        }
+    }
+
+    updateBumblebeeVisuals() {
+        if (this.bumblebeeVisuals && this.bumblebeeVisuals.length > 0) {
+            this.bumblebeeVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+        }
+        this.bumblebeeVisuals = [];
+        if (this.bumblebeeForm === 'car') {
+            this.createBumblebeeCarVisuals();
+        } else {
+            this.createBumblebeeRobotVisuals();
+        }
+    }
+
+    createBumblebeeRobotVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        // Yellow/black robot: chest, head, visor, arms, legs
+        const chest = this.scene.add.rectangle(px, py, 24, 28, 0xffd700);
+        chest.setStrokeStyle(2, 0x000000);
+        chest.setDepth(51);
+        this.bumblebeeVisuals.push(chest);
+        this.bumblebeeChest = chest;
+        const head = this.scene.add.rectangle(px, py - 20, 18, 14, 0xffd700);
+        head.setStrokeStyle(2, 0x000000);
+        head.setDepth(52);
+        this.bumblebeeVisuals.push(head);
+        this.bumblebeeHead = head;
+        const visor = this.scene.add.rectangle(px, py - 20, 14, 4, 0x333333);
+        visor.setDepth(53);
+        this.bumblebeeVisuals.push(visor);
+        this.bumblebeeVisor = visor;
+        const leftArm = this.scene.add.rectangle(px - 16, py - 2, 8, 18, 0xffd700);
+        leftArm.setStrokeStyle(1, 0x000000);
+        leftArm.setDepth(50);
+        this.bumblebeeVisuals.push(leftArm);
+        this.bumblebeeLeftArm = leftArm;
+        const rightArm = this.scene.add.rectangle(px + 16, py - 2, 8, 18, 0xffd700);
+        rightArm.setStrokeStyle(1, 0x000000);
+        rightArm.setDepth(50);
+        this.bumblebeeVisuals.push(rightArm);
+        this.bumblebeeRightArm = rightArm;
+        const leftLeg = this.scene.add.rectangle(px - 7, py + 20, 10, 14, 0x333333);
+        leftLeg.setStrokeStyle(1, 0xffd700);
+        leftLeg.setDepth(50);
+        this.bumblebeeVisuals.push(leftLeg);
+        this.bumblebeeLeftLeg = leftLeg;
+        const rightLeg = this.scene.add.rectangle(px + 7, py + 20, 10, 14, 0x333333);
+        rightLeg.setStrokeStyle(1, 0xffd700);
+        rightLeg.setDepth(50);
+        this.bumblebeeVisuals.push(rightLeg);
+        this.bumblebeeRightLeg = rightLeg;
+        const leftFoot = this.scene.add.rectangle(px - 7, py + 30, 12, 6, 0x000000);
+        leftFoot.setStrokeStyle(1, 0xffd700);
+        leftFoot.setDepth(50);
+        this.bumblebeeVisuals.push(leftFoot);
+        this.bumblebeeLeftFoot = leftFoot;
+        const rightFoot = this.scene.add.rectangle(px + 7, py + 30, 12, 6, 0x000000);
+        rightFoot.setStrokeStyle(1, 0xffd700);
+        rightFoot.setDepth(50);
+        this.bumblebeeVisuals.push(rightFoot);
+        this.bumblebeeRightFoot = rightFoot;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createBumblebeeCarVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        // Compact car: body (rounded rect), wheels, hood
+        const body = this.scene.add.ellipse(px, py, 44, 22, 0xffd700);
+        body.setStrokeStyle(2, 0x000000);
+        body.setDepth(51);
+        this.bumblebeeVisuals.push(body);
+        this.bumblebeeBody = body;
+        const hood = this.scene.add.ellipse(px + dir * 20, py - 2, 16, 12, 0xffcc00);
+        hood.setStrokeStyle(2, 0x000000);
+        hood.setDepth(52);
+        this.bumblebeeVisuals.push(hood);
+        this.bumblebeeHood = hood;
+        const rear = this.scene.add.ellipse(px - dir * 20, py - 2, 14, 10, 0xffcc00);
+        rear.setStrokeStyle(2, 0x000000);
+        rear.setDepth(52);
+        this.bumblebeeVisuals.push(rear);
+        this.bumblebeeRear = rear;
+        const wheel1 = this.scene.add.circle(px - dir * 18, py + 10, 8, 0x1a1a1a);
+        wheel1.setStrokeStyle(2, 0x333333);
+        wheel1.setDepth(50);
+        this.bumblebeeVisuals.push(wheel1);
+        this.bumblebeeWheel1 = wheel1;
+        const wheel2 = this.scene.add.circle(px + dir * 18, py + 10, 8, 0x1a1a1a);
+        wheel2.setStrokeStyle(2, 0x333333);
+        wheel2.setDepth(50);
+        this.bumblebeeVisuals.push(wheel2);
+        this.bumblebeeWheel2 = wheel2;
+        const stripe = this.scene.add.rectangle(px, py - 6, 36, 4, 0x000000);
+        stripe.setDepth(51);
+        this.bumblebeeVisuals.push(stripe);
+        this.bumblebeeStripe = stripe;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createBumblebeeTransformEffect(towardsCar) {
+        const x = this.sprite.x;
+        const y = this.sprite.y;
+        const colors = towardsCar ? [0xffd700, 0x000000, 0xffcc00] : [0xffcc00, 0x1a1a1a, 0xffd700];
+        const ring = this.scene.add.circle(x, y, 20, colors[0], 0);
+        ring.setStrokeStyle(4, colors[1]);
+        ring.setDepth(100);
+        this.scene.tweens.add({
+            targets: ring,
+            scaleX: 3, scaleY: 3, alpha: 0,
+            duration: 500,
+            onComplete: () => ring.destroy()
+        });
+        const transformText = this.scene.add.text(x, y - 50,
+            towardsCar ? '🚗 CAR MODE!' : '🤖 ROBOT MODE!',
+            { fontSize: '20px', fill: '#ffd700', stroke: '#000000', strokeThickness: 4, fontWeight: 'bold' }
+        ).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: transformText,
+            y: y - 80, alpha: 0,
+            duration: 1000,
+            onComplete: () => transformText.destroy()
+        });
+    }
+
+    updateBumblebeeVisualsIfNeeded() {
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'bumblebee') {
+            if (this.bumblebeeVisuals && this.bumblebeeVisuals.length > 0) {
+                this.bumblebeeVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+                this.bumblebeeVisuals = [];
+                this.bumblebeeCurrentForm = null;
+                if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(1);
+            }
+            return;
+        }
+        const directionChanged = this.bumblebeeLastFacingRight !== undefined && this.bumblebeeLastFacingRight !== this.facingRight;
+        const needsRecreate = !this.bumblebeeVisuals || this.bumblebeeVisuals.length === 0 ||
+            this.bumblebeeCurrentForm !== this.bumblebeeForm ||
+            (this.bumblebeeForm === 'car' && directionChanged);
+        if (needsRecreate) {
+            this.bumblebeeCurrentForm = this.bumblebeeForm;
+            this.bumblebeeLastFacingRight = this.facingRight;
+            this.updateBumblebeeVisuals();
+        }
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        if (this.bumblebeeVisuals && this.bumblebeeVisuals.length > 0) {
+            if (this.bumblebeeForm === 'robot') {
+                if (this.bumblebeeChest) { this.bumblebeeChest.x = px; this.bumblebeeChest.y = py; }
+                if (this.bumblebeeHead) { this.bumblebeeHead.x = px; this.bumblebeeHead.y = py - 20; }
+                if (this.bumblebeeVisor) { this.bumblebeeVisor.x = px; this.bumblebeeVisor.y = py - 20; }
+                if (this.bumblebeeLeftArm) { this.bumblebeeLeftArm.x = px - 16; this.bumblebeeLeftArm.y = py - 2; }
+                if (this.bumblebeeRightArm) { this.bumblebeeRightArm.x = px + 16; this.bumblebeeRightArm.y = py - 2; }
+                if (this.bumblebeeLeftLeg) { this.bumblebeeLeftLeg.x = px - 7; this.bumblebeeLeftLeg.y = py + 20; }
+                if (this.bumblebeeRightLeg) { this.bumblebeeRightLeg.x = px + 7; this.bumblebeeRightLeg.y = py + 20; }
+                if (this.bumblebeeLeftFoot) { this.bumblebeeLeftFoot.x = px - 7; this.bumblebeeLeftFoot.y = py + 30; }
+                if (this.bumblebeeRightFoot) { this.bumblebeeRightFoot.x = px + 7; this.bumblebeeRightFoot.y = py + 30; }
+            } else {
+                if (this.bumblebeeBody) { this.bumblebeeBody.x = px; this.bumblebeeBody.y = py; }
+                if (this.bumblebeeHood) { this.bumblebeeHood.x = px + dir * 20; this.bumblebeeHood.y = py - 2; }
+                if (this.bumblebeeRear) { this.bumblebeeRear.x = px - dir * 20; this.bumblebeeRear.y = py - 2; }
+                if (this.bumblebeeWheel1) { this.bumblebeeWheel1.x = px - dir * 18; this.bumblebeeWheel1.y = py + 10; }
+                if (this.bumblebeeWheel2) { this.bumblebeeWheel2.x = px + dir * 18; this.bumblebeeWheel2.y = py + 10; }
+                if (this.bumblebeeStripe) { this.bumblebeeStripe.x = px; this.bumblebeeStripe.y = py - 6; }
+            }
+        }
+    }
+
     handleDuckLaser() {
         // Safety check for controls
         if (!this.controls) {
@@ -1999,6 +2227,17 @@ class Player {
         // Check for duck laser key press (edge detection)
         if (this.controls.isDuckLaser() && !this.previousInputs.duckLaser) {
             this.performDuckLaser();
+        }
+    }
+
+    handleDogLaser() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'bumblebee') return;
+        const costume = this.getDragonCostume();
+        if (!costume.dogLaserEnabled) return;
+        if (this.controls.isDuckLaser() && !this.previousInputs.dogLaser) {
+            this.performDogLaser();
         }
     }
 
@@ -2106,7 +2345,7 @@ class Player {
                 this.scene.enemies,
                 (laserSprite, enemySprite) => {
                     const enemy = enemySprite.getData('enemy');
-                    if (enemy && enemy.health > 0 && !enemy.isDucked) {
+                    if (enemy && enemy.health > 0 && !enemy.isDucked && !enemy.isDogged) {
                         this.transformToDuck(enemy, enemySprite);
                     }
                 }
@@ -2316,6 +2555,182 @@ class Player {
         });
     }
 
+    performDogLaser() {
+        if (this.dogLaserCooldown > 0) return;
+        const costume = this.getDragonCostume();
+        this.dogLaserCooldown = costume.dogLaserCooldown || this.dogLaserCooldownTime;
+        const startX = this.sprite.x + (this.facingRight ? 30 : -30);
+        const startY = this.sprite.y;
+        const direction = this.facingRight ? 1 : -1;
+        this.createDogLaserBeam(startX, startY, direction);
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(200, 0.015);
+        }
+    }
+
+    createDogLaserBeam(startX, startY, direction) {
+        const laserSpeed = 700;
+        const laserDistance = 600;
+        const laserWidth = 100;
+        const laserHeight = 16;
+        const laser = this.scene.add.rectangle(
+            startX, startY, laserWidth, laserHeight,
+            0xffd700, 0.9
+        );
+        laser.setStrokeStyle(3, 0x000000);
+        laser.setDepth(100);
+        const dogEmoji = this.scene.add.text(
+            startX + (direction * 50), startY, '🐕',
+            { fontSize: '24px' }
+        ).setOrigin(0.5).setDepth(101);
+        const stripe = this.scene.add.rectangle(
+            startX - (direction * 20), startY, 60, laserHeight, 0x333333, 0.6
+        );
+        stripe.setDepth(99);
+        this.scene.physics.add.existing(laser, false);
+        laser.body.setVelocityX(laserSpeed * direction);
+        laser.body.setAllowGravity(false);
+        laser.setData('startX', startX);
+        laser.setData('maxDistance', laserDistance);
+        laser.setData('direction', direction);
+        laser.setData('dogEmoji', dogEmoji);
+        laser.setData('stripe', stripe);
+        const updateEvent = this.scene.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (laser.active) {
+                    dogEmoji.x = laser.x + (direction * 50);
+                    dogEmoji.y = laser.y;
+                    stripe.x = laser.x - (direction * 40);
+                    stripe.y = laser.y;
+                    const traveled = Math.abs(laser.x - startX);
+                    if (traveled >= laserDistance) {
+                        this.destroyDogLaser(laser);
+                        updateEvent.destroy();
+                    }
+                }
+            },
+            loop: true
+        });
+        if (this.scene.enemies) {
+            this.scene.physics.add.overlap(laser, this.scene.enemies, (laserSprite, enemySprite) => {
+                const enemy = enemySprite.getData('enemy');
+                if (enemy && enemy.health > 0 && !enemy.isDucked && !enemy.isDogged) {
+                    this.transformToDog(enemy, enemySprite);
+                }
+            });
+        }
+        this.scene.time.delayedCall(2000, () => {
+            if (laser.active) {
+                this.destroyDogLaser(laser);
+                updateEvent.destroy();
+            }
+        });
+    }
+
+    destroyDogLaser(laser) {
+        const dogEmoji = laser.getData('dogEmoji');
+        const stripe = laser.getData('stripe');
+        if (dogEmoji && dogEmoji.active) dogEmoji.destroy();
+        if (stripe && stripe.active) stripe.destroy();
+        if (laser.active) laser.destroy();
+    }
+
+    transformToDog(enemy, enemySprite) {
+        const costume = this.getDragonCostume();
+        const duration = costume.dogDuration || 8000;
+        const originalData = {
+            enemy: enemy,
+            sprite: enemySprite,
+            originalSpeed: enemy.speed,
+            originalDamage: enemy.damage,
+            transformTime: Date.now()
+        };
+        enemy.isDogged = true;
+        enemy.canAttack = false;
+        enemy.speed = 35;
+        enemy.damage = 0;
+        const dogX = enemySprite.x;
+        const dogY = enemySprite.y;
+        enemySprite.setAlpha(0);
+        const dog = this.scene.add.text(dogX, dogY, '🐕', { fontSize: '40px' })
+            .setOrigin(0.5).setDepth(enemySprite.depth);
+        this.scene.tweens.add({
+            targets: dog,
+            angle: { from: -8, to: 8 },
+            duration: 250,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        enemy.dogSprite = dog;
+        for (let i = 0; i < 8; i++) {
+            const spark = this.scene.add.text(dogX, dogY, '✨', { fontSize: '14px' }).setOrigin(0.5).setDepth(100);
+            const angle = (Math.PI * 2 * i) / 8;
+            this.scene.tweens.add({
+                targets: spark,
+                x: dogX + Math.cos(angle) * 45,
+                y: dogY + Math.sin(angle) * 45,
+                alpha: 0,
+                duration: 400,
+                onComplete: () => spark.destroy()
+            });
+        }
+        const woofText = this.scene.add.text(dogX, dogY - 40, 'WOOF! 🐕', {
+            fontSize: '18px', fill: '#ffd700', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: woofText,
+            y: dogY - 70,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => woofText.destroy()
+        });
+        this.doggedEnemies.push({
+            ...originalData,
+            dogSprite: dog,
+            restoreTime: Date.now() + duration
+        });
+    }
+
+    updateDoggedEnemies(delta) {
+        const now = Date.now();
+        for (let i = this.doggedEnemies.length - 1; i >= 0; i--) {
+            const dogged = this.doggedEnemies[i];
+            if (now >= dogged.restoreTime) {
+                this.restoreFromDog(dogged);
+                this.doggedEnemies.splice(i, 1);
+            } else {
+                if (dogged.dogSprite && dogged.dogSprite.active && dogged.sprite && dogged.sprite.active) {
+                    dogged.dogSprite.x = dogged.sprite.x;
+                    dogged.dogSprite.y = dogged.sprite.y;
+                }
+            }
+        }
+    }
+
+    restoreFromDog(dogged) {
+        const { enemy, sprite, dogSprite, originalSpeed, originalDamage } = dogged;
+        if (!enemy || !sprite || !sprite.active) {
+            if (dogSprite && dogSprite.active) dogSprite.destroy();
+            return;
+        }
+        enemy.isDogged = false;
+        enemy.canAttack = true;
+        enemy.speed = originalSpeed;
+        enemy.damage = originalDamage;
+        sprite.setAlpha(1);
+        if (dogSprite && dogSprite.active) dogSprite.destroy();
+        enemy.dogSprite = null;
+        const poof = this.scene.add.text(sprite.x, sprite.y, '💨', { fontSize: '32px' }).setOrigin(0.5).setDepth(100);
+        this.scene.tweens.add({
+            targets: poof,
+            scaleX: 2, scaleY: 2, alpha: 0,
+            duration: 300,
+            onComplete: () => poof.destroy()
+        });
+    }
+
     tryJump() {
         const canCoyoteJump = (Date.now() - this.lastGroundTime) < this.coyoteTime;
         
@@ -2500,6 +2915,11 @@ class Player {
             case 'grimlockBreath':
                 // Grimlock's combined fire AND lightning breath!
                 projectile = this.createGrimlockBreathProjectile(startX, startY, costume);
+                break;
+            case 'bumblebeeStinger':
+                // Bumblebee stinger blast - yellow/black
+                projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.95);
+                projectile.setStrokeStyle(2, costume.projectileSecondaryColor || 0x000000);
                 break;
             default:
                 projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.9);
@@ -4028,6 +4448,7 @@ class Player {
         this.previousInputs.stoneBlast = this.controls.isStoneBlast();
         this.previousInputs.grimlockTransform = this.controls.isGrimlockTransform();
         this.previousInputs.duckLaser = this.controls.isDuckLaser();
+        this.previousInputs.dogLaser = this.controls.isDuckLaser();
     }
 
     // Power-up queue methods

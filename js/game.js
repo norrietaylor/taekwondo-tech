@@ -308,6 +308,46 @@ class TaekwondoRobotBuilder {
                     secondary: 0xcc0000, // Darker red
                     accent: 0xdaa520 // Goldenrod
                 }
+            },
+            'bumblebee': {
+                name: 'Bumblebee',
+                icon: '🐝🚗',
+                primaryColor: 0xffd700, // Yellow
+                secondaryColor: 0x000000, // Black
+                beltColor: 0x333333,
+                description: 'Bumblebee! Press 2 to transform! L for dog laser!',
+                unlockCondition: 'Complete Level 3',
+                effectColor: 0xffcc00,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xffd700,
+                wingStyle: 'mechanical',
+                wingTipColor: 0x000000,
+                projectileEnabled: true,
+                projectileType: 'bumblebeeStinger',
+                projectileColor: 0xffd700,
+                projectileSecondaryColor: 0x000000,
+                projectileDamage: 22,
+                projectileSpeed: 580,
+                projectileSize: 20,
+                projectileEffect: 'sting',
+                isBumblebeeDragon: true,
+                canTransform: true,
+                transformKey: 'Digit2',
+                currentForm: 'robot',
+                robotSpeed: 200,
+                robotJump: 400,
+                robotDamage: 1.0,
+                carSpeed: 280,
+                carJump: 350,
+                carDamage: 0.8,
+                carSize: 1.1,
+                dogLaserEnabled: true,
+                dogLaserCooldown: 5000,
+                dogLaserKey: 'KeyL',
+                dogDuration: 8000,
+                robotColors: { primary: 0xffd700, secondary: 0x000000, accent: 0x333333 },
+                carColors: { primary: 0xffcc00, secondary: 0x1a1a1a, accent: 0xffd700 }
             }
         };
 
@@ -606,6 +646,14 @@ class TaekwondoRobotBuilder {
             }
         } else {
             console.log('🦖 Condition FAILED - level check:', this.gameData.currentLevel >= 3, 'not already unlocked:', !this.gameData.outfits.unlocked.includes('grimlock'));
+        }
+        
+        // Bumblebee - Complete Level 3
+        if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('bumblebee')) {
+            if (this.unlockOutfit('bumblebee')) {
+                newUnlocks.push('bumblebee');
+                console.log('🐝🚗 BUMBLEBEE UNLOCKED! Press 2 to transform! L for dog laser!');
+            }
         }
         
         // Legendary Mode - Collect all robot parts (5 part types, need at least 1 of each)
