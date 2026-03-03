@@ -615,7 +615,7 @@ class CraftScene extends Phaser.Scene {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         
-        // Calculate responsive overlay height - need 11 costumes now (including Dino Grimlock!)
+        // Calculate responsive overlay height - need 12 costumes now (including Grimlock + Bumblebee!)
         const screenHeight = this.cameras.main.height;
         const overlayHeight = Math.min(screenHeight - 10, 576); // Fit 11 costumes (full height)
         
@@ -645,7 +645,7 @@ class CraftScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(151);
         
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'grimlock', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
         console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
         console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
@@ -936,6 +936,9 @@ class CraftScene extends Phaser.Scene {
             case 'grimlock':
                 // Unlock after completing level 2 (same as lightning)
                 return gameData.currentLevel >= 3;
+            case 'bumblebee':
+                // Unlock after completing level 3
+                return gameData.currentLevel >= 4;
             case 'legendary':
                 // Unlock after collecting all 5 robot part types
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
@@ -973,6 +976,8 @@ class CraftScene extends Phaser.Scene {
                 return `🔒 Complete Level 5 (Current: Level ${gameData.currentLevel})`;
             case 'grimlock':
                 return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
+            case 'bumblebee':
+                return `🔒 Complete Level 3 (Current: Level ${gameData.currentLevel})`;
             case 'legendary':
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
                 const collectedTypes = partTypes.filter(type => 
