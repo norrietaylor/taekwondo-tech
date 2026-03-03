@@ -159,6 +159,18 @@ class Player {
         this.stoneBlastCooldownTime = 3000; // 3 seconds between blasts
         this.stoneLasers = []; // Track active stone lasers
         
+        // Dino Grimlock transformation and duck laser
+        this.grimlockForm = 'robot'; // 'robot' or 'dinosaur'
+        this.grimlockCurrentForm = null; // Track which form's visuals are currently shown
+        this.grimlockLastFacingRight = null; // Track facing direction for dino visuals
+        this.grimlockTransformCooldown = 0;
+        this.grimlockTransformCooldownTime = 1000; // 1 second between transforms
+        this.duckLaserCooldown = 0;
+        this.duckLaserCooldownTime = 5000; // 5 seconds between duck lasers
+        this.duckedEnemies = []; // Track enemies turned into ducks
+        this.grimlockVisuals = []; // Visual elements for grimlock forms
+        this.grimlockTeeth = []; // Store teeth separately for easier updates
+        
         // Visual effects
         this.attackEffect = null;
         this.footstepTimer = 0;
@@ -394,9 +406,10 @@ class Player {
         }
         
         const costume = this.getDragonCostume();
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         
-        // Hide wings if costume doesn't have them
-        if (!costume.hasWings) {
+        // Hide wings for Grimlock (has its own visuals) or if costume doesn't have them
+        if (currentOutfit === 'grimlock' || !costume.hasWings) {
             this.leftWing.setVisible(false);
             this.rightWing.setVisible(false);
             return;
@@ -479,7 +492,10 @@ class Player {
             kick: false,
             punch: false,
             activate: false,
-            teleport: false
+            teleport: false,
+            stoneBlast: false,
+            grimlockTransform: false,
+            duckLaser: false
         };
     }
 
@@ -517,6 +533,9 @@ class Player {
         
         // Update dragon wings
         this.updateWings();
+        
+        // Update Grimlock visuals if in grimlock costume
+        this.updateGrimlockVisualsIfNeeded();
         
         // Update grounded state
         this.updateGroundedState();
@@ -562,6 +581,17 @@ class Player {
         if (this.stoneBlastCooldown > 0) {
             this.stoneBlastCooldown -= delta;
         }
+        
+        // Update Grimlock transform and duck laser cooldowns
+        if (this.grimlockTransformCooldown > 0) {
+            this.grimlockTransformCooldown -= delta;
+        }
+        if (this.duckLaserCooldown > 0) {
+            this.duckLaserCooldown -= delta;
+        }
+        
+        // Update ducked enemies (restore them after duration)
+        this.updateDuckedEnemies(delta);
     }
 
     handleMovement() {
@@ -696,6 +726,10 @@ class Player {
         
         // Stone Dragon special move (T+S for laser-to-boulder blast)
         this.handleStoneBlast();
+        
+        // Dino Grimlock special abilities
+        this.handleGrimlockTransform();
+        this.handleDuckLaser();
     }
 
     handleStoneBlast() {
@@ -1465,6 +1499,823 @@ class Player {
         });
     }
 
+    // ============================================
+    // DINO GRIMLOCK SPECIAL ABILITIES
+    // ============================================
+    
+    handleGrimlockTransform() {
+        // Safety check for controls
+        if (!this.controls) {
+            return;
+        }
+        
+        // Check if player is wearing Grimlock costume
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'grimlock') {
+            return; // Only Grimlock can transform
+        }
+        
+        // Check for transform key press (edge detection - only on press, not hold)
+        if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
+            this.performGrimlockTransform();
+        }
+    }
+
+    performGrimlockTransform() {
+        // Check cooldown
+        if (this.grimlockTransformCooldown > 0) {
+            console.log('🦖🤖 Transform on cooldown!', Math.ceil(this.grimlockTransformCooldown / 1000), 's remaining');
+            return;
+        }
+        
+        // Set cooldown
+        this.grimlockTransformCooldown = this.grimlockTransformCooldownTime;
+        
+        const costume = this.getDragonCostume();
+        const wasRobot = this.grimlockForm === 'robot';
+        
+        // Toggle form
+        this.grimlockForm = wasRobot ? 'dinosaur' : 'robot';
+        
+        console.log(`🦖🤖 GRIMLOCK ${wasRobot ? 'TRANSFORM TO DINOSAUR!' : 'RETURN TO ROBOT!'}`);
+        
+        // Create transformation effect
+        this.createGrimlockTransformEffect(wasRobot);
+        
+        // Apply form-specific stats
+        if (this.grimlockForm === 'dinosaur') {
+            // Dinosaur form: slower but stronger and bigger
+            this.speed = costume.dinoSpeed || 150;
+            this.jumpPower = costume.dinoJump || 300;
+            this.damageMultiplier = costume.dinoDamage || 1.5;
+        } else {
+            // Robot form: faster and more agile
+            this.speed = costume.robotSpeed || 200;
+            this.jumpPower = 600;
+            this.damageMultiplier = costume.robotDamage || 1.0;
+        }
+        
+        // Update the visual appearance
+        this.updateGrimlockVisuals();
+        
+        // Screen shake for dramatic effect
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.02);
+        }
+    }
+    
+    updateGrimlockVisuals() {
+        // Remove existing grimlock visuals
+        if (this.grimlockVisuals) {
+            this.grimlockVisuals.forEach(visual => {
+                if (visual && visual.destroy) visual.destroy();
+            });
+        }
+        this.grimlockVisuals = [];
+        
+        if (this.grimlockForm === 'dinosaur') {
+            this.createDinosaurVisuals();
+        } else {
+            this.createRobotVisuals();
+        }
+    }
+    
+    createRobotVisuals() {
+        // Create compact robot using a Phaser container for easy positioning
+        // Grimlock Robot: Grey body, red accents, yellow details
+        
+        this.grimlockTeeth = [];
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        
+        // Robot body (main torso) - central piece everything connects to
+        this.grimlockChest = this.scene.add.rectangle(px, py, 24, 28, 0x696969);
+        this.grimlockChest.setStrokeStyle(2, 0xffd700);
+        this.grimlockChest.setDepth(51);
+        this.grimlockVisuals.push(this.grimlockChest);
+        
+        // Robot head (sits directly on top of torso)
+        this.grimlockHead = this.scene.add.rectangle(px, py - 20, 18, 14, 0x808080);
+        this.grimlockHead.setStrokeStyle(2, 0xff0000);
+        this.grimlockHead.setDepth(52);
+        this.grimlockVisuals.push(this.grimlockHead);
+        
+        // Robot visor (on the head)
+        this.grimlockVisor = this.scene.add.rectangle(px, py - 20, 14, 4, 0xffd700);
+        this.grimlockVisor.setDepth(53);
+        this.grimlockVisuals.push(this.grimlockVisor);
+        
+        // Robot arms (attached to sides of torso)
+        this.grimlockLeftArm = this.scene.add.rectangle(px - 16, py - 2, 8, 18, 0x808080);
+        this.grimlockLeftArm.setStrokeStyle(1, 0xff0000);
+        this.grimlockLeftArm.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockLeftArm);
+        
+        this.grimlockRightArm = this.scene.add.rectangle(px + 16, py - 2, 8, 18, 0x808080);
+        this.grimlockRightArm.setStrokeStyle(1, 0xff0000);
+        this.grimlockRightArm.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockRightArm);
+        
+        // Robot legs (attached to bottom of torso)
+        this.grimlockLeftLeg = this.scene.add.rectangle(px - 7, py + 20, 10, 14, 0x696969);
+        this.grimlockLeftLeg.setStrokeStyle(1, 0xffd700);
+        this.grimlockLeftLeg.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockLeftLeg);
+        
+        this.grimlockRightLeg = this.scene.add.rectangle(px + 7, py + 20, 10, 14, 0x696969);
+        this.grimlockRightLeg.setStrokeStyle(1, 0xffd700);
+        this.grimlockRightLeg.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockRightLeg);
+        
+        // Robot feet
+        this.grimlockLeftFoot = this.scene.add.rectangle(px - 7, py + 30, 12, 6, 0x808080);
+        this.grimlockLeftFoot.setStrokeStyle(1, 0xff0000);
+        this.grimlockLeftFoot.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockLeftFoot);
+        
+        this.grimlockRightFoot = this.scene.add.rectangle(px + 7, py + 30, 12, 6, 0x808080);
+        this.grimlockRightFoot.setStrokeStyle(1, 0xff0000);
+        this.grimlockRightFoot.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockRightFoot);
+        
+        // Hide the base sprite
+        if (this.sprite && this.sprite.setAlpha) {
+            this.sprite.setAlpha(0);
+        }
+        
+        console.log('🤖 Robot visuals created!');
+    }
+    
+    createDinosaurVisuals() {
+        // Create compact T-Rex dinosaur - all parts connected!
+        // Grimlock Dino: Grey body, red accents, yellow eye
+        
+        this.grimlockTeeth = [];
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        
+        // Dinosaur body (horizontal oval - the central piece)
+        this.grimlockBody = this.scene.add.ellipse(px, py, 50, 32, 0x696969);
+        this.grimlockBody.setStrokeStyle(2, 0xff0000);
+        this.grimlockBody.setDepth(51);
+        this.grimlockVisuals.push(this.grimlockBody);
+        
+        // Dinosaur head (attached to front of body)
+        this.grimlockHead = this.scene.add.ellipse(px + dir * 28, py - 8, 24, 20, 0x808080);
+        this.grimlockHead.setStrokeStyle(2, 0xff0000);
+        this.grimlockHead.setDepth(52);
+        this.grimlockVisuals.push(this.grimlockHead);
+        
+        // Snout/Jaw (attached to head)
+        this.grimlockSnout = this.scene.add.ellipse(px + dir * 42, py - 4, 16, 12, 0x808080);
+        this.grimlockSnout.setStrokeStyle(2, 0xff0000);
+        this.grimlockSnout.setDepth(52);
+        this.grimlockVisuals.push(this.grimlockSnout);
+        
+        // Dinosaur eye (on head)
+        this.grimlockEye = this.scene.add.circle(px + dir * 26, py - 12, 4, 0xffd700);
+        this.grimlockEye.setDepth(53);
+        this.grimlockVisuals.push(this.grimlockEye);
+        
+        // Pupil
+        this.grimlockPupil = this.scene.add.circle(px + dir * 27, py - 12, 2, 0x000000);
+        this.grimlockPupil.setDepth(54);
+        this.grimlockVisuals.push(this.grimlockPupil);
+        
+        // Dinosaur teeth (pointing DOWN from the snout)
+        for (let i = 0; i < 3; i++) {
+            const tooth = this.scene.add.triangle(
+                px + dir * (38 + i * 5), py + 4,
+                0, 0,      // top point
+                3, 8,      // bottom right
+                -3, 8,     // bottom left - this makes it point DOWN
+                0xffffff
+            );
+            tooth.setAngle(180); // Flip upside down so teeth point down
+            tooth.setDepth(53);
+            this.grimlockTeeth.push(tooth);
+            this.grimlockVisuals.push(tooth);
+        }
+        
+        // Dinosaur tail (attached directly to back of body - closer!)
+        this.grimlockTail = this.scene.add.polygon(
+            px - dir * 20, py,  // Moved closer to body center
+            [
+                dir * 5, -5,      // Connect to body
+                0, -4,
+                -dir * 12, -2,
+                -dir * 22, 0,
+                -dir * 12, 2,
+                0, 4,
+                dir * 5, 5         // Connect to body
+            ],
+            0x808080
+        );
+        this.grimlockTail.setStrokeStyle(2, 0xff0000);
+        this.grimlockTail.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockTail);
+        
+        // Dinosaur legs (thick, powerful, attached to bottom of body)
+        this.grimlockLeftLeg = this.scene.add.rectangle(px - 8, py + 22, 12, 20, 0x696969);
+        this.grimlockLeftLeg.setStrokeStyle(1, 0xffd700);
+        this.grimlockLeftLeg.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockLeftLeg);
+        
+        this.grimlockRightLeg = this.scene.add.rectangle(px + 8, py + 22, 12, 20, 0x696969);
+        this.grimlockRightLeg.setStrokeStyle(1, 0xffd700);
+        this.grimlockRightLeg.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockRightLeg);
+        
+        // Dinosaur feet
+        this.grimlockLeftFoot = this.scene.add.ellipse(px - 8, py + 34, 14, 6, 0x808080);
+        this.grimlockLeftFoot.setStrokeStyle(1, 0xff0000);
+        this.grimlockLeftFoot.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockLeftFoot);
+        
+        this.grimlockRightFoot = this.scene.add.ellipse(px + 8, py + 34, 14, 6, 0x808080);
+        this.grimlockRightFoot.setStrokeStyle(1, 0xff0000);
+        this.grimlockRightFoot.setDepth(50);
+        this.grimlockVisuals.push(this.grimlockRightFoot);
+        
+        // Small T-Rex arms (iconic tiny arms attached to front of body)
+        this.grimlockSmallArm = this.scene.add.ellipse(px + dir * 12, py + 2, 6, 10, 0x808080);
+        this.grimlockSmallArm.setStrokeStyle(1, 0xff0000);
+        this.grimlockSmallArm.setDepth(52);
+        this.grimlockVisuals.push(this.grimlockSmallArm);
+        
+        // Hide the base sprite
+        if (this.sprite && this.sprite.setAlpha) {
+            this.sprite.setAlpha(0);
+        }
+        
+        console.log('🦖 Dinosaur visuals created!');
+    }
+    
+    updateGrimlockVisualsPosition() {
+        // Update all grimlock visual elements to follow the sprite
+        if (!this.grimlockVisuals || this.grimlockVisuals.length === 0) return;
+        
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'grimlock') return;
+        
+        // Destroy and recreate visuals at new position (simpler approach)
+        // This handles facing direction changes too
+        this.updateGrimlockVisuals();
+    }
+    
+    updateGrimlockVisualsIfNeeded() {
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        
+        // Only update if wearing grimlock costume
+        if (currentOutfit !== 'grimlock') {
+            // Clean up grimlock visuals if we switched away
+            if (this.grimlockVisuals && this.grimlockVisuals.length > 0) {
+                this.grimlockVisuals.forEach(visual => {
+                    if (visual && visual.destroy) visual.destroy();
+                });
+                this.grimlockVisuals = [];
+                this.grimlockCurrentForm = null;
+                // Show base sprite again
+                if (this.sprite && this.sprite.setAlpha) {
+                    this.sprite.setAlpha(1);
+                }
+            }
+            return;
+        }
+        
+        // Check if we need to recreate visuals (first time, form changed, or direction changed for dino)
+        const directionChanged = this.grimlockLastFacingRight !== undefined && 
+                                 this.grimlockLastFacingRight !== this.facingRight;
+        const needsRecreate = !this.grimlockVisuals || 
+                             this.grimlockVisuals.length === 0 || 
+                             this.grimlockCurrentForm !== this.grimlockForm ||
+                             (this.grimlockForm === 'dinosaur' && directionChanged);
+        
+        if (needsRecreate) {
+            this.grimlockCurrentForm = this.grimlockForm;
+            this.grimlockLastFacingRight = this.facingRight;
+            this.updateGrimlockVisuals();
+        }
+        
+        // Update positions of all grimlock visual elements
+        if (this.grimlockVisuals && this.grimlockVisuals.length > 0) {
+            const px = this.sprite.x;
+            const py = this.sprite.y;
+            const dir = this.facingRight ? 1 : -1;
+            
+            if (this.grimlockForm === 'robot') {
+                // Update robot parts positions
+                if (this.grimlockChest) {
+                    this.grimlockChest.x = px;
+                    this.grimlockChest.y = py;
+                }
+                if (this.grimlockHead) {
+                    this.grimlockHead.x = px;
+                    this.grimlockHead.y = py - 20;
+                }
+                if (this.grimlockVisor) {
+                    this.grimlockVisor.x = px;
+                    this.grimlockVisor.y = py - 20;
+                }
+                if (this.grimlockLeftArm) {
+                    this.grimlockLeftArm.x = px - 16;
+                    this.grimlockLeftArm.y = py - 2;
+                }
+                if (this.grimlockRightArm) {
+                    this.grimlockRightArm.x = px + 16;
+                    this.grimlockRightArm.y = py - 2;
+                }
+                if (this.grimlockLeftLeg) {
+                    this.grimlockLeftLeg.x = px - 7;
+                    this.grimlockLeftLeg.y = py + 20;
+                }
+                if (this.grimlockRightLeg) {
+                    this.grimlockRightLeg.x = px + 7;
+                    this.grimlockRightLeg.y = py + 20;
+                }
+                if (this.grimlockLeftFoot) {
+                    this.grimlockLeftFoot.x = px - 7;
+                    this.grimlockLeftFoot.y = py + 30;
+                }
+                if (this.grimlockRightFoot) {
+                    this.grimlockRightFoot.x = px + 7;
+                    this.grimlockRightFoot.y = py + 30;
+                }
+            } else {
+                // Update dinosaur parts positions
+                if (this.grimlockBody) {
+                    this.grimlockBody.x = px;
+                    this.grimlockBody.y = py;
+                }
+                if (this.grimlockHead) {
+                    this.grimlockHead.x = px + dir * 28;
+                    this.grimlockHead.y = py - 8;
+                }
+                if (this.grimlockSnout) {
+                    this.grimlockSnout.x = px + dir * 42;
+                    this.grimlockSnout.y = py - 4;
+                }
+                if (this.grimlockEye) {
+                    this.grimlockEye.x = px + dir * 26;
+                    this.grimlockEye.y = py - 12;
+                }
+                if (this.grimlockPupil) {
+                    this.grimlockPupil.x = px + dir * 27;
+                    this.grimlockPupil.y = py - 12;
+                }
+                if (this.grimlockTail) {
+                    this.grimlockTail.x = px - dir * 20;
+                    this.grimlockTail.y = py;
+                }
+                if (this.grimlockLeftLeg) {
+                    this.grimlockLeftLeg.x = px - 8;
+                    this.grimlockLeftLeg.y = py + 22;
+                }
+                if (this.grimlockRightLeg) {
+                    this.grimlockRightLeg.x = px + 8;
+                    this.grimlockRightLeg.y = py + 22;
+                }
+                if (this.grimlockLeftFoot) {
+                    this.grimlockLeftFoot.x = px - 8;
+                    this.grimlockLeftFoot.y = py + 34;
+                }
+                if (this.grimlockRightFoot) {
+                    this.grimlockRightFoot.x = px + 8;
+                    this.grimlockRightFoot.y = py + 34;
+                }
+                if (this.grimlockSmallArm) {
+                    this.grimlockSmallArm.x = px + dir * 12;
+                    this.grimlockSmallArm.y = py + 2;
+                }
+                
+                // Update teeth positions
+                if (this.grimlockTeeth) {
+                    for (let i = 0; i < this.grimlockTeeth.length; i++) {
+                        const tooth = this.grimlockTeeth[i];
+                        if (tooth && tooth.active) {
+                            tooth.x = px + dir * (38 + i * 5);
+                            tooth.y = py + 4;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    createGrimlockTransformEffect(towardsDino) {
+        const x = this.sprite.x;
+        const y = this.sprite.y;
+        const colors = towardsDino 
+            ? [0x808080, 0xff0000, 0xffd700] // Robot to Dino: grey, red, yellow
+            : [0x696969, 0xcc0000, 0xdaa520]; // Dino to Robot: darker versions
+        
+        // Create energy ring expanding outward
+        const ring = this.scene.add.circle(x, y, 20, colors[0], 0);
+        ring.setStrokeStyle(4, colors[1]);
+        ring.setDepth(100);
+        
+        this.scene.tweens.add({
+            targets: ring,
+            scaleX: 3,
+            scaleY: 3,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => ring.destroy()
+        });
+        
+        // Create transformation particles
+        for (let i = 0; i < 16; i++) {
+            const angle = (Math.PI * 2 * i) / 16;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const particle = this.scene.add.circle(
+                x,
+                y,
+                5 + Math.random() * 5,
+                color,
+                0.9
+            );
+            particle.setDepth(101);
+            
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * (60 + Math.random() * 40),
+                y: y + Math.sin(angle) * (60 + Math.random() * 40),
+                alpha: 0,
+                scale: 0,
+                duration: 400 + Math.random() * 200,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+        
+        // Add transformation text
+        const transformText = this.scene.add.text(
+            x, y - 50,
+            towardsDino ? '🦖 DINO MODE!' : '🤖 ROBOT MODE!',
+            {
+                fontSize: '20px',
+                fill: '#ffd700',
+                stroke: '#000000',
+                strokeThickness: 4,
+                fontWeight: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(102);
+        
+        this.scene.tweens.add({
+            targets: transformText,
+            y: y - 80,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => transformText.destroy()
+        });
+        
+        // Flash effect with Grimlock colors
+        const flash = this.scene.add.rectangle(x, y, 60, 80, colors[2], 0.5);
+        flash.setDepth(99);
+        
+        this.scene.tweens.add({
+            targets: flash,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => flash.destroy()
+        });
+    }
+
+    handleDuckLaser() {
+        // Safety check for controls
+        if (!this.controls) {
+            return;
+        }
+        
+        // Check if player is wearing Grimlock costume
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'grimlock') {
+            return; // Only Grimlock can use duck laser
+        }
+        
+        // Check for duck laser key press (edge detection)
+        if (this.controls.isDuckLaser() && !this.previousInputs.duckLaser) {
+            this.performDuckLaser();
+        }
+    }
+
+    performDuckLaser() {
+        // Check cooldown
+        if (this.duckLaserCooldown > 0) {
+            console.log('🦆 Duck Laser on cooldown!', Math.ceil(this.duckLaserCooldown / 1000), 's remaining');
+            return;
+        }
+        
+        console.log('🦆⚡ GRIMLOCK DUCK LASER! Transforming bad titans into ducks!');
+        
+        // Set cooldown
+        this.duckLaserCooldown = this.duckLaserCooldownTime;
+        
+        // Calculate laser starting position
+        const startX = this.sprite.x + (this.facingRight ? 30 : -30);
+        const startY = this.sprite.y;
+        const direction = this.facingRight ? 1 : -1;
+        
+        // Create the duck laser beam
+        this.createDuckLaserBeam(startX, startY, direction);
+        
+        // Screen shake
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(200, 0.015);
+        }
+    }
+
+    createDuckLaserBeam(startX, startY, direction) {
+        const laserSpeed = 700;
+        const laserDistance = 600;
+        
+        // Create the laser beam (rainbow-colored for duck transformation)
+        const laserWidth = 100;
+        const laserHeight = 16;
+        
+        const laser = this.scene.add.rectangle(
+            startX, 
+            startY, 
+            laserWidth, 
+            laserHeight, 
+            0xffd700, // Yellow base
+            0.9
+        );
+        laser.setStrokeStyle(3, 0xff4500); // Orange stroke
+        laser.setDepth(100);
+        
+        // Add duck emoji glow
+        const duckEmoji = this.scene.add.text(
+            startX + (direction * 50),
+            startY,
+            '🦆',
+            { fontSize: '24px' }
+        ).setOrigin(0.5).setDepth(101);
+        
+        // Add trailing rainbow effect
+        const rainbow = this.scene.add.rectangle(
+            startX - (direction * 20),
+            startY,
+            60,
+            laserHeight,
+            0xff69b4, // Pink
+            0.6
+        );
+        rainbow.setDepth(99);
+        
+        // Add physics to the laser
+        this.scene.physics.add.existing(laser, false);
+        laser.body.setVelocityX(laserSpeed * direction);
+        laser.body.setAllowGravity(false);
+        
+        // Store reference for cleanup
+        laser.setData('startX', startX);
+        laser.setData('maxDistance', laserDistance);
+        laser.setData('direction', direction);
+        laser.setData('duckEmoji', duckEmoji);
+        laser.setData('rainbow', rainbow);
+        
+        // Update emoji position with laser
+        const updateEvent = this.scene.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (laser.active) {
+                    duckEmoji.x = laser.x + (direction * 50);
+                    duckEmoji.y = laser.y;
+                    rainbow.x = laser.x - (direction * 40);
+                    rainbow.y = laser.y;
+                    
+                    // Check if traveled max distance
+                    const traveled = Math.abs(laser.x - startX);
+                    if (traveled >= laserDistance) {
+                        this.destroyDuckLaser(laser);
+                        updateEvent.destroy();
+                    }
+                }
+            },
+            loop: true
+        });
+        
+        // Add collision with enemies to transform them into ducks
+        if (this.scene.enemies) {
+            this.scene.physics.add.overlap(
+                laser,
+                this.scene.enemies,
+                (laserSprite, enemySprite) => {
+                    const enemy = enemySprite.getData('enemy');
+                    if (enemy && enemy.health > 0 && !enemy.isDucked) {
+                        this.transformToDuck(enemy, enemySprite);
+                    }
+                }
+            );
+        }
+        
+        // Auto-destroy after 2 seconds if still active
+        this.scene.time.delayedCall(2000, () => {
+            if (laser.active) {
+                this.destroyDuckLaser(laser);
+                updateEvent.destroy();
+            }
+        });
+    }
+
+    destroyDuckLaser(laser) {
+        const duckEmoji = laser.getData('duckEmoji');
+        const rainbow = laser.getData('rainbow');
+        
+        if (duckEmoji && duckEmoji.active) {
+            duckEmoji.destroy();
+        }
+        if (rainbow && rainbow.active) {
+            rainbow.destroy();
+        }
+        if (laser.active) {
+            laser.destroy();
+        }
+    }
+
+    transformToDuck(enemy, enemySprite) {
+        console.log('🦆 Enemy transformed into a duck!');
+        
+        // Store original state
+        const originalData = {
+            enemy: enemy,
+            sprite: enemySprite,
+            originalScale: enemySprite.scaleX,
+            originalColor: enemySprite.fillColor,
+            originalSpeed: enemy.speed,
+            originalDamage: enemy.damage,
+            transformTime: Date.now()
+        };
+        
+        // Mark as ducked
+        enemy.isDucked = true;
+        enemy.canAttack = false;
+        enemy.speed = 30; // Ducks waddle slowly
+        enemy.damage = 0; // Ducks can't attack
+        
+        // Create duck visual effect
+        const duckX = enemySprite.x;
+        const duckY = enemySprite.y;
+        
+        // Hide original enemy sprite
+        enemySprite.setAlpha(0);
+        
+        // Create duck emoji sprite
+        const duck = this.scene.add.text(
+            duckX, duckY,
+            '🦆',
+            { fontSize: '40px' }
+        ).setOrigin(0.5).setDepth(enemySprite.depth);
+        
+        // Add wobble animation
+        this.scene.tweens.add({
+            targets: duck,
+            angle: { from: -10, to: 10 },
+            duration: 300,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Store duck reference
+        enemy.duckSprite = duck;
+        
+        // Add transformation burst effect
+        for (let i = 0; i < 8; i++) {
+            const feather = this.scene.add.text(
+                duckX, duckY,
+                '🪶',
+                { fontSize: '16px' }
+            ).setOrigin(0.5).setDepth(100);
+            
+            const angle = (Math.PI * 2 * i) / 8;
+            this.scene.tweens.add({
+                targets: feather,
+                x: duckX + Math.cos(angle) * 50,
+                y: duckY + Math.sin(angle) * 50,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => feather.destroy()
+            });
+        }
+        
+        // Add "QUACK!" text
+        const quackText = this.scene.add.text(
+            duckX, duckY - 40,
+            'QUACK! 🦆',
+            {
+                fontSize: '18px',
+                fill: '#ffd700',
+                stroke: '#000000',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(102);
+        
+        this.scene.tweens.add({
+            targets: quackText,
+            y: duckY - 70,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => quackText.destroy()
+        });
+        
+        // Track ducked enemy for restoration
+        this.duckedEnemies.push({
+            ...originalData,
+            duckSprite: duck,
+            restoreTime: Date.now() + 8000 // Restore after 8 seconds
+        });
+    }
+
+    updateDuckedEnemies(delta) {
+        const now = Date.now();
+        
+        // Check each ducked enemy for restoration
+        for (let i = this.duckedEnemies.length - 1; i >= 0; i--) {
+            const ducked = this.duckedEnemies[i];
+            
+            if (now >= ducked.restoreTime) {
+                this.restoreFromDuck(ducked);
+                this.duckedEnemies.splice(i, 1);
+            } else {
+                // Update duck position to follow enemy body
+                if (ducked.duckSprite && ducked.duckSprite.active && ducked.sprite && ducked.sprite.active) {
+                    ducked.duckSprite.x = ducked.sprite.x;
+                    ducked.duckSprite.y = ducked.sprite.y;
+                }
+            }
+        }
+    }
+
+    restoreFromDuck(ducked) {
+        console.log('🦆➡️👹 Duck transforming back to titan!');
+        
+        const { enemy, sprite, duckSprite, originalSpeed, originalDamage } = ducked;
+        
+        if (!enemy || !sprite || !sprite.active) {
+            // Enemy was destroyed while ducked
+            if (duckSprite && duckSprite.active) {
+                duckSprite.destroy();
+            }
+            return;
+        }
+        
+        // Restore enemy properties
+        enemy.isDucked = false;
+        enemy.canAttack = true;
+        enemy.speed = originalSpeed;
+        enemy.damage = originalDamage;
+        
+        // Show original sprite
+        sprite.setAlpha(1);
+        
+        // Destroy duck sprite
+        if (duckSprite && duckSprite.active) {
+            duckSprite.destroy();
+        }
+        enemy.duckSprite = null;
+        
+        // Create restoration effect
+        const poof = this.scene.add.text(
+            sprite.x, sprite.y,
+            '💨',
+            { fontSize: '32px' }
+        ).setOrigin(0.5).setDepth(100);
+        
+        this.scene.tweens.add({
+            targets: poof,
+            scaleX: 2,
+            scaleY: 2,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => poof.destroy()
+        });
+        
+        // Warning text
+        const warningText = this.scene.add.text(
+            sprite.x, sprite.y - 40,
+            '😠 Back to normal!',
+            {
+                fontSize: '14px',
+                fill: '#ff4444',
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5).setDepth(102);
+        
+        this.scene.tweens.add({
+            targets: warningText,
+            y: sprite.y - 60,
+            alpha: 0,
+            duration: 800,
+            onComplete: () => warningText.destroy()
+        });
+    }
+
     tryJump() {
         const canCoyoteJump = (Date.now() - this.lastGroundTime) < this.coyoteTime;
         
@@ -1646,6 +2497,10 @@ class Player {
                 // Present Dragon uses the present bomb attack directly
                 this.shootPresentBomb();
                 return; // Exit early - shootPresentBomb handles everything
+            case 'grimlockBreath':
+                // Grimlock's combined fire AND lightning breath!
+                projectile = this.createGrimlockBreathProjectile(startX, startY, costume);
+                break;
             default:
                 projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.9);
         }
@@ -2079,6 +2934,131 @@ class Player {
                 });
             },
             repeat: 12 // Trail for about 0.7 seconds
+        });
+    }
+
+    createGrimlockBreathProjectile(x, y, costume) {
+        // 🦖🔥⚡ GRIMLOCK BREATH - Combined fire AND lightning!
+        const size = costume.projectileSize;
+        
+        // Create a container for the dual-element projectile
+        const container = this.scene.add.container(x, y);
+        
+        // Fire core (orange/red fireball)
+        const fireCore = this.scene.add.circle(0, 0, size * 0.6, 0xff4500, 0.9);
+        fireCore.setStrokeStyle(2, 0xff0000);
+        
+        // Lightning ring around the fire
+        const lightningRing = this.scene.add.circle(0, 0, size * 0.8, 0xffd700, 0.6);
+        lightningRing.setStrokeStyle(3, 0xffff00);
+        
+        // Outer glow combining both elements
+        const outerGlow = this.scene.add.circle(0, 0, size, 0xff8c00, 0.3);
+        
+        container.add([outerGlow, lightningRing, fireCore]);
+        
+        // Add lightning bolt sprites around the fireball
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI * 2 * i) / 4;
+            const bolt = this.scene.add.text(
+                Math.cos(angle) * size * 0.9,
+                Math.sin(angle) * size * 0.9,
+                '⚡',
+                { fontSize: '14px' }
+            ).setOrigin(0.5);
+            container.add(bolt);
+            
+            // Rotate bolts
+            this.scene.tweens.add({
+                targets: bolt,
+                angle: 360,
+                duration: 500,
+                repeat: -1,
+                ease: 'Linear'
+            });
+        }
+        
+        // Add pulsing animation
+        this.scene.tweens.add({
+            targets: [fireCore, lightningRing],
+            scaleX: { from: 0.9, to: 1.1 },
+            scaleY: { from: 0.9, to: 1.1 },
+            duration: 150,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Add rotation animation
+        this.scene.tweens.add({
+            targets: container,
+            angle: this.facingRight ? 360 : -360,
+            duration: 600,
+            repeat: -1,
+            ease: 'Linear'
+        });
+        
+        // Create trailing fire and lightning effect
+        this.createGrimlockBreathTrail(container);
+        
+        console.log('🦖🔥⚡ GRIMLOCK BREATH! Fire AND Lightning!');
+        
+        return container;
+    }
+    
+    createGrimlockBreathTrail(breathProjectile) {
+        // Create combined fire + lightning trail
+        const trailTimer = this.scene.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (!breathProjectile || !breathProjectile.active) {
+                    trailTimer.destroy();
+                    return;
+                }
+                
+                // Alternate between fire and lightning particles
+                const isFireParticle = Math.random() > 0.5;
+                
+                if (isFireParticle) {
+                    // Fire particle (orange/red)
+                    const fireParticle = this.scene.add.circle(
+                        breathProjectile.x + (Math.random() - 0.5) * 10,
+                        breathProjectile.y + (Math.random() - 0.5) * 10,
+                        4 + Math.random() * 4,
+                        Math.random() > 0.5 ? 0xff4500 : 0xff6347,
+                        0.8
+                    );
+                    fireParticle.setDepth(95);
+                    
+                    this.scene.tweens.add({
+                        targets: fireParticle,
+                        alpha: 0,
+                        scaleX: 0.3,
+                        scaleY: 0.3,
+                        y: fireParticle.y - 10,
+                        duration: 300,
+                        onComplete: () => fireParticle.destroy()
+                    });
+                } else {
+                    // Lightning particle (yellow/gold)
+                    const lightningParticle = this.scene.add.text(
+                        breathProjectile.x + (Math.random() - 0.5) * 15,
+                        breathProjectile.y + (Math.random() - 0.5) * 15,
+                        '⚡',
+                        { fontSize: '12px' }
+                    ).setOrigin(0.5).setDepth(95);
+                    
+                    this.scene.tweens.add({
+                        targets: lightningParticle,
+                        alpha: 0,
+                        scaleX: 0.5,
+                        scaleY: 0.5,
+                        duration: 250,
+                        onComplete: () => lightningParticle.destroy()
+                    });
+                }
+            },
+            repeat: 15 // Trail for about 0.75 seconds
         });
     }
 
@@ -3046,6 +4026,8 @@ class Player {
         this.previousInputs.activate = this.controls.isActivate();
         this.previousInputs.teleport = this.controls.isTeleport();
         this.previousInputs.stoneBlast = this.controls.isStoneBlast();
+        this.previousInputs.grimlockTransform = this.controls.isGrimlockTransform();
+        this.previousInputs.duckLaser = this.controls.isDuckLaser();
     }
 
     // Power-up queue methods
@@ -4409,6 +5391,14 @@ class Player {
                 this.destroyFireball(index);
             });
             this.fireballs = [];
+        }
+        
+        // Clean up Grimlock visuals
+        if (this.grimlockVisuals) {
+            this.grimlockVisuals.forEach(visual => {
+                if (visual && visual.destroy) visual.destroy();
+            });
+            this.grimlockVisuals = [];
         }
         
         if (this.visualGroup) {

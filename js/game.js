@@ -254,6 +254,60 @@ class TaekwondoRobotBuilder {
                 laserDamage: 15, // Initial laser damage
                 boulderDamage: 50, // Explosion damage
                 boulderRadius: 80 // Explosion radius
+            },
+            'grimlock': {
+                name: 'Dino Grimlock',
+                icon: '🦖🤖',
+                primaryColor: 0x808080, // Grey
+                secondaryColor: 0xff0000, // Red
+                beltColor: 0xffd700, // Yellow/Gold
+                description: 'GRIMLOCK STRONGEST! Press 2 to transform! Breathes fire AND lightning!',
+                unlockCondition: 'Complete Level 2',
+                effectColor: 0xff4500, // Orange-red particles
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x808080, // Grey wings
+                wingStyle: 'mechanical', // Robot-style wings
+                wingTipColor: 0xff0000, // Red tips
+                // Grimlock Dual Projectile - Fire AND Lightning combined!
+                projectileEnabled: true,
+                projectileType: 'grimlockBreath',
+                projectileColor: 0xff4500, // Fire orange
+                projectileSecondaryColor: 0xffd700, // Lightning yellow
+                projectileDamage: 28, // High damage - combination of fire + lightning
+                projectileSpeed: 600,
+                projectileSize: 24,
+                projectileEffect: 'burnChain', // Burns AND chains to nearby enemies
+                // Special Grimlock Dragon traits
+                isGrimlockDragon: true,
+                canTransform: true, // Press 2 to transform
+                transformKey: 'Digit2', // The 2 key
+                currentForm: 'robot', // Starts as robot, can become 'dinosaur'
+                // Robot form stats
+                robotSpeed: 200,
+                robotJump: 400,
+                robotDamage: 1.0,
+                // Dinosaur form stats (stronger but slower)
+                dinoSpeed: 150,
+                dinoJump: 300,
+                dinoDamage: 1.5, // 50% more damage in dino form
+                dinoSize: 1.3, // 30% bigger in dino form
+                // Duck Laser special - transforms bad titans into ducks!
+                duckLaserEnabled: true,
+                duckLaserCooldown: 5000, // 5 second cooldown
+                duckLaserKey: 'KeyL', // L for laser
+                duckDuration: 8000, // Ducks stay as ducks for 8 seconds
+                // Form colors
+                robotColors: {
+                    primary: 0x808080, // Grey
+                    secondary: 0xff0000, // Red
+                    accent: 0xffd700 // Yellow
+                },
+                dinoColors: {
+                    primary: 0x696969, // Darker grey
+                    secondary: 0xcc0000, // Darker red
+                    accent: 0xdaa520 // Goldenrod
+                }
             }
         };
 
@@ -537,6 +591,21 @@ class TaekwondoRobotBuilder {
                 newUnlocks.push('present');
                 console.log('🎁🐉 PRESENT DRAGON UNLOCKED! Throw presents that summon dragon allies!');
             }
+        }
+        
+        // Dino Grimlock - Complete Level 2
+        console.log('🦖 Checking Grimlock unlock - currentLevel:', this.gameData.currentLevel, 'need >= 3, already unlocked:', this.gameData.outfits.unlocked.includes('grimlock'));
+        console.log('🦖 Current unlocked outfits:', this.gameData.outfits.unlocked);
+        if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('grimlock')) {
+            console.log('🦖 Condition passed! Calling unlockOutfit...');
+            const result = this.unlockOutfit('grimlock');
+            console.log('🦖 unlockOutfit result:', result);
+            if (result) {
+                newUnlocks.push('grimlock');
+                console.log('🦖🤖 DINO GRIMLOCK UNLOCKED! Press 2 to transform! L for duck laser!');
+            }
+        } else {
+            console.log('🦖 Condition FAILED - level check:', this.gameData.currentLevel >= 3, 'not already unlocked:', !this.gameData.outfits.unlocked.includes('grimlock'));
         }
         
         // Legendary Mode - Collect all robot parts (5 part types, need at least 1 of each)
