@@ -728,8 +728,8 @@ class Player {
                 }
             }
             
-            // Punch shoots laser eyes
-            if (this.controls.isPunch() && !this.previousInputs.punch) {
+            // Punch shoots laser eyes (unless costume disables it)
+            if (this.controls.isPunch() && !this.previousInputs.punch && !costume.noLaserEyes) {
                 this.shootLaserEyes();
             }
         } else {
@@ -6339,6 +6339,30 @@ class Player {
                 if (visual && visual.destroy) visual.destroy();
             });
             this.grimlockVisuals = [];
+        }
+        
+        // Clean up Bumblebee visuals
+        if (this.bumblebeeVisuals) {
+            this.bumblebeeVisuals.forEach(visual => {
+                if (visual && visual.destroy) visual.destroy();
+            });
+            this.bumblebeeVisuals = [];
+        }
+        
+        // Clean up Hot Rod visuals
+        if (this.hotrodVisuals) {
+            this.hotrodVisuals.forEach(visual => {
+                if (visual && visual.destroy) visual.destroy();
+            });
+            this.hotrodVisuals = [];
+        }
+        
+        // Clean up Elita visuals
+        if (this.elitaVisuals) {
+            this.elitaVisuals.forEach(visual => {
+                if (visual && visual.destroy) visual.destroy();
+            });
+            this.elitaVisuals = [];
         }
         
         if (this.visualGroup) {

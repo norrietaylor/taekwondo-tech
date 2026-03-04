@@ -404,6 +404,7 @@ class TaekwondoRobotBuilder {
                 wingStyle: 'mechanical',
                 wingTipColor: 0xe91e8c,
                 projectileEnabled: true,
+                noLaserEyes: true,
                 projectileType: 'elitaDogBullet',
                 projectileColor: 0x8d6e63,
                 projectileSecondaryColor: 0x5d4037,
