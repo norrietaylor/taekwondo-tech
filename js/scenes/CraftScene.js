@@ -645,7 +645,7 @@ class CraftScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(151);
         
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
         console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
         console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
@@ -939,6 +939,12 @@ class CraftScene extends Phaser.Scene {
             case 'bumblebee':
                 // Unlock after completing level 3
                 return gameData.currentLevel >= 4;
+            case 'hotrod':
+                // Unlock after completing level 2
+                return gameData.currentLevel >= 3;
+            case 'elita':
+                // Unlock after completing level 4
+                return gameData.currentLevel >= 5;
             case 'legendary':
                 // Unlock after collecting all 5 robot part types
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
@@ -978,6 +984,10 @@ class CraftScene extends Phaser.Scene {
                 return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
             case 'bumblebee':
                 return `🔒 Complete Level 3 (Current: Level ${gameData.currentLevel})`;
+            case 'hotrod':
+                return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
+            case 'elita':
+                return `🔒 Complete Level 4 (Current: Level ${gameData.currentLevel})`;
             case 'legendary':
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
                 const collectedTypes = partTypes.filter(type => 

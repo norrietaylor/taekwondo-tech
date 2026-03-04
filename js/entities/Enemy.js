@@ -161,8 +161,7 @@ class Enemy {
                 break;
                 
             case 'stunned':
-                // Do nothing, just wait for stun to end
-                if (time - this.lastStateChange > 1000) {
+                if (time >= (this.stunEndTime || this.lastStateChange + 1000)) {
                     this.changeState('chase');
                 }
                 break;
@@ -244,7 +243,18 @@ class Enemy {
     changeState(newState) {
         this.state = newState;
         this.lastStateChange = this.scene.time.now;
+        if (newState === 'stunned') {
+            const duration = this.pendingStunDuration !== undefined ? this.pendingStunDuration : 1000;
+            this.stunEndTime = this.scene.time.now + duration;
+            this.pendingStunDuration = undefined;
+        }
         console.log(`Enemy state changed to: ${newState}`);
+    }
+
+    applySonicStun(durationMs) {
+        if (this.health <= 0) return;
+        this.pendingStunDuration = durationMs;
+        this.changeState('stunned');
     }
 
     takeDamage(amount, damageType = 'combat') {
@@ -259,7 +269,7 @@ class Enemy {
         this.flashTimer = 200;
         
         // Stun briefly when hit (less for stomps since they usually kill)
-        const stunDuration = damageType === 'stomp' ? 100 : 500;
+        this.pendingStunDuration = damageType === 'stomp' ? 100 : 500;
         this.changeState('stunned');
         
         console.log(`Enemy took ${amount} ${damageType} damage. Health: ${this.health}/${this.maxHealth}`);
