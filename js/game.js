@@ -423,6 +423,42 @@ class TaekwondoRobotBuilder {
                 bikeDamage: 0.95,
                 robotColors: { primary: 0xe91e8c, secondary: 0xffffff, accent: 0x4a148c },
                 bikeColors: { primary: 0xc2185b, secondary: 0x2d2d2d, accent: 0xe91e8c }
+            },
+            'portalbot': {
+                name: 'Portal Bot',
+                icon: '🌀🤖',
+                primaryColor: 0x7b1fa2,
+                secondaryColor: 0x00e5ff,
+                beltColor: 0x6a1b9a,
+                description: 'Portal Bot! Press 2 to transform into a dragon! Shoot portals to teleport!',
+                unlockCondition: 'Complete Level 2',
+                effectColor: 0x00e5ff,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x00e5ff,
+                wingStyle: 'mechanical',
+                wingTipColor: 0x7b1fa2,
+                projectileEnabled: true,
+                projectileType: 'portal',
+                projectileColor: 0x7b1fa2,
+                projectileSecondaryColor: 0x00e5ff,
+                projectileDamage: 15,
+                projectileSpeed: 400,
+                projectileSize: 20,
+                projectileEffect: 'teleport',
+                isPortalBot: true,
+                canTransform: true,
+                transformKey: 'Digit2',
+                currentForm: 'robot',
+                robotSpeed: 200,
+                robotJump: 420,
+                robotDamage: 1.0,
+                dragonSpeed: 170,
+                dragonJump: 350,
+                dragonDamage: 1.4,
+                dragonSize: 1.25,
+                robotColors: { primary: 0x7b1fa2, secondary: 0x00e5ff, accent: 0xb0bec5 },
+                dragonColors: { primary: 0x7b1fa2, secondary: 0x00e5ff, accent: 0xe040fb }
             }
         };
 
@@ -746,7 +782,15 @@ class TaekwondoRobotBuilder {
                 console.log('🏍️🤖 ELITA UNLOCKED! Press 2 to transform! Guns shoot dog bullets!');
             }
         }
-        
+
+        // Portal Bot - Complete Level 2 (robot/dragon transformer, shoots portals to teleport)
+        if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('portalbot')) {
+            if (this.unlockOutfit('portalbot')) {
+                newUnlocks.push('portalbot');
+                console.log('🌀🤖 PORTAL BOT UNLOCKED! Press 2 to transform! Shoot portals to teleport!');
+            }
+        }
+
         // Legendary Mode - Collect all robot parts (5 part types, need at least 1 of each)
         const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
         const allPartsCollected = partTypes.every(type => 
