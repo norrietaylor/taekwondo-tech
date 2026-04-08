@@ -582,7 +582,31 @@ class CraftScene extends Phaser.Scene {
         bananaButton.on('pointerdown', () => {
             this.showBananaModeMenu();
         });
-        
+
+        // 🟡 Pac-Man Mode button (always available, like Banana Mode)
+        if (typeof PacManScene !== 'undefined') {
+            const pacmanButton = this.add.text(250, 150, '🟡 Pac-Man Mode', {
+                fontSize: '18px',
+                fill: '#000000',
+                backgroundColor: '#FFFF00',
+                padding: { x: 15, y: 8 }
+            }).setInteractive({ useHandCursor: true }).setDepth(50);
+
+            pacmanButton.on('pointerover', () => {
+                pacmanButton.setScale(1.05);
+                pacmanButton.setStyle({ backgroundColor: '#FFDD00' });
+            });
+
+            pacmanButton.on('pointerout', () => {
+                pacmanButton.setScale(1.0);
+                pacmanButton.setStyle({ backgroundColor: '#FFFF00' });
+            });
+
+            pacmanButton.on('pointerdown', () => {
+                this.startPacManMode();
+            });
+        }
+
         // Continue to next level (if applicable)
         if (window.gameInstance.gameData.currentLevel <= 6) {
             const continueButton = this.add.text(
@@ -1261,6 +1285,24 @@ class CraftScene extends Phaser.Scene {
         
         closeBtn.on('pointerover', () => closeBtn.setScale(1.05));
         closeBtn.on('pointerout', () => closeBtn.setScale(1.0));
+    }
+
+    startPacManMode() {
+        console.log('🟡 Starting Pac-Man Mode...');
+
+        if (window.gameInstance && window.gameInstance.requestFullscreen) {
+            window.gameInstance.requestFullscreen();
+        }
+
+        this.cameras.main.fadeOut(500, 0, 0, 0); // Black fade for pac-man theme
+
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            const currentLevel = window.gameInstance ? window.gameInstance.gameData.currentLevel : 1;
+            this.scene.start('PacManScene', {
+                previousLevel: currentLevel - 1,
+                nextLevel: currentLevel
+            });
+        });
     }
 
     startBananaSurvival() {
