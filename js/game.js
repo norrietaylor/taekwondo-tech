@@ -423,6 +423,65 @@ class TaekwondoRobotBuilder {
                 bikeDamage: 0.95,
                 robotColors: { primary: 0xe91e8c, secondary: 0xffffff, accent: 0x4a148c },
                 bikeColors: { primary: 0xc2185b, secondary: 0x2d2d2d, accent: 0xe91e8c }
+            },
+            'portalbot': {
+                name: 'Portal Bot',
+                icon: '🌀🤖',
+                primaryColor: 0x7b1fa2,
+                secondaryColor: 0x00e5ff,
+                beltColor: 0x6a1b9a,
+                description: 'Portal Bot! Press 2 to transform into a dragon! Shoot portals to teleport!',
+                unlockCondition: 'Complete Level 2',
+                effectColor: 0x00e5ff,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0x00e5ff,
+                wingStyle: 'mechanical',
+                wingTipColor: 0x7b1fa2,
+                projectileEnabled: true,
+                projectileType: 'portal',
+                projectileColor: 0x7b1fa2,
+                projectileSecondaryColor: 0x00e5ff,
+                projectileDamage: 15,
+                projectileSpeed: 400,
+                projectileSize: 20,
+                projectileEffect: 'teleport',
+                isPortalBot: true,
+                canTransform: true,
+                transformKey: 'Digit2',
+                currentForm: 'robot',
+                robotSpeed: 200,
+                robotJump: 420,
+                robotDamage: 1.0,
+                dragonSpeed: 170,
+                dragonJump: 350,
+                dragonDamage: 1.4,
+                dragonSize: 1.25,
+                robotColors: { primary: 0x7b1fa2, secondary: 0x00e5ff, accent: 0xb0bec5 },
+                dragonColors: { primary: 0x7b1fa2, secondary: 0x00e5ff, accent: 0xe040fb }
+            },
+            'pacman': {
+                name: 'Pac-Man Dragon',
+                icon: '🟡',
+                primaryColor: 0xFFFF00,
+                secondaryColor: 0xFFD700,
+                beltColor: 0x2121DE,
+                description: 'Waka waka! The classic dot-chomper joins the fight',
+                unlockCondition: 'Complete all 3 Pac-Man levels',
+                effectColor: 0xFFFF00,
+                unlocked: false,
+                hasWings: true,
+                wingColor: 0xFFFF00,
+                wingStyle: 'round',
+                wingTipColor: 0xFFD700,
+                projectileEnabled: true,
+                projectileType: 'pellet',
+                projectileColor: 0xFFFF00,
+                projectileSecondaryColor: 0xFFFFFF,
+                projectileDamage: 22,
+                projectileSpeed: 550,
+                projectileSize: 14,
+                projectileEffect: 'chomp'
             }
         };
 
@@ -465,17 +524,17 @@ class TaekwondoRobotBuilder {
                 console.log('GameScene:', typeof GameScene);
                 console.log('CraftScene:', typeof CraftScene);
                 console.log('BananaSurvivalScene:', typeof BananaSurvivalScene);
-                console.log('BananaBonusScene:', typeof BananaBonusScene);
-                
-                // Build scenes array, only include banana scenes if they exist
+                console.log('PacManScene:', typeof PacManScene);
+
+                // Build scenes array, only include optional scenes if they exist
                 const scenes = [MenuScene, GameScene, CraftScene];
                 if (typeof BananaSurvivalScene !== 'undefined') {
                     scenes.push(BananaSurvivalScene);
                     console.log('🍌 BananaSurvivalScene added');
                 }
-                if (typeof BananaBonusScene !== 'undefined') {
-                    scenes.push(BananaBonusScene);
-                    console.log('🍌 BananaBonusScene added');
+                if (typeof PacManScene !== 'undefined') {
+                    scenes.push(PacManScene);
+                    console.log('🟡 PacManScene added');
                 }
                 return scenes;
             })()
@@ -814,89 +873,21 @@ class TaekwondoRobotBuilder {
     nextLevel() {
         console.log('🚀 nextLevel() called!');
         console.log('Current level before increment:', this.gameData.currentLevel);
-        
+
         const previousLevel = this.gameData.currentLevel;
         this.gameData.currentLevel++;
         console.log('Current level after increment:', this.gameData.currentLevel);
-        
+
         this.saveGameData();
         console.log('Game data saved');
-        
+
         if (this.gameData.currentLevel > 6) {
             console.log('🎊 Game completed! All levels finished');
             this.completeGame();
         } else {
-            // Check if banana bonus stage should be played
-            // Banana bonus appears after every level if enabled
-            if (this.shouldShowBananaBonus(previousLevel)) {
-                console.log('🍌 Starting Banana Bonus Stage!');
-                this.game.scene.start('BananaBonusScene', {
-                    previousLevel: previousLevel,
-                    nextLevel: this.gameData.currentLevel
-                });
-            } else {
-                console.log('🎨 Starting CraftScene for level', this.gameData.currentLevel);
-                this.game.scene.start('CraftScene');
-            }
+            console.log('🎨 Starting CraftScene for level', this.gameData.currentLevel);
+            this.game.scene.start('CraftScene');
         }
-    }
-
-    // Check if banana bonus stage should be shown
-    shouldShowBananaBonus(completedLevel) {
-        // Banana bonus appears after levels 1, 2, and 3 (50% chance)
-        // Level 4 has 75% chance, making it progressively more likely
-        if (typeof BananaBonusScene === 'undefined') {
-            return false; // Scene not loaded
-        }
-        
-        // Check if banana mode is enabled in settings
-        if (this.gameData.settings.bananaBonusEnabled === false) {
-            return false;
-        }
-        
-        // Probability based on level
-        const probability = {
-            1: 0.4,  // 40% after level 1
-            2: 0.5,  // 50% after level 2
-            3: 0.6,  // 60% after level 3
-            4: 0.75  // 75% after level 4
-        };
-        
-        const chance = probability[completedLevel] || 0.5;
-        const roll = Math.random();
-        
-        console.log(`🍌 Banana bonus roll: ${roll.toFixed(2)} vs ${chance} (level ${completedLevel})`);
-        
-        return roll < chance;
-    }
-
-    // Check if banana bonus stage should be shown
-    shouldShowBananaBonus(completedLevel) {
-        // Banana bonus appears after levels 1, 2, and 3 (50% chance)
-        // Level 4 has 75% chance, making it progressively more likely
-        if (typeof BananaBonusScene === 'undefined') {
-            return false; // Scene not loaded
-        }
-        
-        // Check if banana mode is enabled in settings
-        if (this.gameData.settings.bananaBonusEnabled === false) {
-            return false;
-        }
-        
-        // Probability based on level
-        const probability = {
-            1: 0.4,  // 40% after level 1
-            2: 0.5,  // 50% after level 2
-            3: 0.6,  // 60% after level 3
-            4: 0.75  // 75% after level 4
-        };
-        
-        const chance = probability[completedLevel] || 0.5;
-        const roll = Math.random();
-        
-        console.log(`🍌 Banana bonus roll: ${roll.toFixed(2)} vs ${chance} (level ${completedLevel})`);
-        
-        return roll < chance;
     }
 
     completeGame() {
