@@ -669,7 +669,7 @@ class CraftScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(151);
         
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'bmwBouncer', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
         console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
         console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
@@ -969,6 +969,9 @@ class CraftScene extends Phaser.Scene {
             case 'elita':
                 // Unlock after completing level 4
                 return gameData.currentLevel >= 5;
+            case 'bmwBouncer':
+                // Available from start
+                return true;
             case 'legendary':
                 // Unlock after collecting all 5 robot part types
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];

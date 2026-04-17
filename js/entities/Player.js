@@ -196,7 +196,16 @@ class Player {
         this.elitaLastFacingRight = null;
         this.elitaTransformCooldown = 0;
         this.elitaTransformCooldownTime = 1000;
-        
+        // BMW Bouncer transformation (race car / robot) - trampolines + nets
+        this.bmwBouncerForm = 'robot';
+        this.bmwBouncerVisuals = [];
+        this.bmwBouncerCurrentForm = null;
+        this.bmwBouncerLastFacingRight = null;
+        this.bmwBouncerTransformCooldown = 0;
+        this.bmwBouncerTransformCooldownTime = 1000;
+        this.bounceSlamCooldown = 0;
+        this.bounceSlamCooldownTime = 6000;
+
         // Visual effects
         this.attackEffect = null;
         this.footstepTimer = 0;
@@ -435,7 +444,7 @@ class Player {
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         
         // Hide wings for Grimlock/Bumblebee/Hot Rod (have their own visuals) or if costume doesn't have them
-        if (currentOutfit === 'grimlock' || currentOutfit === 'bumblebee' || currentOutfit === 'hotrod' || currentOutfit === 'elita' || !costume.hasWings) {
+        if (currentOutfit === 'grimlock' || currentOutfit === 'bumblebee' || currentOutfit === 'hotrod' || currentOutfit === 'elita' || currentOutfit === 'bmwBouncer' || !costume.hasWings) {
             this.leftWing.setVisible(false);
             this.rightWing.setVisible(false);
             return;
@@ -566,6 +575,7 @@ class Player {
         this.updateBumblebeeVisualsIfNeeded();
         this.updateHotrodVisualsIfNeeded();
         this.updateElitaVisualsIfNeeded();
+        this.updateBmwBouncerVisualsIfNeeded();
         
         // Update grounded state
         this.updateGroundedState();
@@ -634,7 +644,13 @@ class Player {
         if (this.elitaTransformCooldown > 0) {
             this.elitaTransformCooldown -= delta;
         }
-        
+        if (this.bmwBouncerTransformCooldown > 0) {
+            this.bmwBouncerTransformCooldown -= delta;
+        }
+        if (this.bounceSlamCooldown > 0) {
+            this.bounceSlamCooldown -= delta;
+        }
+
         // Update ducked enemies (restore them after duration)
         this.updateDuckedEnemies(delta);
         // Update dogged enemies (restore them after duration)
@@ -785,6 +801,9 @@ class Player {
         this.handleHotrodLaughter();
         // Elita special abilities (no lasers, gun = dog bullets)
         this.handleElitaTransform();
+        // BMW Bouncer special abilities (transform + L = bounce slam)
+        this.handleBmwBouncerTransform();
+        this.handleBmwBouncerBounceSlam();
     }
 
     handleStoneBlast() {
@@ -2726,12 +2745,346 @@ class Player {
         }
     }
 
+    // ============================================
+    // BMW BOUNCER TRANSFORMER (BMW CSL 3.0 M / Robot) - Trampolines + Nets + Bounce Slam
+    // ============================================
+
+    handleBmwBouncerTransform() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'bmwBouncer') return;
+        if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
+            this.performBmwBouncerTransform();
+        }
+    }
+
+    performBmwBouncerTransform() {
+        if (this.bmwBouncerTransformCooldown > 0) return;
+        this.bmwBouncerTransformCooldown = this.bmwBouncerTransformCooldownTime;
+        const costume = this.getDragonCostume();
+        const wasRobot = this.bmwBouncerForm === 'robot';
+        this.bmwBouncerForm = wasRobot ? 'car' : 'robot';
+        this.createBmwBouncerTransformEffect(wasRobot);
+        if (this.bmwBouncerForm === 'car') {
+            this.speed = costume.carSpeed || 330;
+            this.jumpPower = costume.carJump || 370;
+            this.damageMultiplier = costume.carDamage || 0.9;
+        } else {
+            this.speed = costume.robotSpeed || 205;
+            this.jumpPower = costume.robotJump || 420;
+            this.damageMultiplier = costume.robotDamage || 1.0;
+        }
+        this.updateBmwBouncerVisuals();
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.02);
+        }
+    }
+
+    updateBmwBouncerVisuals() {
+        if (this.bmwBouncerVisuals && this.bmwBouncerVisuals.length > 0) {
+            this.bmwBouncerVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+        }
+        this.bmwBouncerVisuals = [];
+        if (this.bmwBouncerForm === 'car') {
+            this.createBmwBouncerCarVisuals();
+        } else {
+            this.createBmwBouncerRobotVisuals();
+        }
+    }
+
+    createBmwBouncerRobotVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const white = 0xffffff;
+        const blue = 0x0066b2;
+        const violet = 0x6e27c5;
+        const red = 0xe22400;
+        const chest = this.scene.add.rectangle(px, py, 24, 28, white);
+        chest.setStrokeStyle(2, blue);
+        chest.setDepth(51);
+        this.bmwBouncerVisuals.push(chest);
+        this.bmwBouncerChest = chest;
+        // M stripes on chest
+        const stripeBlue = this.scene.add.rectangle(px - 6, py, 4, 28, blue);
+        stripeBlue.setDepth(52);
+        this.bmwBouncerVisuals.push(stripeBlue);
+        this.bmwBouncerStripeBlue = stripeBlue;
+        const stripeViolet = this.scene.add.rectangle(px, py, 4, 28, violet);
+        stripeViolet.setDepth(52);
+        this.bmwBouncerVisuals.push(stripeViolet);
+        this.bmwBouncerStripeViolet = stripeViolet;
+        const stripeRed = this.scene.add.rectangle(px + 6, py, 4, 28, red);
+        stripeRed.setDepth(52);
+        this.bmwBouncerVisuals.push(stripeRed);
+        this.bmwBouncerStripeRed = stripeRed;
+        const head = this.scene.add.rectangle(px, py - 20, 18, 14, white);
+        head.setStrokeStyle(2, blue);
+        head.setDepth(52);
+        this.bmwBouncerVisuals.push(head);
+        this.bmwBouncerHead = head;
+        const visor = this.scene.add.rectangle(px, py - 20, 14, 4, blue);
+        visor.setDepth(53);
+        this.bmwBouncerVisuals.push(visor);
+        this.bmwBouncerVisor = visor;
+        const leftArm = this.scene.add.rectangle(px - 16, py - 2, 8, 18, white);
+        leftArm.setStrokeStyle(1, blue);
+        leftArm.setDepth(50);
+        this.bmwBouncerVisuals.push(leftArm);
+        this.bmwBouncerLeftArm = leftArm;
+        const rightArm = this.scene.add.rectangle(px + 16, py - 2, 8, 18, white);
+        rightArm.setStrokeStyle(1, blue);
+        rightArm.setDepth(50);
+        this.bmwBouncerVisuals.push(rightArm);
+        this.bmwBouncerRightArm = rightArm;
+        const leftLeg = this.scene.add.rectangle(px - 7, py + 20, 10, 14, blue);
+        leftLeg.setStrokeStyle(1, white);
+        leftLeg.setDepth(50);
+        this.bmwBouncerVisuals.push(leftLeg);
+        this.bmwBouncerLeftLeg = leftLeg;
+        const rightLeg = this.scene.add.rectangle(px + 7, py + 20, 10, 14, red);
+        rightLeg.setStrokeStyle(1, white);
+        rightLeg.setDepth(50);
+        this.bmwBouncerVisuals.push(rightLeg);
+        this.bmwBouncerRightLeg = rightLeg;
+        const leftFoot = this.scene.add.rectangle(px - 7, py + 30, 12, 6, 0x222222);
+        leftFoot.setStrokeStyle(1, blue);
+        leftFoot.setDepth(50);
+        this.bmwBouncerVisuals.push(leftFoot);
+        this.bmwBouncerLeftFoot = leftFoot;
+        const rightFoot = this.scene.add.rectangle(px + 7, py + 30, 12, 6, 0x222222);
+        rightFoot.setStrokeStyle(1, red);
+        rightFoot.setDepth(50);
+        this.bmwBouncerVisuals.push(rightFoot);
+        this.bmwBouncerRightFoot = rightFoot;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createBmwBouncerCarVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        const white = 0xffffff;
+        const blue = 0x0066b2;
+        const violet = 0x6e27c5;
+        const red = 0xe22400;
+        // CSL 3.0 M low-slung body
+        const body = this.scene.add.ellipse(px, py, 52, 20, white);
+        body.setStrokeStyle(2, 0x111111);
+        body.setDepth(51);
+        this.bmwBouncerVisuals.push(body);
+        this.bmwBouncerBody = body;
+        const hood = this.scene.add.ellipse(px + dir * 22, py - 2, 18, 10, white);
+        hood.setStrokeStyle(2, 0x111111);
+        hood.setDepth(52);
+        this.bmwBouncerVisuals.push(hood);
+        this.bmwBouncerHood = hood;
+        const roof = this.scene.add.ellipse(px - dir * 4, py - 10, 22, 10, white);
+        roof.setStrokeStyle(2, 0x111111);
+        roof.setDepth(52);
+        this.bmwBouncerVisuals.push(roof);
+        this.bmwBouncerRoof = roof;
+        const spoiler = this.scene.add.rectangle(px - dir * 24, py - 6, 6, 8, 0x111111);
+        spoiler.setDepth(52);
+        this.bmwBouncerVisuals.push(spoiler);
+        this.bmwBouncerSpoiler = spoiler;
+        const wheel1 = this.scene.add.circle(px - dir * 20, py + 10, 8, 0x111111);
+        wheel1.setStrokeStyle(2, 0x444444);
+        wheel1.setDepth(50);
+        this.bmwBouncerVisuals.push(wheel1);
+        this.bmwBouncerWheel1 = wheel1;
+        const wheel2 = this.scene.add.circle(px + dir * 20, py + 10, 8, 0x111111);
+        wheel2.setStrokeStyle(2, 0x444444);
+        wheel2.setDepth(50);
+        this.bmwBouncerVisuals.push(wheel2);
+        this.bmwBouncerWheel2 = wheel2;
+        // BMW M livery stripes along the side
+        const stripeBlue = this.scene.add.rectangle(px - 10, py - 4, 14, 3, blue);
+        stripeBlue.setDepth(53);
+        this.bmwBouncerVisuals.push(stripeBlue);
+        this.bmwBouncerLiveryBlue = stripeBlue;
+        const stripeViolet = this.scene.add.rectangle(px + 4, py - 4, 14, 3, violet);
+        stripeViolet.setDepth(53);
+        this.bmwBouncerVisuals.push(stripeViolet);
+        this.bmwBouncerLiveryViolet = stripeViolet;
+        const stripeRed = this.scene.add.rectangle(px + 18, py - 4, 14, 3, red);
+        stripeRed.setDepth(53);
+        this.bmwBouncerVisuals.push(stripeRed);
+        this.bmwBouncerLiveryRed = stripeRed;
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createBmwBouncerTransformEffect(towardsCar) {
+        const x = this.sprite.x;
+        const y = this.sprite.y;
+        const colors = [0x0066b2, 0x6e27c5, 0xe22400];
+        for (let i = 0; i < 3; i++) {
+            const ring = this.scene.add.circle(x, y, 18 + i * 4, colors[i], 0);
+            ring.setStrokeStyle(3, colors[i]);
+            ring.setDepth(100);
+            this.scene.tweens.add({
+                targets: ring,
+                scaleX: 3, scaleY: 3, alpha: 0,
+                duration: 500,
+                delay: i * 50,
+                onComplete: () => ring.destroy()
+            });
+        }
+        const transformText = this.scene.add.text(x, y - 50,
+            towardsCar ? '🏁 CSL 3.0 M MODE!' : '🤖 ROBOT MODE!',
+            { fontSize: '18px', fill: '#ffffff', stroke: '#0066b2', strokeThickness: 4, fontWeight: 'bold' }
+        ).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: transformText,
+            y: y - 80, alpha: 0,
+            duration: 1000,
+            onComplete: () => transformText.destroy()
+        });
+    }
+
+    updateBmwBouncerVisualsIfNeeded() {
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'bmwBouncer') {
+            if (this.bmwBouncerVisuals && this.bmwBouncerVisuals.length > 0) {
+                this.bmwBouncerVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+                this.bmwBouncerVisuals = [];
+                this.bmwBouncerCurrentForm = null;
+                if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(1);
+            }
+            return;
+        }
+        const directionChanged = this.bmwBouncerLastFacingRight !== undefined && this.bmwBouncerLastFacingRight !== this.facingRight;
+        const needsRecreate = !this.bmwBouncerVisuals || this.bmwBouncerVisuals.length === 0 ||
+            this.bmwBouncerCurrentForm !== this.bmwBouncerForm ||
+            (this.bmwBouncerForm === 'car' && directionChanged);
+        if (needsRecreate) {
+            this.bmwBouncerCurrentForm = this.bmwBouncerForm;
+            this.bmwBouncerLastFacingRight = this.facingRight;
+            this.updateBmwBouncerVisuals();
+        }
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        if (this.bmwBouncerVisuals && this.bmwBouncerVisuals.length > 0) {
+            if (this.bmwBouncerForm === 'robot') {
+                if (this.bmwBouncerChest) { this.bmwBouncerChest.x = px; this.bmwBouncerChest.y = py; }
+                if (this.bmwBouncerStripeBlue) { this.bmwBouncerStripeBlue.x = px - 6; this.bmwBouncerStripeBlue.y = py; }
+                if (this.bmwBouncerStripeViolet) { this.bmwBouncerStripeViolet.x = px; this.bmwBouncerStripeViolet.y = py; }
+                if (this.bmwBouncerStripeRed) { this.bmwBouncerStripeRed.x = px + 6; this.bmwBouncerStripeRed.y = py; }
+                if (this.bmwBouncerHead) { this.bmwBouncerHead.x = px; this.bmwBouncerHead.y = py - 20; }
+                if (this.bmwBouncerVisor) { this.bmwBouncerVisor.x = px; this.bmwBouncerVisor.y = py - 20; }
+                if (this.bmwBouncerLeftArm) { this.bmwBouncerLeftArm.x = px - 16; this.bmwBouncerLeftArm.y = py - 2; }
+                if (this.bmwBouncerRightArm) { this.bmwBouncerRightArm.x = px + 16; this.bmwBouncerRightArm.y = py - 2; }
+                if (this.bmwBouncerLeftLeg) { this.bmwBouncerLeftLeg.x = px - 7; this.bmwBouncerLeftLeg.y = py + 20; }
+                if (this.bmwBouncerRightLeg) { this.bmwBouncerRightLeg.x = px + 7; this.bmwBouncerRightLeg.y = py + 20; }
+                if (this.bmwBouncerLeftFoot) { this.bmwBouncerLeftFoot.x = px - 7; this.bmwBouncerLeftFoot.y = py + 30; }
+                if (this.bmwBouncerRightFoot) { this.bmwBouncerRightFoot.x = px + 7; this.bmwBouncerRightFoot.y = py + 30; }
+            } else {
+                if (this.bmwBouncerBody) { this.bmwBouncerBody.x = px; this.bmwBouncerBody.y = py; }
+                if (this.bmwBouncerHood) { this.bmwBouncerHood.x = px + dir * 22; this.bmwBouncerHood.y = py - 2; }
+                if (this.bmwBouncerRoof) { this.bmwBouncerRoof.x = px - dir * 4; this.bmwBouncerRoof.y = py - 10; }
+                if (this.bmwBouncerSpoiler) { this.bmwBouncerSpoiler.x = px - dir * 24; this.bmwBouncerSpoiler.y = py - 6; }
+                if (this.bmwBouncerWheel1) { this.bmwBouncerWheel1.x = px - dir * 20; this.bmwBouncerWheel1.y = py + 10; }
+                if (this.bmwBouncerWheel2) { this.bmwBouncerWheel2.x = px + dir * 20; this.bmwBouncerWheel2.y = py + 10; }
+                if (this.bmwBouncerLiveryBlue) { this.bmwBouncerLiveryBlue.x = px - 10; this.bmwBouncerLiveryBlue.y = py - 4; }
+                if (this.bmwBouncerLiveryViolet) { this.bmwBouncerLiveryViolet.x = px + 4; this.bmwBouncerLiveryViolet.y = py - 4; }
+                if (this.bmwBouncerLiveryRed) { this.bmwBouncerLiveryRed.x = px + 18; this.bmwBouncerLiveryRed.y = py - 4; }
+            }
+        }
+    }
+
+    handleBmwBouncerBounceSlam() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'bmwBouncer') return;
+        const costume = this.getDragonCostume();
+        if (!costume.bounceSlamEnabled) return;
+        // Only in robot form - car mode uses nets
+        if (this.bmwBouncerForm !== 'robot') return;
+        if (this.controls.isDuckLaser() && !this.previousInputs.duckLaser) {
+            this.performBmwBouncerBounceSlam();
+        }
+    }
+
+    performBmwBouncerBounceSlam() {
+        if (this.bounceSlamCooldown > 0) return;
+        const costume = this.getDragonCostume();
+        this.bounceSlamCooldown = costume.bounceSlamCooldown || this.bounceSlamCooldownTime;
+        const range = costume.bounceSlamRange || 220;
+        const damage = costume.bounceSlamDamage || 35;
+        const launch = costume.bounceSlamLaunchVelocity || 550;
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        // Cue: player leaps up slightly
+        if (this.body && this.body.setVelocityY) {
+            this.body.setVelocityY(-300);
+        }
+        // Giant trampoline visual
+        const tramp = this.scene.add.ellipse(px, py + 32, range, 28, 0xe22400, 0.85);
+        tramp.setStrokeStyle(4, 0x0066b2);
+        tramp.setDepth(99);
+        const springs = this.scene.add.ellipse(px, py + 32, range * 0.85, 18, 0x6e27c5, 0.7);
+        springs.setDepth(100);
+        this.scene.tweens.add({
+            targets: [tramp, springs],
+            scaleY: 0.4,
+            alpha: 0,
+            duration: 800,
+            ease: 'Cubic.easeOut',
+            onComplete: () => { tramp.destroy(); springs.destroy(); }
+        });
+        // AoE damage + upward launch
+        if (this.scene.enemies) {
+            this.scene.enemies.getChildren().forEach(enemySprite => {
+                const enemy = enemySprite.getData ? enemySprite.getData('enemy') : null;
+                if (!enemy || enemy.health <= 0 || !enemy.sprite) return;
+                const dist = Phaser.Math.Distance.Between(px, py, enemy.sprite.x, enemy.sprite.y);
+                if (dist > range / 2) return;
+                if (typeof enemy.takeDamage === 'function') {
+                    enemy.takeDamage(damage, 'bounceSlam');
+                }
+                if (enemy.sprite.body && enemy.sprite.body.setVelocityY) {
+                    enemy.sprite.body.setVelocityY(-launch);
+                }
+            });
+        }
+        const slamText = this.scene.add.text(px, py - 50, 'BOUNCE SLAM!',
+            { fontSize: '22px', fill: '#ffffff', stroke: '#e22400', strokeThickness: 4, fontWeight: 'bold' }
+        ).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: slamText,
+            y: py - 90, alpha: 0,
+            duration: 1000,
+            onComplete: () => slamText.destroy()
+        });
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(350, 0.025);
+        }
+    }
+
+    createBmwBouncerTrampolineProjectile(startX, startY, costume) {
+        const red = costume.projectileColor || 0xe22400;
+        const blue = costume.projectileSecondaryColor || 0x0066b2;
+        const size = costume.projectileSize || 18;
+        const pad = this.scene.add.ellipse(startX, startY, size * 2.2, size * 0.9, red, 0.95);
+        pad.setStrokeStyle(2, blue);
+        return pad;
+    }
+
+    createBmwBouncerNetProjectile(startX, startY, costume) {
+        const white = costume.carProjectileColor || 0xffffff;
+        const blue = costume.carProjectileSecondaryColor || 0x0066b2;
+        const size = costume.projectileSize || 18;
+        const net = this.scene.add.circle(startX, startY, size, white, 0.5);
+        net.setStrokeStyle(3, blue);
+        return net;
+    }
+
     handleDuckLaser() {
         // Safety check for controls
         if (!this.controls) {
             return;
         }
-        
+
         // Check if player is wearing Grimlock costume
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         if (currentOutfit !== 'grimlock') {
@@ -3383,24 +3736,38 @@ class Player {
 
     shootDragonProjectile() {
         const costume = this.getDragonCostume();
-        
+
         if (!costume.projectileEnabled) {
             return;
         }
-        
+
         // Set brief attack cooldown
         this.attackCooldown = 350;
-        
+
         // Calculate projectile starting position and velocity
         const startX = this.sprite.x + (this.facingRight ? 30 : -30);
         const startY = this.sprite.y;
         const velocityX = this.facingRight ? costume.projectileSpeed : -costume.projectileSpeed;
-        
+
+        // BMW Bouncer swaps projectile type based on current form
+        let projectileType = costume.projectileType;
+        let projectileDamage = costume.projectileDamage;
+        let projectileEffect = costume.projectileEffect;
+        let projectileColor = costume.projectileColor;
+        let projectileSecondaryColor = costume.projectileSecondaryColor;
+        if (costume.isBmwBouncer && this.bmwBouncerForm === 'car') {
+            projectileType = costume.carProjectileType || 'captureNet';
+            projectileDamage = costume.carProjectileDamage || projectileDamage;
+            projectileEffect = 'netCapture';
+            projectileColor = costume.carProjectileColor || 0xffffff;
+            projectileSecondaryColor = costume.carProjectileSecondaryColor || 0x0066b2;
+        }
+
         // Create projectile based on dragon type
         let projectile;
         let glow;
-        
-        switch (costume.projectileType) {
+
+        switch (projectileType) {
             case 'fireball':
                 projectile = this.createFireballProjectile(startX, startY, costume);
                 break;
@@ -3440,39 +3807,65 @@ class Player {
                 projectile = this.scene.add.ellipse(startX, startY, costume.projectileSize * 1.2, costume.projectileSize, costume.projectileColor, 0.95);
                 projectile.setStrokeStyle(2, costume.projectileSecondaryColor || 0x5d4037);
                 break;
+            case 'trampolinePad':
+                // BMW Bouncer robot mode - deployable trampoline pad
+                projectile = this.createBmwBouncerTrampolineProjectile(startX, startY, costume);
+                break;
+            case 'captureNet':
+                // BMW Bouncer car mode - expanding capture net
+                projectile = this.createBmwBouncerNetProjectile(startX, startY, costume);
+                break;
             default:
-                projectile = this.scene.add.circle(startX, startY, costume.projectileSize, costume.projectileColor, 0.9);
+                projectile = this.scene.add.circle(startX, startY, costume.projectileSize, projectileColor, 0.9);
         }
         
         projectile.setDepth(100);
-        
+
         // Add physics to projectile
         this.scene.physics.add.existing(projectile);
         projectile.body.setVelocityX(velocityX);
         projectile.body.setAllowGravity(false);
-        
+
+        // Trampoline pads arc downward with gravity for a "deployable" feel
+        if (projectileType === 'trampolinePad') {
+            projectile.body.setAllowGravity(true);
+            projectile.body.setVelocityY(-120);
+        }
+
         // Create glow effect
-        glow = this.scene.add.circle(startX, startY, costume.projectileSize * 1.5, costume.projectileColor, 0.3);
+        glow = this.scene.add.circle(startX, startY, costume.projectileSize * 1.5, projectileColor, 0.3);
         glow.setDepth(99);
         this.scene.physics.add.existing(glow);
         glow.body.setVelocityX(velocityX);
         glow.body.setAllowGravity(false);
-        
+
+        // Expand capture nets during flight for a capture-like growth
+        if (projectileType === 'captureNet') {
+            this.scene.tweens.add({
+                targets: [projectile, glow],
+                scale: 1.8,
+                duration: 400,
+                ease: 'Cubic.easeOut'
+            });
+        }
+
         // Store projectile data
         this.fireballs.push({
             sprite: projectile,
             glow: glow,
-            damage: costume.projectileDamage,
+            damage: projectileDamage,
             traveled: 0,
             maxDistance: this.scene.levelWidth || 3000,
-            type: costume.projectileType,
-            effect: costume.projectileEffect,
-            color: costume.projectileColor,
-            secondaryColor: costume.projectileSecondaryColor
+            type: projectileType,
+            effect: projectileEffect,
+            color: projectileColor,
+            secondaryColor: projectileSecondaryColor,
+            netRadius: projectileType === 'captureNet' ? (costume.carProjectileRadius || 70) : 0,
+            launchVelocity: projectileType === 'trampolinePad' ? 450 : 0
         });
-        
+
         // Add collider with platforms for bouncing (if applicable)
-        if (this.scene.platforms && costume.projectileType === 'earthquake') {
+        if (this.scene.platforms && projectileType === 'earthquake') {
             this.scene.physics.add.collider(projectile, this.scene.platforms, () => {
                 // Earth projectile creates shockwave on platform hit
                 this.createEarthquakeShockwave(projectile.x, projectile.y);
@@ -4371,7 +4764,69 @@ class Player {
                 // Smoke - confuse/blind effect (visual only)
                 this.createSmokeCloudEffect(enemySprite.x, enemySprite.y);
                 break;
+
+            case 'bounce':
+                // BMW Bouncer trampoline - launch enemy upward
+                if (enemySprite.body && enemySprite.body.setVelocityY) {
+                    const launch = projectile.launchVelocity || 450;
+                    enemySprite.body.setVelocityY(-launch);
+                }
+                this.createBounceRingEffect(enemySprite.x, enemySprite.y);
+                break;
+
+            case 'netCapture':
+                // BMW Bouncer capture net - damage nearby enemies in radius
+                this.applyCaptureNetAoE(projectile, enemySprite, enemyObj);
+                break;
         }
+    }
+
+    createBounceRingEffect(x, y) {
+        const ring = this.scene.add.ellipse(x, y + 10, 60, 16, 0xe22400, 0.7);
+        ring.setStrokeStyle(3, 0x0066b2);
+        ring.setDepth(100);
+        this.scene.tweens.add({
+            targets: ring,
+            scaleX: 2.2,
+            scaleY: 1.4,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => ring.destroy()
+        });
+    }
+
+    applyCaptureNetAoE(projectile, hitEnemySprite, hitEnemyObj) {
+        const radius = projectile.netRadius || 70;
+        const aoeDamage = Math.round(projectile.damage * 0.7);
+        // Expanding net visual
+        const netRing = this.scene.add.circle(hitEnemySprite.x, hitEnemySprite.y, 10, 0xffffff, 0.35);
+        netRing.setStrokeStyle(4, 0x0066b2);
+        netRing.setDepth(100);
+        this.scene.tweens.add({
+            targets: netRing,
+            radius: radius,
+            scaleX: radius / 10,
+            scaleY: radius / 10,
+            alpha: 0,
+            duration: 450,
+            onComplete: () => netRing.destroy()
+        });
+        if (!this.scene.enemies) return;
+        this.scene.enemies.children.entries.forEach(other => {
+            if (!other.active || other === hitEnemySprite) return;
+            const dist = Phaser.Math.Distance.Between(hitEnemySprite.x, hitEnemySprite.y, other.x, other.y);
+            if (dist > radius) return;
+            if (other.getData && other.getData('enemy')) {
+                const enemyObj = other.getData('enemy');
+                if (enemyObj && enemyObj.health > 0) {
+                    enemyObj.takeDamage(aoeDamage);
+                    if (other.body && other.body.setVelocityX) {
+                        const dir = other.x < hitEnemySprite.x ? -1 : 1;
+                        other.body.setVelocityX(dir * 180);
+                    }
+                }
+            }
+        });
     }
 
     createBurnEffect(x, y) {
