@@ -424,6 +424,56 @@ class TaekwondoRobotBuilder {
                 robotColors: { primary: 0xe91e8c, secondary: 0xffffff, accent: 0x4a148c },
                 bikeColors: { primary: 0xc2185b, secondary: 0x2d2d2d, accent: 0xe91e8c }
             },
+            'bmwBouncer': {
+                name: 'BMW Bouncer',
+                icon: '🏁🤖',
+                primaryColor: 0xffffff, // White base
+                secondaryColor: 0x0066b2, // BMW M blue
+                beltColor: 0xe22400, // BMW M red
+                description: 'BMW Bouncer! Press 2 for race car! L for bounce slam!',
+                unlockCondition: 'Available from start',
+                effectColor: 0x6e27c5, // BMW M violet particles
+                unlocked: true,
+                hasWings: true,
+                wingColor: 0x0066b2,
+                wingStyle: 'mechanical',
+                wingTipColor: 0xe22400,
+                // Robot mode: trampoline pad projectile (deployable)
+                projectileEnabled: true,
+                projectileType: 'trampolinePad',
+                projectileColor: 0xe22400, // Red base
+                projectileSecondaryColor: 0x0066b2, // Blue springs
+                projectileDamage: 22,
+                projectileSpeed: 480,
+                projectileSize: 18,
+                projectileEffect: 'bounce',
+                // Transformer traits
+                isBmwBouncer: true,
+                canTransform: true,
+                transformKey: 'Digit2',
+                currentForm: 'robot',
+                robotSpeed: 205,
+                robotJump: 420,
+                robotDamage: 1.0,
+                carSpeed: 330, // Fast race car
+                carJump: 370,
+                carDamage: 0.9,
+                carSize: 1.1,
+                // Car mode uses capture net (area effect)
+                carProjectileType: 'captureNet',
+                carProjectileColor: 0xffffff,
+                carProjectileSecondaryColor: 0x0066b2,
+                carProjectileDamage: 20,
+                carProjectileRadius: 70, // Area capture radius
+                // Bounce slam special (L key) - robot leaps and slams, launches enemies
+                bounceSlamEnabled: true,
+                bounceSlamCooldown: 6000,
+                bounceSlamDamage: 35,
+                bounceSlamRange: 220,
+                bounceSlamLaunchVelocity: 550,
+                robotColors: { primary: 0xffffff, secondary: 0x0066b2, accent: 0xe22400 },
+                carColors: { primary: 0xffffff, secondary: 0x0066b2, accent: 0x6e27c5 }
+            },
             'portalbot': {
                 name: 'Portal Bot',
                 icon: '🌀🤖',
@@ -553,7 +603,7 @@ class TaekwondoRobotBuilder {
             },
             outfits: {
                 current: 'default',
-                unlocked: ['default']
+                unlocked: ['default', 'bmwBouncer']
             },
             powerUps: {
                 fireBreath: false,
@@ -658,6 +708,11 @@ class TaekwondoRobotBuilder {
         if (savedData) {
             this.gameData = { ...this.gameData, ...savedData };
             console.log('Game data loaded:', this.gameData);
+        }
+        // Ensure BMW Bouncer (from-start costume) is always in unlocked list
+        if (this.gameData.outfits && Array.isArray(this.gameData.outfits.unlocked) &&
+            !this.gameData.outfits.unlocked.includes('bmwBouncer')) {
+            this.gameData.outfits.unlocked.push('bmwBouncer');
         }
     }
 
@@ -917,7 +972,7 @@ class TaekwondoRobotBuilder {
             },
             outfits: {
                 current: 'default',
-                unlocked: ['default']
+                unlocked: ['default', 'bmwBouncer']
             },
             powerUps: {
                 fireBreath: false,

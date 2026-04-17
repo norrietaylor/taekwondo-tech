@@ -640,7 +640,7 @@ class CraftScene extends Phaser.Scene {
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
 
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'bmwBouncer', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
 
         // Calculate responsive overlay height and items per page
@@ -1066,6 +1066,9 @@ class CraftScene extends Phaser.Scene {
             case 'elita':
                 // Unlock after completing level 4
                 return gameData.currentLevel >= 5;
+            case 'bmwBouncer':
+                // Available from start
+                return true;
             case 'portalbot':
                 // Unlock after completing level 2
                 return gameData.currentLevel >= 3;
