@@ -638,11 +638,26 @@ class CraftScene extends Phaser.Scene {
     showOutfitSelection() {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
-        
-        // Calculate responsive overlay height - need 15 costumes now (including Portal Bot!)
+
+        // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
+        const dragonCostumes = ['default', 'bmwBouncer', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        console.log('🐉 Loading dragon costumes:', dragonCostumes);
+
+        // Calculate responsive overlay height and items per page
         const screenHeight = this.cameras.main.height;
-        const overlayHeight = Math.min(screenHeight - 10, 720); // Fit 15 costumes (full height)
-        
+        const itemSpacing = 48;
+        const chromeHeight = 55 + 40 + 45; // title + pager + close
+        const maxOverlayHeight = Math.min(screenHeight - 10, 620);
+        const availableItemHeight = maxOverlayHeight - chromeHeight;
+        const itemsPerPage = Math.max(4, Math.floor(availableItemHeight / itemSpacing));
+        const totalPages = Math.ceil(dragonCostumes.length / itemsPerPage);
+        const actualItemCount = Math.min(itemsPerPage, dragonCostumes.length);
+        const overlayHeight = chromeHeight + (actualItemCount * itemSpacing);
+
+        // Track current page (persist across re-opens on this scene instance)
+        if (typeof this.currentCostumePage !== 'number') this.currentCostumePage = 0;
+        if (this.currentCostumePage >= totalPages) this.currentCostumePage = 0;
+
         // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
             this.cameras.main.centerX,
@@ -652,9 +667,9 @@ class CraftScene extends Phaser.Scene {
             0x0a0a0a,
             0.95
         ).setDepth(150).setInteractive(); // Make overlay interactive to block clicks behind it
-        
+
         overlay.setStrokeStyle(3, 0x8b4513);
-        
+
         const title = this.add.text(
             this.cameras.main.centerX,
             this.cameras.main.centerY - (overlayHeight / 2) + 25,
@@ -667,234 +682,113 @@ class CraftScene extends Phaser.Scene {
                 strokeThickness: 3
             }
         ).setOrigin(0.5).setDepth(151);
-        
-        // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'bmwBouncer', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
-        console.log('🐉 Loading dragon costumes:', dragonCostumes);
-        console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
-        console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
-        console.log('🦖🤖 Grimlock costume data:', window.gameInstance.getDragonCostume('grimlock'));
-        
+
+        // Chrome elements persist across page changes; page elements are re-rendered
         const outfitElements = [overlay, title];
-        
-        // Compact spacing to fit all 10 costumes
-        const itemSpacing = 44; // 15 items * 44px = 660px total
+        let pageElements = [];
+
         const startY = this.cameras.main.centerY - (overlayHeight / 2) + 55;
-        
-        dragonCostumes.forEach((costumeKey, index) => {
-            const costume = window.gameInstance.getDragonCostume(costumeKey);
-            const isUnlocked = this.isDragonUnlocked(costumeKey);
-            const isCurrent = window.gameInstance.gameData.outfits.current === costumeKey;
-            const isNewlyUnlocked = newUnlocks.includes(costumeKey);
-            
-            const y = startY + (index * itemSpacing);
-            
-            // Dragon costume preview (compact, with both colors)
-            const previewBg = this.add.rectangle(
-                this.cameras.main.centerX - 250,
-                y,
-                44,
-                40,
-                isUnlocked ? costume.primaryColor : 0x333333,
-                isUnlocked ? 1 : 0.3
-            ).setDepth(151);
-            
-            previewBg.setStrokeStyle(2, isUnlocked ? costume.beltColor : 0x666666);
-            
-            // Secondary color accent
-            const accentRect = this.add.rectangle(
-                this.cameras.main.centerX - 241,
-                y,
-                14,
-                40,
-                isUnlocked ? costume.secondaryColor : 0x222222,
-                isUnlocked ? 0.8 : 0.3
-            ).setDepth(152);
-            
-            // Dragon icon
-            const icon = this.add.text(
-                this.cameras.main.centerX - 253,
-                y,
-                costume.icon,
-                {
-                    fontSize: '16px'
-                }
-            ).setOrigin(0.5).setDepth(153).setAlpha(isUnlocked ? 1 : 0.3);
-            
-            // "NEW!" badge for newly unlocked costumes
-            if (isNewlyUnlocked) {
-                const newBadge = this.add.text(
-                    this.cameras.main.centerX - 220,
-                    y - 20,
-                    'NEW!',
-                    {
-                        fontSize: '10px',
-                        fill: '#ffff00',
-                        backgroundColor: '#ff0000',
-                        padding: { x: 4, y: 1 },
-                        fontWeight: 'bold'
-                    }
-                ).setOrigin(0.5).setDepth(154);
-                
-                // Pulse animation for NEW badge
-                this.tweens.add({
-                    targets: newBadge,
-                    scale: 1.15,
-                    duration: 500,
-                    yoyo: true,
-                    repeat: -1
-                });
-                
-                outfitElements.push(newBadge);
+
+        const renderPage = () => {
+            // Clear previous page elements
+            pageElements.forEach(el => el.destroy());
+            pageElements = [];
+
+            const pageStart = this.currentCostumePage * itemsPerPage;
+            const pageEnd = Math.min(pageStart + itemsPerPage, dragonCostumes.length);
+            const pageCostumes = dragonCostumes.slice(pageStart, pageEnd);
+
+            pageCostumes.forEach((costumeKey, indexOnPage) => {
+                const costume = window.gameInstance.getDragonCostume(costumeKey);
+                const isUnlocked = this.isDragonUnlocked(costumeKey);
+                const isCurrent = window.gameInstance.gameData.outfits.current === costumeKey;
+                const isNewlyUnlocked = newUnlocks.includes(costumeKey);
+
+                const y = startY + (indexOnPage * itemSpacing);
+                this._renderCostumeRow(costumeKey, costume, y, isUnlocked, isCurrent, isNewlyUnlocked, pageElements, outfitElements);
+            });
+
+            // Update pager label
+            if (pagerLabel) pagerLabel.setText(`Page ${this.currentCostumePage + 1} / ${totalPages}`);
+
+            // Update prev/next button states
+            if (prevButton) {
+                const canPrev = this.currentCostumePage > 0;
+                prevButton.setAlpha(canPrev ? 1 : 0.3);
+                if (canPrev) prevButton.setInteractive({ useHandCursor: true });
+                else prevButton.disableInteractive();
             }
-            
-            // Dragon costume name
-            const nameText = this.add.text(
-                this.cameras.main.centerX - 215,
-                y - 12,
-                costume.name,
+            if (nextButton) {
+                const canNext = this.currentCostumePage < totalPages - 1;
+                nextButton.setAlpha(canNext ? 1 : 0.3);
+                if (canNext) nextButton.setInteractive({ useHandCursor: true });
+                else nextButton.disableInteractive();
+            }
+        };
+
+        // Pager controls (only if more than one page)
+        let prevButton = null;
+        let nextButton = null;
+        let pagerLabel = null;
+        const pagerY = this.cameras.main.centerY + (overlayHeight / 2) - 70;
+
+        if (totalPages > 1) {
+            prevButton = this.add.text(
+                this.cameras.main.centerX - 120,
+                pagerY,
+                '◀ PREV',
                 {
                     fontSize: '14px',
-                    fill: isUnlocked ? '#ffffff' : '#666666',
+                    fill: '#ffffff',
+                    backgroundColor: '#444488',
+                    padding: { x: 12, y: 6 }
+                }
+            ).setOrigin(0.5).setDepth(155);
+            prevButton.on('pointerdown', () => {
+                if (this.currentCostumePage > 0) {
+                    this.currentCostumePage--;
+                    renderPage();
+                }
+            });
+
+            nextButton = this.add.text(
+                this.cameras.main.centerX + 120,
+                pagerY,
+                'NEXT ▶',
+                {
+                    fontSize: '14px',
+                    fill: '#ffffff',
+                    backgroundColor: '#444488',
+                    padding: { x: 12, y: 6 }
+                }
+            ).setOrigin(0.5).setDepth(155);
+            nextButton.on('pointerdown', () => {
+                if (this.currentCostumePage < totalPages - 1) {
+                    this.currentCostumePage++;
+                    renderPage();
+                }
+            });
+
+            pagerLabel = this.add.text(
+                this.cameras.main.centerX,
+                pagerY,
+                '',
+                {
+                    fontSize: '14px',
+                    fill: '#ffd700',
                     fontWeight: 'bold'
                 }
-            ).setOrigin(0, 0.5).setDepth(151);
-            
-            // Description (truncate if too long)
-            const descText = this.add.text(
-                this.cameras.main.centerX - 215,
-                y + 2,
-                costume.description.length > 45 ? costume.description.substring(0, 42) + '...' : costume.description,
-                {
-                    fontSize: '10px',
-                    fill: isUnlocked ? '#aaaaaa' : '#444444',
-                    fontStyle: 'italic'
-                }
-            ).setOrigin(0, 0.5).setDepth(151);
-            
-            // Unlock condition / progress
-            const conditionText = this.add.text(
-                this.cameras.main.centerX - 215,
-                y + 15,
-                this.getUnlockProgressText(costumeKey),
-                {
-                    fontSize: '9px',
-                    fill: isUnlocked ? '#00ff00' : '#ff8800'
-                }
-            ).setOrigin(0, 0.5).setDepth(151);
-            
-            // Status/Select button
-            let button;
-            if (!isUnlocked) {
-                button = this.add.text(
-                    this.cameras.main.centerX + 260,
-                    y,
-                    '🔒 LOCKED',
-                    {
-                        fontSize: '11px',
-                        fill: '#666666',
-                        backgroundColor: '#333333',
-                        padding: { x: 8, y: 6 }
-                    }
-                ).setOrigin(0.5).setDepth(155);
-            } else if (isCurrent) {
-                button = this.add.text(
-                    this.cameras.main.centerX + 260,
-                    y,
-                    '✓ EQUIPPED',
-                    {
-                        fontSize: '11px',
-                        fill: '#ffffff',
-                        backgroundColor: '#4a9eff',
-                        padding: { x: 8, y: 6 }
-                    }
-                ).setOrigin(0.5).setDepth(155);
-            } else {
-                button = this.add.text(
-                    this.cameras.main.centerX + 260,
-                    y,
-                    'EQUIP',
-                    {
-                        fontSize: '11px',
-                        fill: '#ffffff',
-                        backgroundColor: '#00aa00',
-                        padding: { x: 12, y: 6 }
-                    }
-                ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(155);
-                
-                button.on('pointerover', () => {
-                    button.setStyle({ backgroundColor: '#00dd00' });
-                });
-                
-                button.on('pointerout', () => {
-                    button.setStyle({ backgroundColor: '#00aa00' });
-                });
-                
-                button.on('pointerdown', () => {
-                    const wasLegendary = window.gameInstance.getDragonCostume(
-                        window.gameInstance.gameData.outfits.current
-                    ).isLegendary || false;
-                    const isLegendary = costume.isLegendary || false;
-                    
-                    window.gameInstance.setOutfit(costumeKey);
-                    this.closeOutfitSelection(outfitElements);
-                    
-                    // Show equipped notification
-                    this.showDragonEquippedNotification(costume);
-                    
-                    // If switching to/from legendary, give user a heads up
-                    if (wasLegendary !== isLegendary) {
-                        if (isLegendary) {
-                            this.time.delayedCall(1800, () => {
-                                const notice = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY);
-                                notice.setDepth(300);
-                                
-                                const bg = this.add.rectangle(0, 0, 600, 200, 0x000000, 0.95);
-                                bg.setStrokeStyle(4, 0xffd700);
-                                
-                                const text = this.add.text(0, 0, 
-                                    '⚡ LEGENDARY MODE ACTIVATED ⚡\n\n' +
-                                    '5x SIZE • ALL DRAGON COLORS\n' +
-                                    'RAINBOW WINGS • FIREBALL ATTACKS\n\n' +
-                                    'Punch/Kick now shoot fireballs!',
-                                    {
-                                        fontSize: '18px',
-                                        fill: '#ffffff',
-                                        align: 'center',
-                                        fontWeight: 'bold'
-                                    }
-                                ).setOrigin(0.5);
-                                
-                                notice.add([bg, text]);
-                                
-                                this.tweens.add({
-                                    targets: notice,
-                                    alpha: { from: 0, to: 1 },
-                                    duration: 400,
-                                    onComplete: () => {
-                                        this.time.delayedCall(3000, () => {
-                                            this.tweens.add({
-                                                targets: notice,
-                                                alpha: 0,
-                                                duration: 400,
-                                                onComplete: () => notice.destroy()
-                                            });
-                                        });
-                                    }
-                                });
-                            });
-                        }
-                    }
-                });
-            }
-            
-            outfitElements.push(previewBg, accentRect, icon, nameText, descText, conditionText, button);
-        });
-        
+            ).setOrigin(0.5).setDepth(155);
+
+            outfitElements.push(prevButton, nextButton, pagerLabel);
+        }
+
+        renderPage();
+
         // Close button - positioned at bottom of overlay
         const closeButton = this.add.text(
             this.cameras.main.centerX,
-            this.cameras.main.centerY + (overlayHeight / 2) - 30,
+            this.cameras.main.centerY + (overlayHeight / 2) - 25,
             'Close',
             {
                 fontSize: '18px',
@@ -903,21 +797,21 @@ class CraftScene extends Phaser.Scene {
                 padding: { x: 20, y: 8 }
             }
         ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(155);
-        
+
         closeButton.on('pointerover', () => {
             closeButton.setScale(1.1);
         });
-        
+
         closeButton.on('pointerout', () => {
             closeButton.setScale(1.0);
         });
-        
+
         closeButton.on('pointerdown', () => {
-            this.closeOutfitSelection(outfitElements);
+            this.closeOutfitSelection([...outfitElements, ...pageElements]);
         });
-        
+
         outfitElements.push(closeButton);
-        
+
         // Show unlock notifications for newly unlocked costumes
         if (newUnlocks.length > 0) {
             this.time.delayedCall(500, () => {
@@ -928,6 +822,209 @@ class CraftScene extends Phaser.Scene {
                 });
             });
         }
+    }
+
+    _renderCostumeRow(costumeKey, costume, y, isUnlocked, isCurrent, isNewlyUnlocked, pageElements, outfitElements) {
+        // Dragon costume preview (compact, with both colors)
+        const previewBg = this.add.rectangle(
+            this.cameras.main.centerX - 250,
+            y,
+            44,
+            40,
+            isUnlocked ? costume.primaryColor : 0x333333,
+            isUnlocked ? 1 : 0.3
+        ).setDepth(151);
+
+        previewBg.setStrokeStyle(2, isUnlocked ? costume.beltColor : 0x666666);
+
+        // Secondary color accent
+        const accentRect = this.add.rectangle(
+            this.cameras.main.centerX - 241,
+            y,
+            14,
+            40,
+            isUnlocked ? costume.secondaryColor : 0x222222,
+            isUnlocked ? 0.8 : 0.3
+        ).setDepth(152);
+
+        // Dragon icon
+        const icon = this.add.text(
+            this.cameras.main.centerX - 253,
+            y,
+            costume.icon,
+            {
+                fontSize: '16px'
+            }
+        ).setOrigin(0.5).setDepth(153).setAlpha(isUnlocked ? 1 : 0.3);
+
+        // "NEW!" badge for newly unlocked costumes
+        if (isNewlyUnlocked) {
+            const newBadge = this.add.text(
+                this.cameras.main.centerX - 220,
+                y - 20,
+                'NEW!',
+                {
+                    fontSize: '10px',
+                    fill: '#ffff00',
+                    backgroundColor: '#ff0000',
+                    padding: { x: 4, y: 1 },
+                    fontWeight: 'bold'
+                }
+            ).setOrigin(0.5).setDepth(154);
+
+            // Pulse animation for NEW badge
+            this.tweens.add({
+                targets: newBadge,
+                scale: 1.15,
+                duration: 500,
+                yoyo: true,
+                repeat: -1
+            });
+
+            pageElements.push(newBadge);
+        }
+
+        // Dragon costume name
+        const nameText = this.add.text(
+            this.cameras.main.centerX - 215,
+            y - 12,
+            costume.name,
+            {
+                fontSize: '14px',
+                fill: isUnlocked ? '#ffffff' : '#666666',
+                fontWeight: 'bold'
+            }
+        ).setOrigin(0, 0.5).setDepth(151);
+
+        // Description (truncate if too long)
+        const descText = this.add.text(
+            this.cameras.main.centerX - 215,
+            y + 2,
+            costume.description.length > 45 ? costume.description.substring(0, 42) + '...' : costume.description,
+            {
+                fontSize: '10px',
+                fill: isUnlocked ? '#aaaaaa' : '#444444',
+                fontStyle: 'italic'
+            }
+        ).setOrigin(0, 0.5).setDepth(151);
+
+        // Unlock condition / progress
+        const conditionText = this.add.text(
+            this.cameras.main.centerX - 215,
+            y + 15,
+            this.getUnlockProgressText(costumeKey),
+            {
+                fontSize: '9px',
+                fill: isUnlocked ? '#00ff00' : '#ff8800'
+            }
+        ).setOrigin(0, 0.5).setDepth(151);
+
+        // Status/Select button
+        let button;
+        if (!isUnlocked) {
+            button = this.add.text(
+                this.cameras.main.centerX + 260,
+                y,
+                '🔒 LOCKED',
+                {
+                    fontSize: '11px',
+                    fill: '#666666',
+                    backgroundColor: '#333333',
+                    padding: { x: 8, y: 6 }
+                }
+            ).setOrigin(0.5).setDepth(155);
+        } else if (isCurrent) {
+            button = this.add.text(
+                this.cameras.main.centerX + 260,
+                y,
+                '✓ EQUIPPED',
+                {
+                    fontSize: '11px',
+                    fill: '#ffffff',
+                    backgroundColor: '#4a9eff',
+                    padding: { x: 8, y: 6 }
+                }
+            ).setOrigin(0.5).setDepth(155);
+        } else {
+            button = this.add.text(
+                this.cameras.main.centerX + 260,
+                y,
+                'EQUIP',
+                {
+                    fontSize: '11px',
+                    fill: '#ffffff',
+                    backgroundColor: '#00aa00',
+                    padding: { x: 12, y: 6 }
+                }
+            ).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(155);
+
+            button.on('pointerover', () => {
+                button.setStyle({ backgroundColor: '#00dd00' });
+            });
+
+            button.on('pointerout', () => {
+                button.setStyle({ backgroundColor: '#00aa00' });
+            });
+
+            button.on('pointerdown', () => {
+                const wasLegendary = window.gameInstance.getDragonCostume(
+                    window.gameInstance.gameData.outfits.current
+                ).isLegendary || false;
+                const isLegendary = costume.isLegendary || false;
+
+                window.gameInstance.setOutfit(costumeKey);
+                this.closeOutfitSelection([...outfitElements, ...pageElements]);
+
+                // Show equipped notification
+                this.showDragonEquippedNotification(costume);
+
+                // If switching to/from legendary, give user a heads up
+                if (wasLegendary !== isLegendary) {
+                    if (isLegendary) {
+                        this.time.delayedCall(1800, () => {
+                            const notice = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY);
+                            notice.setDepth(300);
+
+                            const bg = this.add.rectangle(0, 0, 600, 200, 0x000000, 0.95);
+                            bg.setStrokeStyle(4, 0xffd700);
+
+                            const text = this.add.text(0, 0,
+                                '⚡ LEGENDARY MODE ACTIVATED ⚡\n\n' +
+                                '5x SIZE • ALL DRAGON COLORS\n' +
+                                'RAINBOW WINGS • FIREBALL ATTACKS\n\n' +
+                                'Punch/Kick now shoot fireballs!',
+                                {
+                                    fontSize: '18px',
+                                    fill: '#ffffff',
+                                    align: 'center',
+                                    fontWeight: 'bold'
+                                }
+                            ).setOrigin(0.5);
+
+                            notice.add([bg, text]);
+
+                            this.tweens.add({
+                                targets: notice,
+                                alpha: { from: 0, to: 1 },
+                                duration: 400,
+                                onComplete: () => {
+                                    this.time.delayedCall(3000, () => {
+                                        this.tweens.add({
+                                            targets: notice,
+                                            alpha: 0,
+                                            duration: 400,
+                                            onComplete: () => notice.destroy()
+                                        });
+                                    });
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+        }
+
+        pageElements.push(previewBg, accentRect, icon, nameText, descText, conditionText, button);
     }
 
     isDragonUnlocked(costumeKey) {
