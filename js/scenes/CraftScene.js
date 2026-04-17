@@ -639,9 +639,9 @@ class CraftScene extends Phaser.Scene {
         // Check for new unlocks before showing UI
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         
-        // Calculate responsive overlay height - need 12 costumes now (including Grimlock + Bumblebee!)
+        // Calculate responsive overlay height - need 15 costumes now (including Portal Bot!)
         const screenHeight = this.cameras.main.height;
-        const overlayHeight = Math.min(screenHeight - 10, 576); // Fit 11 costumes (full height)
+        const overlayHeight = Math.min(screenHeight - 10, 720); // Fit 15 costumes (full height)
         
         // Create dragon costume selection overlay
         const overlay = this.add.rectangle(
@@ -669,7 +669,7 @@ class CraftScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(151);
         
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'bmwBouncer', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'bmwBouncer', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
         console.log('🍌 Banana costume data:', window.gameInstance.getDragonCostume('banana'));
         console.log('🎁 Present costume data:', window.gameInstance.getDragonCostume('present'));
@@ -678,7 +678,7 @@ class CraftScene extends Phaser.Scene {
         const outfitElements = [overlay, title];
         
         // Compact spacing to fit all 10 costumes
-        const itemSpacing = 48; // 10 items * 48px = 480px total
+        const itemSpacing = 44; // 15 items * 44px = 660px total
         const startY = this.cameras.main.centerY - (overlayHeight / 2) + 55;
         
         dragonCostumes.forEach((costumeKey, index) => {
@@ -972,6 +972,9 @@ class CraftScene extends Phaser.Scene {
             case 'bmwBouncer':
                 // Available from start
                 return true;
+            case 'portalbot':
+                // Unlock after completing level 2
+                return gameData.currentLevel >= 3;
             case 'legendary':
                 // Unlock after collecting all 5 robot part types
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
@@ -1015,6 +1018,8 @@ class CraftScene extends Phaser.Scene {
                 return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
             case 'elita':
                 return `🔒 Complete Level 4 (Current: Level ${gameData.currentLevel})`;
+            case 'portalbot':
+                return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
             case 'legendary':
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
                 const collectedTypes = partTypes.filter(type => 

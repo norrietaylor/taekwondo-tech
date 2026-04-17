@@ -205,6 +205,19 @@ class Player {
         this.bmwBouncerTransformCooldownTime = 1000;
         this.bounceSlamCooldown = 0;
         this.bounceSlamCooldownTime = 6000;
+        // Portal Bot transformation (robot / dragon) - shoots portals for teleportation
+        this.portalbotForm = 'robot';
+        this.portalbotVisuals = [];
+        this.portalbotCurrentForm = null;
+        this.portalbotLastFacingRight = null;
+        this.portalbotTransformCooldown = 0;
+        this.portalbotTransformCooldownTime = 1000;
+        this.activePortals = []; // Track placed portals on the map
+        this.portalMaxActive = 2; // Max portals at once
+        this.portalLifetime = 8000; // Portals last 8 seconds
+        this.portalTeleportCooldown = 0; // Prevent instant re-teleport
+        this.portalTeleportCooldownTime = 500;
+
 
         // Visual effects
         this.attackEffect = null;
@@ -444,7 +457,7 @@ class Player {
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         
         // Hide wings for Grimlock/Bumblebee/Hot Rod (have their own visuals) or if costume doesn't have them
-        if (currentOutfit === 'grimlock' || currentOutfit === 'bumblebee' || currentOutfit === 'hotrod' || currentOutfit === 'elita' || currentOutfit === 'bmwBouncer' || !costume.hasWings) {
+        if (currentOutfit === 'grimlock' || currentOutfit === 'bumblebee' || currentOutfit === 'hotrod' || currentOutfit === 'elita' || currentOutfit === 'bmwBouncer' || currentOutfit === 'portalbot' || !costume.hasWings) {
             this.leftWing.setVisible(false);
             this.rightWing.setVisible(false);
             return;
@@ -576,7 +589,9 @@ class Player {
         this.updateHotrodVisualsIfNeeded();
         this.updateElitaVisualsIfNeeded();
         this.updateBmwBouncerVisualsIfNeeded();
-        
+        this.updatePortalbotVisualsIfNeeded();
+
+
         // Update grounded state
         this.updateGroundedState();
         
@@ -650,6 +665,13 @@ class Player {
         if (this.bounceSlamCooldown > 0) {
             this.bounceSlamCooldown -= delta;
         }
+        if (this.portalbotTransformCooldown > 0) {
+            this.portalbotTransformCooldown -= delta;
+        }
+
+        // Update portal teleport checks
+        this.updatePortals(delta);
+
 
         // Update ducked enemies (restore them after duration)
         this.updateDuckedEnemies(delta);
@@ -804,6 +826,8 @@ class Player {
         // BMW Bouncer special abilities (transform + L = bounce slam)
         this.handleBmwBouncerTransform();
         this.handleBmwBouncerBounceSlam();
+        // Portal Bot special abilities (transform + portal teleport)
+        this.handlePortalbotTransform();
     }
 
     handleStoneBlast() {
@@ -2780,6 +2804,41 @@ class Player {
         }
     }
 
+    // ============================================
+    // PORTAL BOT TRANSFORMER (Robot / Dragon)
+    // ============================================
+
+    handlePortalbotTransform() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'portalbot') return;
+        if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
+            this.performPortalbotTransform();
+        }
+    }
+
+    performPortalbotTransform() {
+        if (this.portalbotTransformCooldown > 0) return;
+        this.portalbotTransformCooldown = this.portalbotTransformCooldownTime;
+        const costume = this.getDragonCostume();
+        const wasRobot = this.portalbotForm === 'robot';
+        this.portalbotForm = wasRobot ? 'dragon' : 'robot';
+        this.createPortalbotTransformEffect(wasRobot);
+        if (this.portalbotForm === 'dragon') {
+            this.speed = costume.dragonSpeed || 170;
+            this.jumpPower = costume.dragonJump || 350;
+            this.damageMultiplier = costume.dragonDamage || 1.4;
+        } else {
+            this.speed = costume.robotSpeed || 200;
+            this.jumpPower = costume.robotJump || 420;
+            this.damageMultiplier = costume.robotDamage || 1.0;
+        }
+        this.updatePortalbotVisuals();
+        if (this.scene.cameras && this.scene.cameras.main) {
+            this.scene.cameras.main.shake(300, 0.02);
+        }
+    }
+
     updateBmwBouncerVisuals() {
         if (this.bmwBouncerVisuals && this.bmwBouncerVisuals.length > 0) {
             this.bmwBouncerVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
@@ -2941,6 +3000,245 @@ class Player {
         });
     }
 
+    updatePortalbotVisuals() {
+        if (this.portalbotVisuals && this.portalbotVisuals.length > 0) {
+            this.portalbotVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+        }
+        this.portalbotVisuals = [];
+        if (this.portalbotForm === 'dragon') {
+            this.createPortalbotDragonVisuals();
+        } else {
+            this.createPortalbotRobotVisuals();
+        }
+    }
+
+    createPortalbotRobotVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const purple = 0x7b1fa2;
+        const cyan = 0x00e5ff;
+        const silver = 0xb0bec5;
+
+        // Robot chest (metallic purple)
+        const chest = this.scene.add.rectangle(px, py, 24, 28, purple);
+        chest.setStrokeStyle(2, cyan);
+        chest.setDepth(51);
+        this.portalbotVisuals.push(chest);
+        this.portalbotChest = chest;
+
+        // Robot head (silver with cyan visor)
+        const head = this.scene.add.rectangle(px, py - 20, 18, 14, silver);
+        head.setStrokeStyle(2, purple);
+        head.setDepth(52);
+        this.portalbotVisuals.push(head);
+        this.portalbotHead = head;
+
+        // Visor (glowing cyan)
+        const visor = this.scene.add.rectangle(px, py - 20, 14, 4, cyan);
+        visor.setDepth(53);
+        this.portalbotVisuals.push(visor);
+        this.portalbotVisor = visor;
+
+        // Portal core on chest (small swirl indicator)
+        const core = this.scene.add.circle(px, py, 5, cyan, 0.8);
+        core.setDepth(53);
+        this.portalbotVisuals.push(core);
+        this.portalbotCore = core;
+
+        // Arms (silver with purple accents)
+        const leftArm = this.scene.add.rectangle(px - 16, py - 2, 8, 18, silver);
+        leftArm.setStrokeStyle(1, purple);
+        leftArm.setDepth(50);
+        this.portalbotVisuals.push(leftArm);
+        this.portalbotLeftArm = leftArm;
+
+        const rightArm = this.scene.add.rectangle(px + 16, py - 2, 8, 18, silver);
+        rightArm.setStrokeStyle(1, purple);
+        rightArm.setDepth(50);
+        this.portalbotVisuals.push(rightArm);
+        this.portalbotRightArm = rightArm;
+
+        // Legs
+        const leftLeg = this.scene.add.rectangle(px - 7, py + 20, 10, 14, 0x4a148c);
+        leftLeg.setStrokeStyle(1, cyan);
+        leftLeg.setDepth(50);
+        this.portalbotVisuals.push(leftLeg);
+        this.portalbotLeftLeg = leftLeg;
+
+        const rightLeg = this.scene.add.rectangle(px + 7, py + 20, 10, 14, 0x4a148c);
+        rightLeg.setStrokeStyle(1, cyan);
+        rightLeg.setDepth(50);
+        this.portalbotVisuals.push(rightLeg);
+        this.portalbotRightLeg = rightLeg;
+
+        // Feet
+        const leftFoot = this.scene.add.rectangle(px - 7, py + 30, 12, 6, purple);
+        leftFoot.setStrokeStyle(1, cyan);
+        leftFoot.setDepth(50);
+        this.portalbotVisuals.push(leftFoot);
+        this.portalbotLeftFoot = leftFoot;
+
+        const rightFoot = this.scene.add.rectangle(px + 7, py + 30, 12, 6, purple);
+        rightFoot.setStrokeStyle(1, cyan);
+        rightFoot.setDepth(50);
+        this.portalbotVisuals.push(rightFoot);
+        this.portalbotRightFoot = rightFoot;
+
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createPortalbotDragonVisuals() {
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        const purple = 0x7b1fa2;
+        const cyan = 0x00e5ff;
+        const magenta = 0xe040fb;
+
+        // Dragon body (large, purple scaled)
+        const body = this.scene.add.ellipse(px, py, 36, 24, purple, 0.9);
+        body.setStrokeStyle(2, cyan);
+        body.setDepth(51);
+        this.portalbotVisuals.push(body);
+        this.portalbotBody = body;
+
+        // Dragon head (elongated snout facing direction)
+        const head = this.scene.add.ellipse(px + dir * 20, py - 10, 22, 16, purple, 0.95);
+        head.setStrokeStyle(2, magenta);
+        head.setDepth(52);
+        this.portalbotVisuals.push(head);
+        this.portalbotDragonHead = head;
+
+        // Glowing portal eye
+        const eye = this.scene.add.circle(px + dir * 24, py - 14, 4, cyan, 1);
+        eye.setDepth(53);
+        this.portalbotVisuals.push(eye);
+        this.portalbotEye = eye;
+
+        // Snout
+        const snout = this.scene.add.ellipse(px + dir * 32, py - 8, 12, 8, 0x6a1b9a, 0.9);
+        snout.setStrokeStyle(1, cyan);
+        snout.setDepth(52);
+        this.portalbotVisuals.push(snout);
+        this.portalbotSnout = snout;
+
+        // Dragon teeth
+        for (let i = 0; i < 3; i++) {
+            const tooth = this.scene.add.triangle(
+                px + dir * (28 + i * 4), py - 3,
+                0, 0, 3, 6, -3, 6,
+                0xffffff, 0.9
+            );
+            tooth.setDepth(53);
+            this.portalbotVisuals.push(tooth);
+        }
+
+        // Tail with portal swirl at the tip
+        const tail = this.scene.add.ellipse(px - dir * 24, py + 2, 20, 8, 0x6a1b9a, 0.85);
+        tail.setStrokeStyle(1, purple);
+        tail.setDepth(50);
+        this.portalbotVisuals.push(tail);
+        this.portalbotTail = tail;
+
+        // Portal swirl on tail tip
+        const tailSwirl = this.scene.add.circle(px - dir * 34, py + 2, 6, cyan, 0.7);
+        tailSwirl.setStrokeStyle(2, magenta);
+        tailSwirl.setDepth(51);
+        this.portalbotVisuals.push(tailSwirl);
+        this.portalbotTailSwirl = tailSwirl;
+
+        // Dragon wings (larger, mechanical-portal style)
+        const wing1 = this.scene.add.triangle(
+            px - dir * 4, py - 18,
+            0, 0, -dir * 20, -16, -dir * 8, 8,
+            cyan, 0.6
+        );
+        wing1.setStrokeStyle(2, purple);
+        wing1.setDepth(49);
+        this.portalbotVisuals.push(wing1);
+        this.portalbotWing1 = wing1;
+
+        const wing2 = this.scene.add.triangle(
+            px - dir * 8, py - 14,
+            0, 0, -dir * 16, -12, -dir * 6, 6,
+            magenta, 0.4
+        );
+        wing2.setStrokeStyle(1, cyan);
+        wing2.setDepth(48);
+        this.portalbotVisuals.push(wing2);
+        this.portalbotWing2 = wing2;
+
+        // Dragon legs (shorter, sturdy)
+        const leftLeg = this.scene.add.rectangle(px - 8, py + 16, 8, 12, 0x6a1b9a);
+        leftLeg.setStrokeStyle(1, cyan);
+        leftLeg.setDepth(50);
+        this.portalbotVisuals.push(leftLeg);
+        this.portalbotDragonLeftLeg = leftLeg;
+
+        const rightLeg = this.scene.add.rectangle(px + 8, py + 16, 8, 12, 0x6a1b9a);
+        rightLeg.setStrokeStyle(1, cyan);
+        rightLeg.setDepth(50);
+        this.portalbotVisuals.push(rightLeg);
+        this.portalbotDragonRightLeg = rightLeg;
+
+        // Claws
+        const leftClaw = this.scene.add.triangle(px - 8, py + 24, 0, 0, 5, 5, -5, 5, cyan, 0.8);
+        leftClaw.setDepth(50);
+        this.portalbotVisuals.push(leftClaw);
+        this.portalbotLeftClaw = leftClaw;
+
+        const rightClaw = this.scene.add.triangle(px + 8, py + 24, 0, 0, 5, 5, -5, 5, cyan, 0.8);
+        rightClaw.setDepth(50);
+        this.portalbotVisuals.push(rightClaw);
+        this.portalbotRightClaw = rightClaw;
+
+        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
+    }
+
+    createPortalbotTransformEffect(towardsDragon) {
+        const x = this.sprite.x;
+        const y = this.sprite.y;
+        const colors = towardsDragon ? [0x7b1fa2, 0x00e5ff, 0xe040fb] : [0x00e5ff, 0x7b1fa2, 0xb0bec5];
+
+        // Expanding portal ring
+        const ring = this.scene.add.circle(x, y, 20, colors[0], 0);
+        ring.setStrokeStyle(4, colors[1]);
+        ring.setDepth(100);
+        this.scene.tweens.add({
+            targets: ring,
+            scaleX: 3, scaleY: 3, alpha: 0,
+            duration: 500,
+            onComplete: () => ring.destroy()
+        });
+
+        // Swirl particles
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI * 2 * i) / 6;
+            const particle = this.scene.add.circle(x, y, 4, colors[i % 3], 0.9);
+            particle.setDepth(101);
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 50,
+                y: y + Math.sin(angle) * 50,
+                alpha: 0,
+                duration: 500,
+                delay: i * 50,
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        const transformText = this.scene.add.text(x, y - 50,
+            towardsDragon ? '🐉 DRAGON MODE!' : '🤖 ROBOT MODE!',
+            { fontSize: '20px', fill: '#00e5ff', stroke: '#7b1fa2', strokeThickness: 4, fontWeight: 'bold' }
+        ).setOrigin(0.5).setDepth(102);
+        this.scene.tweens.add({
+            targets: transformText,
+            y: y - 80, alpha: 0,
+            duration: 1000,
+            onComplete: () => transformText.destroy()
+        });
+    }
+
     updateBmwBouncerVisualsIfNeeded() {
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         if (currentOutfit !== 'bmwBouncer') {
@@ -2988,6 +3286,59 @@ class Player {
                 if (this.bmwBouncerLiveryBlue) { this.bmwBouncerLiveryBlue.x = px - 10; this.bmwBouncerLiveryBlue.y = py - 4; }
                 if (this.bmwBouncerLiveryViolet) { this.bmwBouncerLiveryViolet.x = px + 4; this.bmwBouncerLiveryViolet.y = py - 4; }
                 if (this.bmwBouncerLiveryRed) { this.bmwBouncerLiveryRed.x = px + 18; this.bmwBouncerLiveryRed.y = py - 4; }
+            }
+        }
+    }
+
+    updatePortalbotVisualsIfNeeded() {
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'portalbot') {
+            if (this.portalbotVisuals && this.portalbotVisuals.length > 0) {
+                this.portalbotVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+                this.portalbotVisuals = [];
+                this.portalbotCurrentForm = null;
+                if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(1);
+            }
+            return;
+        }
+        const directionChanged = this.portalbotLastFacingRight !== undefined && this.portalbotLastFacingRight !== this.facingRight;
+        const needsRecreate = !this.portalbotVisuals || this.portalbotVisuals.length === 0 ||
+            this.portalbotCurrentForm !== this.portalbotForm ||
+            (this.portalbotForm === 'dragon' && directionChanged);
+        if (needsRecreate) {
+            this.portalbotCurrentForm = this.portalbotForm;
+            this.portalbotLastFacingRight = this.facingRight;
+            this.updatePortalbotVisuals();
+        }
+        const px = this.sprite.x;
+        const py = this.sprite.y;
+        const dir = this.facingRight ? 1 : -1;
+        if (this.portalbotVisuals && this.portalbotVisuals.length > 0) {
+            if (this.portalbotForm === 'robot') {
+                if (this.portalbotChest) { this.portalbotChest.x = px; this.portalbotChest.y = py; }
+                if (this.portalbotHead) { this.portalbotHead.x = px; this.portalbotHead.y = py - 20; }
+                if (this.portalbotVisor) { this.portalbotVisor.x = px; this.portalbotVisor.y = py - 20; }
+                if (this.portalbotCore) { this.portalbotCore.x = px; this.portalbotCore.y = py; }
+                if (this.portalbotLeftArm) { this.portalbotLeftArm.x = px - 16; this.portalbotLeftArm.y = py - 2; }
+                if (this.portalbotRightArm) { this.portalbotRightArm.x = px + 16; this.portalbotRightArm.y = py - 2; }
+                if (this.portalbotLeftLeg) { this.portalbotLeftLeg.x = px - 7; this.portalbotLeftLeg.y = py + 20; }
+                if (this.portalbotRightLeg) { this.portalbotRightLeg.x = px + 7; this.portalbotRightLeg.y = py + 20; }
+                if (this.portalbotLeftFoot) { this.portalbotLeftFoot.x = px - 7; this.portalbotLeftFoot.y = py + 30; }
+                if (this.portalbotRightFoot) { this.portalbotRightFoot.x = px + 7; this.portalbotRightFoot.y = py + 30; }
+            } else {
+                // Dragon form position updates
+                if (this.portalbotBody) { this.portalbotBody.x = px; this.portalbotBody.y = py; }
+                if (this.portalbotDragonHead) { this.portalbotDragonHead.x = px + dir * 20; this.portalbotDragonHead.y = py - 10; }
+                if (this.portalbotEye) { this.portalbotEye.x = px + dir * 24; this.portalbotEye.y = py - 14; }
+                if (this.portalbotSnout) { this.portalbotSnout.x = px + dir * 32; this.portalbotSnout.y = py - 8; }
+                if (this.portalbotTail) { this.portalbotTail.x = px - dir * 24; this.portalbotTail.y = py + 2; }
+                if (this.portalbotTailSwirl) { this.portalbotTailSwirl.x = px - dir * 34; this.portalbotTailSwirl.y = py + 2; }
+                if (this.portalbotWing1) { this.portalbotWing1.x = px - dir * 4; this.portalbotWing1.y = py - 18; }
+                if (this.portalbotWing2) { this.portalbotWing2.x = px - dir * 8; this.portalbotWing2.y = py - 14; }
+                if (this.portalbotDragonLeftLeg) { this.portalbotDragonLeftLeg.x = px - 8; this.portalbotDragonLeftLeg.y = py + 16; }
+                if (this.portalbotDragonRightLeg) { this.portalbotDragonRightLeg.x = px + 8; this.portalbotDragonRightLeg.y = py + 16; }
+                if (this.portalbotLeftClaw) { this.portalbotLeftClaw.x = px - 8; this.portalbotLeftClaw.y = py + 24; }
+                if (this.portalbotRightClaw) { this.portalbotRightClaw.x = px + 8; this.portalbotRightClaw.y = py + 24; }
             }
         }
     }
@@ -3815,6 +4166,10 @@ class Player {
                 // BMW Bouncer car mode - expanding capture net
                 projectile = this.createBmwBouncerNetProjectile(startX, startY, costume);
                 break;
+            case 'portal':
+                // Portal Bot - swirling portal orb (purple/cyan)
+                projectile = this.createPortalProjectile(startX, startY, costume);
+                break;
             default:
                 projectile = this.scene.add.circle(startX, startY, costume.projectileSize, projectileColor, 0.9);
         }
@@ -3855,7 +4210,7 @@ class Player {
             glow: glow,
             damage: projectileDamage,
             traveled: 0,
-            maxDistance: this.scene.levelWidth || 3000,
+            maxDistance: projectileType === 'portal' ? 400 : (this.scene.levelWidth || 3000),
             type: projectileType,
             effect: projectileEffect,
             color: projectileColor,
@@ -4394,6 +4749,235 @@ class Player {
         });
     }
 
+    createPortalProjectile(x, y, costume) {
+        // 🌀🤖 PORTAL BOT - Swirling portal orb that becomes a walkable portal
+        const size = costume.projectileSize;
+        const container = this.scene.add.container(x, y);
+
+        // Outer swirl ring (cyan)
+        const outerRing = this.scene.add.circle(0, 0, size, 0x00e5ff, 0.4);
+        outerRing.setStrokeStyle(3, 0x7b1fa2);
+
+        // Inner core (purple)
+        const innerCore = this.scene.add.circle(0, 0, size * 0.5, 0x7b1fa2, 0.8);
+        innerCore.setStrokeStyle(2, 0x00e5ff);
+
+        // Spinning swirl dots
+        const dots = [];
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI * 2 * i) / 4;
+            const dot = this.scene.add.circle(
+                Math.cos(angle) * size * 0.7,
+                Math.sin(angle) * size * 0.7,
+                3, 0x00e5ff, 0.9
+            );
+            dots.push(dot);
+            container.add(dot);
+        }
+
+        container.add([outerRing, innerCore]);
+
+        // Spin animation
+        this.scene.tweens.add({
+            targets: container,
+            angle: 360,
+            duration: 600,
+            repeat: -1,
+            ease: 'Linear'
+        });
+
+        // Pulse the core
+        this.scene.tweens.add({
+            targets: innerCore,
+            scaleX: { from: 0.8, to: 1.2 },
+            scaleY: { from: 0.8, to: 1.2 },
+            duration: 200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Mark this projectile as a portal type so updateFireballs can handle placement
+        container.isPortalProjectile = true;
+
+        console.log('🌀 Portal orb launched!');
+        return container;
+    }
+
+    placePortal(x, y) {
+        // Remove oldest portal if at max
+        if (this.activePortals.length >= this.portalMaxActive) {
+            const oldest = this.activePortals.shift();
+            if (oldest.visuals) {
+                oldest.visuals.forEach(v => { if (v && v.destroy) v.destroy(); });
+            }
+            if (oldest.collider && oldest.collider.destroy) oldest.collider.destroy();
+        }
+
+        // Create the stationary portal on the ground
+        const portalHeight = 60;
+        const portalWidth = 36;
+
+        // Portal oval frame
+        const frame = this.scene.add.ellipse(x, y - portalHeight / 2, portalWidth, portalHeight, 0x7b1fa2, 0.3);
+        frame.setStrokeStyle(3, 0x00e5ff);
+        frame.setDepth(45);
+
+        // Inner swirl
+        const inner = this.scene.add.ellipse(x, y - portalHeight / 2, portalWidth * 0.7, portalHeight * 0.7, 0x00e5ff, 0.5);
+        inner.setStrokeStyle(2, 0xe040fb);
+        inner.setDepth(46);
+
+        // Portal icon
+        const icon = this.scene.add.text(x, y - portalHeight / 2, '🌀', { fontSize: '24px' })
+            .setOrigin(0.5).setDepth(47);
+
+        // Swirl animation on inner
+        this.scene.tweens.add({
+            targets: inner,
+            angle: 360,
+            duration: 2000,
+            repeat: -1,
+            ease: 'Linear'
+        });
+
+        // Pulse the frame
+        this.scene.tweens.add({
+            targets: frame,
+            scaleX: { from: 0.95, to: 1.05 },
+            scaleY: { from: 0.95, to: 1.05 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Create invisible collider zone for the player to walk into
+        const collider = this.scene.add.rectangle(x, y - portalHeight / 2, portalWidth, portalHeight, 0x000000, 0);
+        collider.setDepth(0);
+        this.scene.physics.add.existing(collider, true); // static body
+
+        const portalData = {
+            x: x,
+            y: y - portalHeight / 2,
+            visuals: [frame, inner, icon],
+            collider: collider,
+            createdAt: this.scene.time.now,
+            lifetime: this.portalLifetime
+        };
+
+        this.activePortals.push(portalData);
+
+        // Auto-destroy after lifetime
+        this.scene.time.delayedCall(this.portalLifetime, () => {
+            this.destroyPortal(portalData);
+        });
+
+        console.log(`🌀 Portal placed at (${Math.round(x)}, ${Math.round(y)})! Active portals: ${this.activePortals.length}`);
+    }
+
+    destroyPortal(portalData) {
+        // Fade out and destroy
+        if (portalData.visuals) {
+            portalData.visuals.forEach(v => {
+                if (v && !v.destroyed) {
+                    this.scene.tweens.add({
+                        targets: v,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => { if (v && v.destroy) v.destroy(); }
+                    });
+                }
+            });
+        }
+        if (portalData.collider && !portalData.collider.destroyed) {
+            this.scene.time.delayedCall(300, () => {
+                if (portalData.collider && portalData.collider.destroy) portalData.collider.destroy();
+            });
+        }
+        // Remove from active list
+        const idx = this.activePortals.indexOf(portalData);
+        if (idx > -1) this.activePortals.splice(idx, 1);
+    }
+
+    updatePortals(delta) {
+        // Decrease teleport cooldown
+        if (this.portalTeleportCooldown > 0) {
+            this.portalTeleportCooldown -= delta;
+        }
+
+        // Check if player overlaps any active portal
+        if (this.portalTeleportCooldown > 0 || this.activePortals.length < 2) return;
+
+        const playerX = this.sprite.x;
+        const playerY = this.sprite.y;
+
+        for (let i = 0; i < this.activePortals.length; i++) {
+            const portal = this.activePortals[i];
+            if (!portal || !portal.collider || portal.collider.destroyed) continue;
+
+            const dist = Phaser.Math.Distance.Between(playerX, playerY, portal.x, portal.y);
+            if (dist < 30) {
+                // Find the OTHER portal to teleport to
+                const destIndex = (i === 0) ? this.activePortals.length - 1 : 0;
+                const dest = this.activePortals[destIndex];
+                if (!dest || !dest.collider || dest.collider.destroyed) continue;
+
+                // Teleport!
+                this.sprite.x = dest.x;
+                this.sprite.y = dest.y;
+                if (this.sprite.body) {
+                    this.sprite.body.reset(dest.x, dest.y);
+                }
+                this.portalTeleportCooldown = this.portalTeleportCooldownTime;
+
+                // Visual teleport effect at both ends
+                this.createPortalTeleportEffect(portal.x, portal.y);
+                this.createPortalTeleportEffect(dest.x, dest.y);
+
+                // Screen flash
+                if (this.scene.cameras && this.scene.cameras.main) {
+                    this.scene.cameras.main.flash(200, 0, 229, 255, false); // cyan flash
+                }
+
+                console.log(`🌀 TELEPORTED from portal ${i} to portal ${destIndex}!`);
+                break;
+            }
+        }
+    }
+
+    createPortalTeleportEffect(x, y) {
+        // Expanding rings at teleport point
+        for (let i = 0; i < 3; i++) {
+            const ring = this.scene.add.circle(x, y, 10, 0x00e5ff, 0);
+            ring.setStrokeStyle(3, i % 2 === 0 ? 0x7b1fa2 : 0x00e5ff);
+            ring.setDepth(100);
+            this.scene.tweens.add({
+                targets: ring,
+                scaleX: 2 + i,
+                scaleY: 2 + i,
+                alpha: { from: 0.8, to: 0 },
+                duration: 400,
+                delay: i * 100,
+                onComplete: () => ring.destroy()
+            });
+        }
+        // Particles burst
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const particle = this.scene.add.circle(x, y, 4, i % 2 === 0 ? 0x7b1fa2 : 0x00e5ff, 0.9);
+            particle.setDepth(101);
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 40,
+                y: y + Math.sin(angle) * 40,
+                alpha: 0,
+                duration: 350,
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+
     createEarthquakeShockwave(x, y) {
         // Screen shake effect
         if (this.scene.cameras && this.scene.cameras.main) {
@@ -4496,10 +5080,14 @@ class Player {
             
             // Check if projectile hit max distance
             if (projectile.traveled >= projectile.maxDistance) {
+                // Portal projectiles place a portal where they land
+                if (projectile.type === 'portal') {
+                    this.placePortal(projectile.sprite.x, projectile.sprite.y);
+                }
                 this.destroyFireball(i);
                 continue;
             }
-            
+
             // Check collision with enemies
             if (this.scene.enemies) {
                 this.scene.enemies.children.entries.forEach(enemy => {
@@ -4508,31 +5096,36 @@ class Player {
                             projectile.sprite.x, projectile.sprite.y,
                             enemy.x, enemy.y
                         );
-                        
+
                         // Smoke has larger hit radius
                         const hitRadius = projectile.type === 'smoke' ? 50 : 30;
-                        
+
                         if (distance < hitRadius) {
                             // Hit enemy!
                             if (enemy.getData && enemy.getData('enemy')) {
                                 const enemyObj = enemy.getData('enemy');
                                 enemyObj.takeDamage(projectile.damage);
-                                
+
                                 // Apply knockback to enemy
                                 this.applyProjectileKnockback(projectile, enemy);
-                                
+
                                 // Apply special effects based on projectile type
                                 this.applyProjectileEffect(projectile, enemy, enemyObj);
                             }
-                            
+
                             // Create explosion based on projectile type
                             this.createProjectileExplosion(projectile);
-                            
+
                             // Lightning can chain to nearby enemies
                             if (projectile.effect === 'chain') {
                                 this.chainLightning(projectile, enemy);
                             }
-                            
+
+                            // Portal projectiles place a portal where they hit an enemy
+                            if (projectile.type === 'portal') {
+                                this.placePortal(projectile.sprite.x, projectile.sprite.y);
+                            }
+
                             // Mark projectile for destruction (unless it's smoke which passes through)
                             if (projectile.type !== 'smoke') {
                                 projectile.shouldDestroy = true;

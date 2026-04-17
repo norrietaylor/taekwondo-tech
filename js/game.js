@@ -860,7 +860,15 @@ class TaekwondoRobotBuilder {
                 console.log('🏍️🤖 ELITA UNLOCKED! Press 2 to transform! Guns shoot dog bullets!');
             }
         }
-        
+
+        // Portal Bot - Complete Level 2 (robot/dragon transformer, shoots portals to teleport)
+        if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('portalbot')) {
+            if (this.unlockOutfit('portalbot')) {
+                newUnlocks.push('portalbot');
+                console.log('🌀🤖 PORTAL BOT UNLOCKED! Press 2 to transform! Shoot portals to teleport!');
+            }
+        }
+
         // Legendary Mode - Collect all robot parts (5 part types, need at least 1 of each)
         const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
         const allPartsCollected = partTypes.every(type => 
