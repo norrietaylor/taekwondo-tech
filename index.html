@@ -30,6 +30,8 @@
             border: 2px solid #1a3d3b;
             border-radius: 8px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1; /* Keep canvas below mobile controls */
         }
         
         .loading {
@@ -48,7 +50,8 @@
             left: 20px;
             right: 20px;
             display: none;
-            z-index: 1000;
+            z-index: 10000; /* Very high z-index to ensure visibility in fullscreen */
+            pointer-events: auto; /* Ensure touch events work */
         }
         
         .control-pad {
@@ -111,16 +114,26 @@
             transform: scale(0.95);
         }
         
+        /* Mobile controls for touch devices */
         @media (max-width: 768px), (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
             .mobile-controls {
-                display: block;
+                display: block !important;
             }
         }
         
-        /* Force mobile controls on touch devices */
+        /* Force mobile controls on all touch devices (including iPad) */
         @media (pointer: coarse) {
             .mobile-controls {
-                display: block;
+                display: block !important;
+            }
+        }
+        
+        /* Specific iPad detection */
+        @supports (-webkit-touch-callout: none) {
+            @media (min-width: 768px) and (max-width: 1024px) {
+                .mobile-controls {
+                    display: block !important;
+                }
             }
         }
         

@@ -138,7 +138,18 @@
             <li>The "iOS Mode" uses viewport manipulation instead</li>
             <li>Test all buttons and verify the tap box works in fullscreen</li>
             <li>If buttons don't work, the coordinate system needs adjustment</li>
+            <li><strong>Check mobile controls visibility:</strong> Controls should always be visible on touch devices</li>
         </ul>
+        
+        <h2>Mobile Controls Test:</h2>
+        <div id="mobile-controls-test" style="margin-top: 10px; padding: 15px; background: rgba(0,255,0,0.1); border: 2px solid #00ff00; border-radius: 4px; display: none;">
+            <div style="font-size: 14px; margin-bottom: 10px;">Touch device detected! These test controls should remain visible in fullscreen:</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button onclick="logInteraction('Left control tapped')" style="padding: 15px 25px;">LEFT</button>
+                <button onclick="logInteraction('Jump control tapped')" style="padding: 15px 25px;">JUMP</button>
+                <button onclick="logInteraction('Right control tapped')" style="padding: 15px 25px;">RIGHT</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -151,6 +162,7 @@
                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             const isIPad = /iPad/.test(navigator.userAgent) || 
                           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
             
             const info = document.getElementById('device-info');
             info.innerHTML = `
@@ -158,11 +170,18 @@
                 User Agent: ${navigator.userAgent.substring(0, 50)}...<br>
                 Platform: ${navigator.platform}<br>
                 Touch Points: ${navigator.maxTouchPoints}<br>
+                Is Touch Device: ${isTouchDevice ? '✅ Yes' : '❌ No'}<br>
                 Is iOS: ${isIOS ? '✅ Yes' : '❌ No'}<br>
                 Is iPad: ${isIPad ? '✅ Yes' : '❌ No'}<br>
                 Screen Size: ${window.screen.width} x ${window.screen.height}<br>
                 Window Size: ${window.innerWidth} x ${window.innerHeight}
             `;
+            
+            // Show mobile controls test if touch device
+            if (isTouchDevice) {
+                document.getElementById('mobile-controls-test').style.display = 'block';
+                logInteraction('Touch device detected - mobile controls test enabled');
+            }
         }
         
         function updateStatus() {
@@ -240,10 +259,21 @@
             document.body.style.top = '0';
             document.body.style.left = '0';
             
+            // Ensure mobile controls test remains visible
+            const mobileControlsTest = document.getElementById('mobile-controls-test');
+            if (mobileControlsTest && mobileControlsTest.style.display === 'block') {
+                mobileControlsTest.style.position = 'fixed';
+                mobileControlsTest.style.bottom = '20px';
+                mobileControlsTest.style.left = '20px';
+                mobileControlsTest.style.right = '20px';
+                mobileControlsTest.style.zIndex = '10000';
+                logInteraction('✅ Mobile controls test kept visible');
+            }
+            
             isIOSFullscreen = true;
             updateStatus();
             
-            logInteraction('✅ iOS fullscreen active. Try clicking the test box!');
+            logInteraction('✅ iOS fullscreen active. Try tapping buttons and the test box!');
         }
         
         function exitIOSFullscreen() {
