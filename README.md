@@ -11,9 +11,10 @@ A dynamic side-scrolling action game where players use taekwondo martial arts to
 The game is **already running** on your local server and ready to play!
 
 ### Controls
-- **Desktop**: WASD/Arrow keys (movement), Space (jump), X (kick), Z (punch)  
+- **Desktop**: WASD/Arrow keys (movement), Space (jump), X (kick), Z (punch), **E/Q (activate power-up)**  
 - **Mobile**: Virtual joystick + touch buttons for all actions
 - **Combat**: Combine attacks for special abilities (Fire Breath, Ultra Blast, Fly Mode)
+- **Power-Ups**: Collect power-ups and press E/Q to activate them when needed
 
 ## 🌟 Game Features
 
@@ -31,6 +32,9 @@ The game is **already running** on your local server and ready to play!
 - **🧠 Smart AI**: Dynamic enemy behavior with patrol, chase, attack, and stun states
 - **🔥 Special Abilities**: Fire Breath (directional), Ultra Blast (360°), and Fly Mode
 - **💪 Power-Ups**: Speed Boost, Invincibility, and various combat enhancements
+  - **Queue System**: Collect up to 2 power-ups that queue for later use
+  - **Manual Activation**: Press E/Q to activate the next power-up when you need it
+  - **Strategic Gameplay**: Choose the right moment to activate power-ups for maximum effect
 - **🎯 Combo System**: Chain consecutive enemy stomps for increasing score bonuses (up to 5x multiplier)
 
 ### Collection & Progression

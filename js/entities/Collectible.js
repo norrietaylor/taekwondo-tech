@@ -102,7 +102,8 @@ class Collectible {
             'ultraBlast': 0x00ffff,
             'flyMode': 0x98fb98,
             'invincibility': 0xffd700,
-            'speedBoost': 0xff69b4
+            'speedBoost': 0xff69b4,
+            'presentBomb': 0xff0000  // Red for wrapped present theme
         };
         
         const color = powerUpColors[this.rarity] || powerUpColors.fireBreath;
@@ -268,32 +269,16 @@ class Collectible {
     }
 
     collectPowerUp(player) {
-        // Activate power-up based on rarity (which stores the power-up type)
+        // Add to player's power-up queue instead of auto-activating
         const powerUpType = this.rarity;
-        const duration = 10000; // 10 seconds
         
-        switch (powerUpType) {
-            case 'fireBreath':
-                player.activatePowerUp('fireBreath', duration);
-                break;
-            case 'ultraBlast':
-                player.activatePowerUp('ultraBlast', duration);
-                break;
-            case 'flyMode':
-                player.activatePowerUp('flyMode', duration);
-                break;
-            case 'invincibility':
-                player.activatePowerUp('invincibility', duration);
-                break;
-            case 'speedBoost':
-                player.activatePowerUp('speedBoost', duration);
-                break;
-        }
+        // Add to queue
+        player.addPowerUpToQueue(powerUpType);
         
         // Award score for collecting power-up
         window.gameInstance.addScore(25);
         
-        console.log(`Power-up activated: ${powerUpType}`);
+        console.log(`Power-up collected and queued: ${powerUpType}`);
     }
 
     createCollectionEffect() {
