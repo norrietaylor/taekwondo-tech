@@ -715,7 +715,16 @@ class Player {
             console.warn('⚠️ Controls not initialized');
             return;
         }
-        
+
+        // Block movement if in a stationary form (e.g., VibeCoder's computer form).
+        // R2.4: Computer form must ignore all movement input (horizontal & vertical).
+        if (this.transformer
+            && this.transformer.config
+            && this.transformer.config.stationaryInForm === this.transformer.currentForm()) {
+            this.body.setVelocityX(0);
+            return;
+        }
+
         const horizontal = this.controls.getHorizontal();
         const vertical = this.controls.getVertical();
         

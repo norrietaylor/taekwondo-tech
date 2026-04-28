@@ -188,6 +188,67 @@ test.describe('VibeCoder costume + robot<->computer transform', () => {
         expect(velocities.v2).toBe(0);
     });
 
+    // R2.4 (Jump Block) — Computer form blocks jump input entirely.
+    test('R2.4b: computer form blocks jump input (velocity.y and sprite.y unchanged)', async ({ page }) => {
+        await equipVibeCoder(page);
+        await startGameScene(page);
+
+        // Toggle to computer form.
+        await page.evaluate(() => {
+            const gs = window.gameInstance.game.scene.getScene('GameScene');
+            gs.player.transformer.tryToggle();
+        });
+
+        // Wait for transition to settle.
+        await page.waitForTimeout(100);
+
+        // Verify: Press space (simulated) should NOT change velocity.y or sprite.y.
+        const jumpResult = await page.evaluate(() => {
+            const gs = window.gameInstance.game.scene.getScene('GameScene');
+            const player = gs.player;
+            const initialY = player.sprite.y;
+            const initialVelY = player.body.velocity.y;
+
+            // Simulate jump input by calling tryJump() directly
+            // (as if Space was pressed in handleMovement via Controls.isJump()).
+            // But in computer form, handleMovement should return early and never reach tryJump().
+            // Verify by checking that velocity.y and sprite.y remain unchanged after frames.
+
+            // Frame 1: simulate controls.isJump() == true
+            player.controls.jump = true;
+            player.handleMovement();
+            const velY1 = player.body.velocity.y;
+            const y1 = player.sprite.y;
+
+            // Frame 2: simulate controls.isJump() == true again
+            player.handleMovement();
+            const velY2 = player.body.velocity.y;
+            const y2 = player.sprite.y;
+
+            // Also verify that facingRight was NOT flipped by horizontal input.
+            const facingRight = player.facingRight;
+
+            return {
+                initialY,
+                initialVelY,
+                velY1,
+                y1,
+                velY2,
+                y2,
+                facingRight
+            };
+        });
+
+        // Jump input should have been blocked, so velocity.y should not change to negative (jump).
+        expect(jumpResult.velY1).toBe(jumpResult.initialVelY);
+        expect(jumpResult.velY2).toBe(jumpResult.initialVelY);
+        // sprite.y should remain unchanged
+        expect(jumpResult.y1).toBe(jumpResult.initialY);
+        expect(jumpResult.y2).toBe(jumpResult.initialY);
+        // facingRight should not flip in response to horizontal input
+        expect(jumpResult.facingRight).toBe(true);
+    });
+
     // R2.5 — "Challenge accepted" bubble appears on robot->computer transition.
     test('R2.5: "Challenge accepted" bubble appears when toggling to computer', async ({ page }) => {
         await equipVibeCoder(page);

@@ -251,6 +251,7 @@
         key: 'vibeCoder',
         cooldownMs: 1000,
         forms: { primary: 'robot', secondary: 'computer' },
+        stationaryInForm: 'computer',
 
         buildVisuals(form, facingRight, player, transformer) {
             const scene = player.scene;
