@@ -563,7 +563,8 @@ class Player {
             vibeCoderTransform: false,
             vibeSpawn1: false,
             vibeSpawn2: false,
-            vibeSpawn3: false
+            vibeSpawn3: false,
+            vibeCharm: false
         };
     }
 
@@ -861,6 +862,8 @@ class Player {
         this.handleVibeCoderTransform();
         // VibeCoder spawn keys (1/2/3 = chicken/duck/doghouse while in computer form)
         this.handleVibeCoderSpawns();
+        // VibeCoder charm ability (X = charm nearby enemies while in computer form)
+        this.handleVibeCoderCharm();
     }
 
     handleStoneBlast() {
@@ -2878,6 +2881,29 @@ class Player {
         }
         if (k3 && !this.previousInputs.vibeSpawn3) {
             this.spawnVibeAlly('doghouse', this.sprite.x, this.sprite.y);
+        }
+    }
+
+    // VIBECODER CHARM ABILITY (X = hypnotize nearby enemies while in computer form)
+    // ============================================================================
+    // R4.1 / R4.6: Only triggers in computer form. Cooldown is tracked on the
+    // transformer instance (transformer.charmCooldownMs). Uses KeyX (same key as
+    // kick; kick is a no-op in computer form so there is no conflict).
+    handleVibeCoderCharm() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'vibeCoder') return;
+        if (!this.transformer) return;
+        if (this.transformer.currentForm() !== 'computer') return; // R4.6 — robot form: no charm
+
+        const pressed = !!(this.controls.keys && this.controls.keys['KeyX']);
+        if (pressed && !this.previousInputs.vibeCharm) {
+            // R4.1 — only trigger if cooldown is expired
+            if (typeof this.transformer.charmCooldownMs === 'number' && this.transformer.charmCooldownMs <= 0) {
+                if (typeof this.transformer.triggerCharm === 'function') {
+                    this.transformer.triggerCharm();
+                }
+            }
         }
     }
 
@@ -5962,6 +5988,7 @@ class Player {
         this.previousInputs.vibeSpawn1 = !!(this.controls.keys && this.controls.keys['Digit1']);
         this.previousInputs.vibeSpawn2 = !!(this.controls.keys && this.controls.keys['Digit2']);
         this.previousInputs.vibeSpawn3 = !!(this.controls.keys && this.controls.keys['Digit3']);
+        this.previousInputs.vibeCharm  = !!(this.controls.keys && this.controls.keys['KeyX']);
     }
 
     // Power-up queue methods

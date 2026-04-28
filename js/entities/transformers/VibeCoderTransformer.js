@@ -171,6 +171,82 @@
         });
     }
 
+    /**
+     * Build a spiral graphic above an enemy to show it is charmed.
+     * Returns the Graphics object so the caller can store and destroy it.
+     */
+    function buildCharmSpiral(scene, enemy) {
+        const g = scene.add.graphics();
+        g.setDepth(200);
+        // Draw a simple 3-loop spiral polyline in magenta.
+        g.lineStyle(2, 0xff00ff, 0.9);
+        g.beginPath();
+        const steps = 48;
+        const maxR = 10;
+        for (let i = 0; i <= steps; i++) {
+            const t = (i / steps) * Math.PI * 6; // 3 full loops
+            const r = (i / steps) * maxR;
+            const x = Math.cos(t) * r;
+            const y = Math.sin(t) * r;
+            if (i === 0) g.moveTo(x, y);
+            else g.lineTo(x, y);
+        }
+        g.strokePath();
+        // Spin it continuously
+        scene.tweens.add({
+            targets: g,
+            angle: 360,
+            repeat: -1,
+            duration: 800,
+            ease: 'Linear'
+        });
+        return g;
+    }
+
+    /**
+     * Trigger the charm ability: charm all enemies within 250px of the player.
+     * Attaches a spiral graphic to each charmed enemy.
+     * Called from Player.handleVibeCoderCharm() via transformer.triggerCharm().
+     */
+    function triggerCharm(transformer, player) {
+        const scene = player.scene;
+        if (!scene || !scene.enemies) return;
+
+        const now = scene.time ? scene.time.now : Date.now();
+        const CHARM_RADIUS = 250;
+        const CHARM_DURATION = 8000;
+
+        scene.enemies.children.entries.forEach(enemySprite => {
+            if (!enemySprite || !enemySprite.active) return;
+            const enemy = (typeof enemySprite.getData === 'function')
+                ? enemySprite.getData('enemy')
+                : null;
+            if (!enemy || enemy.health <= 0) return;
+
+            const dist = Phaser.Math.Distance.Between(
+                player.sprite.x, player.sprite.y,
+                enemySprite.x, enemySprite.y
+            );
+
+            if (dist <= CHARM_RADIUS) {
+                // Save prior state before overwriting (for expiry restoration).
+                if (!enemy.charmed) {
+                    enemy._preCharmState = enemy.state || 'patrol';
+                }
+                enemy.charmed = true;
+                enemy.charmExpiresAt = now + CHARM_DURATION;
+
+                // Destroy old spiral if re-charmed.
+                if (enemy._charmSpiral && typeof enemy._charmSpiral.destroy === 'function') {
+                    try { enemy._charmSpiral.destroy(); } catch (e) { /* noop */ }
+                }
+                enemy._charmSpiral = buildCharmSpiral(scene, enemy);
+            }
+        });
+
+        transformer.charmCooldownMs = 4000;
+    }
+
     const vibeCoderConfig = {
         key: 'vibeCoder',
         cooldownMs: 1000,
@@ -238,7 +314,27 @@
             console.error('VibeCoderTransformer: Transformer base class is not loaded');
             return null;
         }
-        return new Ctor(player, vibeCoderConfig);
+        const t = new Ctor(player, vibeCoderConfig);
+
+        // Charm-ability state (R4.1)
+        t.charmCooldownMs = 0;
+
+        // Override update to also decrement charmCooldownMs.
+        const _baseUpdate = t.update.bind(t);
+        t.update = function(delta) {
+            _baseUpdate(delta);
+            if (this.charmCooldownMs > 0) {
+                this.charmCooldownMs -= delta;
+                if (this.charmCooldownMs < 0) this.charmCooldownMs = 0;
+            }
+        };
+
+        // Expose the charm trigger so Player.handleVibeCoderCharm() can call it.
+        t.triggerCharm = function() {
+            triggerCharm(this, player);
+        };
+
+        return t;
     }
 
     if (typeof window !== 'undefined') {
