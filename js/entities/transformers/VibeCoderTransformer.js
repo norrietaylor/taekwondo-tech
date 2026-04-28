@@ -219,6 +219,10 @@
                 player.speed = (costume && costume.robotSpeed) || 200;
                 player.jumpPower = (costume && costume.robotJump) || 420;
                 player.damageMultiplier = (costume && costume.robotDamage) || 1.0;
+                // Clean up all ally spawns when leaving computer form.
+                if (typeof player.cleanupVibeSpawns === 'function') {
+                    player.cleanupVibeSpawns();
+                }
             }
             transformEffect(player.scene, player, newForm === 'computer');
             if (player.scene && player.scene.cameras && player.scene.cameras.main) {

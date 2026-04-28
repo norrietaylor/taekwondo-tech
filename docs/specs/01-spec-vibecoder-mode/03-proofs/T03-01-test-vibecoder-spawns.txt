@@ -1,0 +1,20 @@
+Type: test
+Command: npx playwright test tests/vibecoder-spawns.spec.js --project=chromium --reporter=list
+Expected: All 9 tests pass (R3.1 through R3.7b coverage)
+Timestamp: 2026-04-27T20:15:00Z
+Status: PASS
+
+Output:
+Running 9 tests using 9 workers
+
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:89:5  › R3.1: VibeSpawn is a global class with required constructor signature
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:102:5 › R3.5: cap — 6 chicken presses yield 6 vibeSpawns, 7th is ignored
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:124:5 › R3.4: spawn keys are no-ops in robot form
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:162:5 › R3.2: chicken body velocity X sign matches direction to nearest enemy
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:206:5 › R3.3: doghouse emits a dog after > 3000ms
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:234:5 › R3.3b: doghouse despawns after 12000ms lifetime
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:256:5 › R3.6: spawn visuals are procedural rectangles, no sprites/images
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:295:5 › R3.7: cleanupVibeSpawns() despawns all active spawns
+  ✓  [chromium] › tests/vibecoder-spawns.spec.js:323:5 › R3.7b: toggling back to robot form cleans up all vibeSpawns
+
+  9 passed (4.1s)

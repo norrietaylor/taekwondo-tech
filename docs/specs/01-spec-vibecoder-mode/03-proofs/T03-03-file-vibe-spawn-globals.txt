@@ -1,0 +1,22 @@
+Type: file
+Check: js/entities/VibeSpawn.js exists and exposes window.VibeSpawn
+Expected: File exists; class VibeSpawn defined; window.VibeSpawn assignment present
+Timestamp: 2026-04-27T20:16:00Z
+Status: PASS
+
+File: js/entities/VibeSpawn.js
+Size: 358 lines
+
+window global assignment (tail of file):
+    if (typeof window !== 'undefined') {
+        window.VibeSpawn = VibeSpawn;
+    }
+
+Types supported:
+  - chicken   (white rect + yellow beak + eye)
+  - duck      (yellow rect + orange beak + eye)
+  - dog       (brown rect + ears + eye)
+  - doghouse  (brown rect + red triangle roof + door)
+
+Cap enforcement: spawnVibeAlly() filters alive spawns and returns null when >= 6
+Cleanup: cleanupVibeSpawns() despawns all; also wired to VibeCoderTransformer.onToggle (robot form) and scene 'shutdown' event

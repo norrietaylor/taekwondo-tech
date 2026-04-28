@@ -207,6 +207,9 @@ class Player {
         // window.TransformerRegistry; refreshed on outfit change inside update().
         this.transformer = null;
         this._activeTransformerKey = null;
+        // VibeCoder ally spawns — array of live VibeSpawn instances.
+        // Managed by spawnVibeAlly() and cleaned up on transform-back + scene shutdown.
+        this.vibeSpawns = [];
         // Portal Bot transformation (robot / dragon) - shoots portals for teleportation
         this.portalbotForm = 'robot';
         this.portalbotVisuals = [];
@@ -233,6 +236,13 @@ class Player {
 
         // Resolve the registered Transformer (if any) for the active outfit.
         this.syncTransformerForOutfit();
+
+        // Cleanup VibeSpawns on scene shutdown (the scene may restart between levels).
+        if (scene && scene.events) {
+            scene.events.once('shutdown', () => {
+                this.cleanupVibeSpawns();
+            });
+        }
 
             console.log('✅ Player created successfully at:', x, y);
             
@@ -550,7 +560,10 @@ class Player {
             grimlockTransform: false,
             duckLaser: false,
             dogLaser: false,
-            vibeCoderTransform: false
+            vibeCoderTransform: false,
+            vibeSpawn1: false,
+            vibeSpawn2: false,
+            vibeSpawn3: false
         };
     }
 
@@ -605,6 +618,9 @@ class Player {
             this.transformer.update(dt);
         }
         this.updatePortalbotVisualsIfNeeded();
+
+        // Tick all live VibeCoder ally spawns.
+        this._updateVibeSpawns(delta);
 
 
         // Update grounded state
@@ -843,6 +859,8 @@ class Player {
         this.handlePortalbotTransform();
         // VibeCoder special abilities (V = toggle robot/computer)
         this.handleVibeCoderTransform();
+        // VibeCoder spawn keys (1/2/3 = chicken/duck/doghouse while in computer form)
+        this.handleVibeCoderSpawns();
     }
 
     handleStoneBlast() {
@@ -2835,6 +2853,102 @@ class Player {
             : false;
         if (pressed && !this.previousInputs.vibeCoderTransform) {
             this.transformer.tryToggle();
+        }
+    }
+
+    // VIBECODER SPAWN KEYS (1 = chicken, 2 = duck, 3 = doghouse while in computer form)
+    // ==================================================================================
+    handleVibeCoderSpawns() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'vibeCoder') return;
+        if (!this.transformer) return;
+        if (this.transformer.currentForm() !== 'computer') return;
+
+        // Edge-detect keys 1/2/3 (Digit1, Digit2, Digit3)
+        const k1 = !!(this.controls.keys && this.controls.keys['Digit1']);
+        const k2 = !!(this.controls.keys && this.controls.keys['Digit2']);
+        const k3 = !!(this.controls.keys && this.controls.keys['Digit3']);
+
+        if (k1 && !this.previousInputs.vibeSpawn1) {
+            this.spawnVibeAlly('chicken', this.sprite.x, this.sprite.y);
+        }
+        if (k2 && !this.previousInputs.vibeSpawn2) {
+            this.spawnVibeAlly('duck', this.sprite.x, this.sprite.y);
+        }
+        if (k3 && !this.previousInputs.vibeSpawn3) {
+            this.spawnVibeAlly('doghouse', this.sprite.x, this.sprite.y);
+        }
+    }
+
+    /**
+     * Spawn a VibeSpawn ally of the given type at (x, y).
+     * Enforces the 6-ally global cap.
+     * Dog-house-emitted dogs also pass through here so the cap is shared.
+     *
+     * @param {'chicken'|'duck'|'dog'|'doghouse'} type
+     * @param {number} x
+     * @param {number} y
+     * @returns {VibeSpawn|null}
+     */
+    spawnVibeAlly(type, x, y) {
+        // Prune dead spawns first
+        this.vibeSpawns = this.vibeSpawns.filter(s => s && s.alive);
+
+        const MAX_SPAWNS = 6;
+        if (this.vibeSpawns.length >= MAX_SPAWNS) {
+            // Cap reached — silently ignore
+            return null;
+        }
+
+        const VibeSpawnCtor = (typeof window !== 'undefined' && window.VibeSpawn)
+            || (typeof VibeSpawn !== 'undefined' ? VibeSpawn : null);
+        if (!VibeSpawnCtor) {
+            console.error('spawnVibeAlly: VibeSpawn class not loaded');
+            return null;
+        }
+
+        let spawn;
+        try {
+            spawn = new VibeSpawnCtor(this.scene, x, y, type);
+        } catch (e) {
+            console.error('spawnVibeAlly: failed to create VibeSpawn', type, e);
+            return null;
+        }
+
+        this.vibeSpawns.push(spawn);
+        return spawn;
+    }
+
+    /**
+     * Despawn all active VibeSpawns.
+     * Called on transform back to robot and on scene shutdown.
+     */
+    cleanupVibeSpawns() {
+        if (!this.vibeSpawns) return;
+        this.vibeSpawns.forEach(s => {
+            if (s && typeof s.despawn === 'function') {
+                try { s.despawn(); } catch (e) { /* noop */ }
+            }
+        });
+        this.vibeSpawns = [];
+    }
+
+    /**
+     * Per-frame tick for all active VibeSpawn instances.
+     * Also prunes dead spawns from the array.
+     * @param {number} delta
+     */
+    _updateVibeSpawns(delta) {
+        if (!this.vibeSpawns || this.vibeSpawns.length === 0) return;
+        const dt = (typeof delta === 'number') ? delta : 16;
+        for (let i = this.vibeSpawns.length - 1; i >= 0; i--) {
+            const s = this.vibeSpawns[i];
+            if (!s || !s.alive) {
+                this.vibeSpawns.splice(i, 1);
+                continue;
+            }
+            try { s.update(dt); } catch (e) { /* noop */ }
         }
     }
 
@@ -5845,6 +5959,9 @@ class Player {
         this.previousInputs.vibeCoderTransform = (typeof this.controls.isVibeCoderTransform === 'function')
             ? this.controls.isVibeCoderTransform()
             : false;
+        this.previousInputs.vibeSpawn1 = !!(this.controls.keys && this.controls.keys['Digit1']);
+        this.previousInputs.vibeSpawn2 = !!(this.controls.keys && this.controls.keys['Digit2']);
+        this.previousInputs.vibeSpawn3 = !!(this.controls.keys && this.controls.keys['Digit3']);
     }
 
     // Power-up queue methods
