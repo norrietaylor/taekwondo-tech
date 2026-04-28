@@ -532,6 +532,35 @@ class TaekwondoRobotBuilder {
                 projectileSpeed: 550,
                 projectileSize: 14,
                 projectileEffect: 'chomp'
+            },
+            'vibeCoder': {
+                name: 'VibeCoder',
+                icon: '💻🤖',
+                primaryColor: 0x00ff88, // Terminal green
+                secondaryColor: 0x003311, // Dark green background
+                beltColor: 0x00cc66,
+                description: 'VibeCoder! Press V to transform into a stationary computer! Challenge accepted!',
+                unlockCondition: 'Complete Level 1',
+                effectColor: 0x00ff88,
+                unlocked: false,
+                hasWings: false,
+                wingColor: null,
+                wingStyle: 'none',
+                // Transformer traits
+                isVibeCoder: true,
+                canTransform: true,
+                transformKey: 'V',
+                currentForm: 'robot',
+                // Robot form stats
+                robotSpeed: 200,
+                robotJump: 420,
+                robotDamage: 1.0,
+                // Computer form: stationary, zero velocity X each frame
+                computerSpeed: 0,
+                computerJump: 0,
+                computerDamage: 0.5,
+                robotColors: { primary: 0x00ff88, secondary: 0x003311, accent: 0x00cc66 },
+                computerColors: { primary: 0x111111, secondary: 0x00ff88, accent: 0x003311 }
             }
         };
 
@@ -866,6 +895,14 @@ class TaekwondoRobotBuilder {
             if (this.unlockOutfit('portalbot')) {
                 newUnlocks.push('portalbot');
                 console.log('🌀🤖 PORTAL BOT UNLOCKED! Press 2 to transform! Shoot portals to teleport!');
+            }
+        }
+
+        // VibeCoder - Complete Level 1 (robot/computer transformer, press V to freeze as computer)
+        if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('vibeCoder')) {
+            if (this.unlockOutfit('vibeCoder')) {
+                newUnlocks.push('vibeCoder');
+                console.log('💻🤖 VIBECODER UNLOCKED! Press V to transform into a computer! Challenge accepted!');
             }
         }
 

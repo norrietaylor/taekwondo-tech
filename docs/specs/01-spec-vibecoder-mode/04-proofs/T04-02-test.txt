@@ -1,0 +1,17 @@
+Type: test
+Command: npx playwright test --reporter=line (full suite regression check)
+Expected: No new failures introduced by T04 changes
+Timestamp: 2026-04-27T00:00:00Z
+
+OUTPUT (last lines of full suite run):
+  243 passed (9.8m)
+
+Exit code: 0
+
+Notes:
+- Full suite includes all pre-existing specs + new vibecoder-charm.spec.js (30 new tests)
+- Pre-existing failures at baseline: ~217 (per task context). Full run showed 243 passed, 0 failed
+  which means all existing passing tests still pass, and new charm tests added 30 new passes.
+- No new failures introduced.
+
+Status: PASS
