@@ -549,7 +549,8 @@ class Player {
             stoneBlast: false,
             grimlockTransform: false,
             duckLaser: false,
-            dogLaser: false
+            dogLaser: false,
+            vibeCoderTransform: false
         };
     }
 
@@ -840,6 +841,8 @@ class Player {
         this.handleBmwBouncerBounceSlam();
         // Portal Bot special abilities (transform + portal teleport)
         this.handlePortalbotTransform();
+        // VibeCoder special abilities (V = toggle robot/computer)
+        this.handleVibeCoderTransform();
     }
 
     handleStoneBlast() {
@@ -2810,6 +2813,28 @@ class Player {
         if (currentOutfit !== 'portalbot') return;
         if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
             this.performPortalbotTransform();
+        }
+    }
+
+    // ============================================
+    // VIBECODER TRANSFORMER (Robot / Computer)
+    // ============================================
+
+    // VibeCoder transform is handled by the shared Transformer strategy
+    // (see js/entities/transformers/VibeCoderTransformer.js). This method
+    // routes the V-key into the active Transformer instance — all cooldown,
+    // form-state, visual rebuild, and stat-change logic lives in the base +
+    // vibeCoderConfig.
+    handleVibeCoderTransform() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'vibeCoder') return;
+        if (!this.transformer) return;
+        const pressed = (typeof this.controls.isVibeCoderTransform === 'function')
+            ? this.controls.isVibeCoderTransform()
+            : false;
+        if (pressed && !this.previousInputs.vibeCoderTransform) {
+            this.transformer.tryToggle();
         }
     }
 
@@ -5817,6 +5842,9 @@ class Player {
         this.previousInputs.grimlockTransform = this.controls.isGrimlockTransform();
         this.previousInputs.duckLaser = this.controls.isDuckLaser();
         this.previousInputs.dogLaser = this.controls.isDuckLaser();
+        this.previousInputs.vibeCoderTransform = (typeof this.controls.isVibeCoderTransform === 'function')
+            ? this.controls.isVibeCoderTransform()
+            : false;
     }
 
     // Power-up queue methods
