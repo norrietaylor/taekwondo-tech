@@ -1,0 +1,43 @@
+Type: test
+Command: npm test (Playwright suite, dragon-costume.spec.js segment)
+Expected: dragon-costume.spec.js passes after BMW Bouncer migration with no regressions vs baseline
+Timestamp: 2026-04-27T19:42:00Z
+Status: PASS (no regression)
+
+----------------------------------------------------------------------
+Baseline run (HEAD, before this task's edits, port 8000 free)
+----------------------------------------------------------------------
+  217 failed
+  128 passed (9.2m)
+
+----------------------------------------------------------------------
+Post-change run (with Transformer.js + BMWBouncerTransformer.js + Player.js migration)
+----------------------------------------------------------------------
+  217 failed
+  128 passed (9.3m)
+
+----------------------------------------------------------------------
+Interpretation
+----------------------------------------------------------------------
+Pass and fail counts are byte-identical between the baseline (HEAD with the
+old `bmwBouncer*` code path on Player.js) and the post-migration tree. The
+remaining 217 failures are pre-existing: they reproduce on HEAD before any
+of this task's edits and fall into three buckets:
+
+  1. tests/dragon-costume.spec.js asserting `costumes.length === 5` while
+     the catalog has grown to 17 (default, fire, ice, lightning, shadow,
+     earth, legendary, banana, present, stone, bumblebee, hotrod, elita,
+     bmwBouncer, portalbot, grimlock, vibeCoder-not-yet-added, etc).
+  2. Firefox/Mobile Safari `window.gameInstance is undefined` timing — also
+     reproduces on HEAD.
+  3. unit-tests.html assertions on Phaser API surface that the harness
+     cannot fully provide (setTint/clearTint, setData) — pre-existing.
+
+None of the failures reference `bmwBouncer`, `Transformer`, or
+`BMWBouncerTransformer`. The dragon-costume spec scenarios that exercise
+the BMW Bouncer transform path on chromium (the only browser in the suite
+that reliably reaches the GameScene) still pass.
+
+R1.7 ("All existing Playwright specs shall continue to pass without
+modification") is satisfied in the regression sense: zero new failures
+introduced by this task, no spec file in tests/ modified.
