@@ -196,15 +196,20 @@ class Player {
         this.elitaLastFacingRight = null;
         this.elitaTransformCooldown = 0;
         this.elitaTransformCooldownTime = 1000;
-        // BMW Bouncer transformation (race car / robot) - trampolines + nets
-        this.bmwBouncerForm = 'robot';
-        this.bmwBouncerVisuals = [];
-        this.bmwBouncerCurrentForm = null;
-        this.bmwBouncerLastFacingRight = null;
-        this.bmwBouncerTransformCooldown = 0;
-        this.bmwBouncerTransformCooldownTime = 1000;
+        // BMW Bouncer transformation (race car / robot) — state lives on the
+        // shared Transformer instance (see js/entities/Transformer.js +
+        // js/entities/transformers/BMWBouncerTransformer.js). The legacy
+        // bmwBouncer* fields are intentionally NOT own properties of Player.
         this.bounceSlamCooldown = 0;
         this.bounceSlamCooldownTime = 6000;
+        // Active Transformer strategy for the current outfit (or null when the
+        // outfit has no registered transformer). Resolved from
+        // window.TransformerRegistry; refreshed on outfit change inside update().
+        this.transformer = null;
+        this._activeTransformerKey = null;
+        // VibeCoder ally spawns — array of live VibeSpawn instances.
+        // Managed by spawnVibeAlly() and cleaned up on transform-back + scene shutdown.
+        this.vibeSpawns = [];
         // Portal Bot transformation (robot / dragon) - shoots portals for teleportation
         this.portalbotForm = 'robot';
         this.portalbotVisuals = [];
@@ -228,7 +233,17 @@ class Player {
         
         // Input handling
         this.setupInputHandlers();
-        
+
+        // Resolve the registered Transformer (if any) for the active outfit.
+        this.syncTransformerForOutfit();
+
+        // Cleanup VibeSpawns on scene shutdown (the scene may restart between levels).
+        if (scene && scene.events) {
+            scene.events.once('shutdown', () => {
+                this.cleanupVibeSpawns();
+            });
+        }
+
             console.log('✅ Player created successfully at:', x, y);
             
         } catch (error) {
@@ -544,7 +559,12 @@ class Player {
             stoneBlast: false,
             grimlockTransform: false,
             duckLaser: false,
-            dogLaser: false
+            dogLaser: false,
+            vibeCoderTransform: false,
+            vibeSpawn1: false,
+            vibeSpawn2: false,
+            vibeSpawn3: false,
+            vibeCharm: false
         };
     }
 
@@ -588,8 +608,20 @@ class Player {
         this.updateBumblebeeVisualsIfNeeded();
         this.updateHotrodVisualsIfNeeded();
         this.updateElitaVisualsIfNeeded();
-        this.updateBmwBouncerVisualsIfNeeded();
+        // BMW Bouncer visuals are now driven by the Transformer strategy.
+        // Resync (handles outfit changes) and tick the active transformer.
+        this.syncTransformerForOutfit();
+        if (this.transformer && typeof this.transformer.update === 'function') {
+            // delta is an arg to Player.update — fall back to 16ms if it isn't
+            // available in this scope (defensive; updateVisuals is invoked from
+            // the same frame).
+            const dt = (typeof delta === 'number') ? delta : 16;
+            this.transformer.update(dt);
+        }
         this.updatePortalbotVisualsIfNeeded();
+
+        // Tick all live VibeCoder ally spawns.
+        this._updateVibeSpawns(delta);
 
 
         // Update grounded state
@@ -659,9 +691,7 @@ class Player {
         if (this.elitaTransformCooldown > 0) {
             this.elitaTransformCooldown -= delta;
         }
-        if (this.bmwBouncerTransformCooldown > 0) {
-            this.bmwBouncerTransformCooldown -= delta;
-        }
+        // BMW Bouncer transform cooldown lives inside the Transformer instance now.
         if (this.bounceSlamCooldown > 0) {
             this.bounceSlamCooldown -= delta;
         }
@@ -685,7 +715,16 @@ class Player {
             console.warn('⚠️ Controls not initialized');
             return;
         }
-        
+
+        // Block movement if in a stationary form (e.g., VibeCoder's computer form).
+        // R2.4: Computer form must ignore all movement input (horizontal & vertical).
+        if (this.transformer
+            && this.transformer.config
+            && this.transformer.config.stationaryInForm === this.transformer.currentForm()) {
+            this.body.setVelocityX(0);
+            return;
+        }
+
         const horizontal = this.controls.getHorizontal();
         const vertical = this.controls.getVertical();
         
@@ -828,6 +867,12 @@ class Player {
         this.handleBmwBouncerBounceSlam();
         // Portal Bot special abilities (transform + portal teleport)
         this.handlePortalbotTransform();
+        // VibeCoder special abilities (V = toggle robot/computer)
+        this.handleVibeCoderTransform();
+        // VibeCoder spawn keys (1/2/3 = chicken/duck/doghouse while in computer form)
+        this.handleVibeCoderSpawns();
+        // VibeCoder charm ability (X = charm nearby enemies while in computer form)
+        this.handleVibeCoderCharm();
     }
 
     handleStoneBlast() {
@@ -2773,34 +2818,18 @@ class Player {
     // BMW BOUNCER TRANSFORMER (BMW CSL 3.0 M / Robot) - Trampolines + Nets + Bounce Slam
     // ============================================
 
+    // BMW Bouncer transform is now handled by the shared Transformer strategy
+    // (see js/entities/transformers/BMWBouncerTransformer.js). This method only
+    // routes the transform key into the active Transformer instance — all
+    // cooldown, form-state, visual rebuild, and stat-change logic lives in the
+    // base + bmwBouncerConfig.
     handleBmwBouncerTransform() {
         if (!this.controls) return;
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
         if (currentOutfit !== 'bmwBouncer') return;
+        if (!this.transformer) return;
         if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
-            this.performBmwBouncerTransform();
-        }
-    }
-
-    performBmwBouncerTransform() {
-        if (this.bmwBouncerTransformCooldown > 0) return;
-        this.bmwBouncerTransformCooldown = this.bmwBouncerTransformCooldownTime;
-        const costume = this.getDragonCostume();
-        const wasRobot = this.bmwBouncerForm === 'robot';
-        this.bmwBouncerForm = wasRobot ? 'car' : 'robot';
-        this.createBmwBouncerTransformEffect(wasRobot);
-        if (this.bmwBouncerForm === 'car') {
-            this.speed = costume.carSpeed || 330;
-            this.jumpPower = costume.carJump || 370;
-            this.damageMultiplier = costume.carDamage || 0.9;
-        } else {
-            this.speed = costume.robotSpeed || 205;
-            this.jumpPower = costume.robotJump || 420;
-            this.damageMultiplier = costume.robotDamage || 1.0;
-        }
-        this.updateBmwBouncerVisuals();
-        if (this.scene.cameras && this.scene.cameras.main) {
-            this.scene.cameras.main.shake(300, 0.02);
+            this.transformer.tryToggle();
         }
     }
 
@@ -2814,6 +2843,147 @@ class Player {
         if (currentOutfit !== 'portalbot') return;
         if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
             this.performPortalbotTransform();
+        }
+    }
+
+    // ============================================
+    // VIBECODER TRANSFORMER (Robot / Computer)
+    // ============================================
+
+    // VibeCoder transform is handled by the shared Transformer strategy
+    // (see js/entities/transformers/VibeCoderTransformer.js). This method
+    // routes the V-key into the active Transformer instance — all cooldown,
+    // form-state, visual rebuild, and stat-change logic lives in the base +
+    // vibeCoderConfig.
+    handleVibeCoderTransform() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'vibeCoder') return;
+        if (!this.transformer) return;
+        const pressed = (typeof this.controls.isVibeCoderTransform === 'function')
+            ? this.controls.isVibeCoderTransform()
+            : false;
+        if (pressed && !this.previousInputs.vibeCoderTransform) {
+            this.transformer.tryToggle();
+        }
+    }
+
+    // VIBECODER SPAWN KEYS (1 = chicken, 2 = duck, 3 = doghouse while in computer form)
+    // ==================================================================================
+    handleVibeCoderSpawns() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'vibeCoder') return;
+        if (!this.transformer) return;
+        if (this.transformer.currentForm() !== 'computer') return;
+
+        // Edge-detect keys 1/2/3 (Digit1, Digit2, Digit3)
+        const k1 = !!(this.controls.keys && this.controls.keys['Digit1']);
+        const k2 = !!(this.controls.keys && this.controls.keys['Digit2']);
+        const k3 = !!(this.controls.keys && this.controls.keys['Digit3']);
+
+        if (k1 && !this.previousInputs.vibeSpawn1) {
+            this.spawnVibeAlly('chicken', this.sprite.x, this.sprite.y);
+        }
+        if (k2 && !this.previousInputs.vibeSpawn2) {
+            this.spawnVibeAlly('duck', this.sprite.x, this.sprite.y);
+        }
+        if (k3 && !this.previousInputs.vibeSpawn3) {
+            this.spawnVibeAlly('doghouse', this.sprite.x, this.sprite.y);
+        }
+    }
+
+    // VIBECODER CHARM ABILITY (X = hypnotize nearby enemies while in computer form)
+    // ============================================================================
+    // R4.1 / R4.6: Only triggers in computer form. Cooldown is tracked on the
+    // transformer instance (transformer.charmCooldownMs). Uses KeyX (same key as
+    // kick; kick is a no-op in computer form so there is no conflict).
+    handleVibeCoderCharm() {
+        if (!this.controls) return;
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (currentOutfit !== 'vibeCoder') return;
+        if (!this.transformer) return;
+        if (this.transformer.currentForm() !== 'computer') return; // R4.6 — robot form: no charm
+
+        const pressed = !!(this.controls.keys && this.controls.keys['KeyX']);
+        if (pressed && !this.previousInputs.vibeCharm) {
+            // R4.1 — only trigger if cooldown is expired
+            if (typeof this.transformer.charmCooldownMs === 'number' && this.transformer.charmCooldownMs <= 0) {
+                if (typeof this.transformer.triggerCharm === 'function') {
+                    this.transformer.triggerCharm();
+                }
+            }
+        }
+    }
+
+    /**
+     * Spawn a VibeSpawn ally of the given type at (x, y).
+     * Enforces the 6-ally global cap.
+     * Dog-house-emitted dogs also pass through here so the cap is shared.
+     *
+     * @param {'chicken'|'duck'|'dog'|'doghouse'} type
+     * @param {number} x
+     * @param {number} y
+     * @returns {VibeSpawn|null}
+     */
+    spawnVibeAlly(type, x, y) {
+        // Prune dead spawns first
+        this.vibeSpawns = this.vibeSpawns.filter(s => s && s.alive);
+
+        const MAX_SPAWNS = 6;
+        if (this.vibeSpawns.length >= MAX_SPAWNS) {
+            // Cap reached — silently ignore
+            return null;
+        }
+
+        const VibeSpawnCtor = (typeof window !== 'undefined' && window.VibeSpawn)
+            || (typeof VibeSpawn !== 'undefined' ? VibeSpawn : null);
+        if (!VibeSpawnCtor) {
+            console.error('spawnVibeAlly: VibeSpawn class not loaded');
+            return null;
+        }
+
+        let spawn;
+        try {
+            spawn = new VibeSpawnCtor(this.scene, x, y, type);
+        } catch (e) {
+            console.error('spawnVibeAlly: failed to create VibeSpawn', type, e);
+            return null;
+        }
+
+        this.vibeSpawns.push(spawn);
+        return spawn;
+    }
+
+    /**
+     * Despawn all active VibeSpawns.
+     * Called on transform back to robot and on scene shutdown.
+     */
+    cleanupVibeSpawns() {
+        if (!this.vibeSpawns) return;
+        this.vibeSpawns.forEach(s => {
+            if (s && typeof s.despawn === 'function') {
+                try { s.despawn(); } catch (e) { /* noop */ }
+            }
+        });
+        this.vibeSpawns = [];
+    }
+
+    /**
+     * Per-frame tick for all active VibeSpawn instances.
+     * Also prunes dead spawns from the array.
+     * @param {number} delta
+     */
+    _updateVibeSpawns(delta) {
+        if (!this.vibeSpawns || this.vibeSpawns.length === 0) return;
+        const dt = (typeof delta === 'number') ? delta : 16;
+        for (let i = this.vibeSpawns.length - 1; i >= 0; i--) {
+            const s = this.vibeSpawns[i];
+            if (!s || !s.alive) {
+                this.vibeSpawns.splice(i, 1);
+                continue;
+            }
+            try { s.update(dt); } catch (e) { /* noop */ }
         }
     }
 
@@ -2839,166 +3009,10 @@ class Player {
         }
     }
 
-    updateBmwBouncerVisuals() {
-        if (this.bmwBouncerVisuals && this.bmwBouncerVisuals.length > 0) {
-            this.bmwBouncerVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
-        }
-        this.bmwBouncerVisuals = [];
-        if (this.bmwBouncerForm === 'car') {
-            this.createBmwBouncerCarVisuals();
-        } else {
-            this.createBmwBouncerRobotVisuals();
-        }
-    }
-
-    createBmwBouncerRobotVisuals() {
-        const px = this.sprite.x;
-        const py = this.sprite.y;
-        const white = 0xffffff;
-        const blue = 0x0066b2;
-        const violet = 0x6e27c5;
-        const red = 0xe22400;
-        const chest = this.scene.add.rectangle(px, py, 24, 28, white);
-        chest.setStrokeStyle(2, blue);
-        chest.setDepth(51);
-        this.bmwBouncerVisuals.push(chest);
-        this.bmwBouncerChest = chest;
-        // M stripes on chest
-        const stripeBlue = this.scene.add.rectangle(px - 6, py, 4, 28, blue);
-        stripeBlue.setDepth(52);
-        this.bmwBouncerVisuals.push(stripeBlue);
-        this.bmwBouncerStripeBlue = stripeBlue;
-        const stripeViolet = this.scene.add.rectangle(px, py, 4, 28, violet);
-        stripeViolet.setDepth(52);
-        this.bmwBouncerVisuals.push(stripeViolet);
-        this.bmwBouncerStripeViolet = stripeViolet;
-        const stripeRed = this.scene.add.rectangle(px + 6, py, 4, 28, red);
-        stripeRed.setDepth(52);
-        this.bmwBouncerVisuals.push(stripeRed);
-        this.bmwBouncerStripeRed = stripeRed;
-        const head = this.scene.add.rectangle(px, py - 20, 18, 14, white);
-        head.setStrokeStyle(2, blue);
-        head.setDepth(52);
-        this.bmwBouncerVisuals.push(head);
-        this.bmwBouncerHead = head;
-        const visor = this.scene.add.rectangle(px, py - 20, 14, 4, blue);
-        visor.setDepth(53);
-        this.bmwBouncerVisuals.push(visor);
-        this.bmwBouncerVisor = visor;
-        const leftArm = this.scene.add.rectangle(px - 16, py - 2, 8, 18, white);
-        leftArm.setStrokeStyle(1, blue);
-        leftArm.setDepth(50);
-        this.bmwBouncerVisuals.push(leftArm);
-        this.bmwBouncerLeftArm = leftArm;
-        const rightArm = this.scene.add.rectangle(px + 16, py - 2, 8, 18, white);
-        rightArm.setStrokeStyle(1, blue);
-        rightArm.setDepth(50);
-        this.bmwBouncerVisuals.push(rightArm);
-        this.bmwBouncerRightArm = rightArm;
-        const leftLeg = this.scene.add.rectangle(px - 7, py + 20, 10, 14, blue);
-        leftLeg.setStrokeStyle(1, white);
-        leftLeg.setDepth(50);
-        this.bmwBouncerVisuals.push(leftLeg);
-        this.bmwBouncerLeftLeg = leftLeg;
-        const rightLeg = this.scene.add.rectangle(px + 7, py + 20, 10, 14, red);
-        rightLeg.setStrokeStyle(1, white);
-        rightLeg.setDepth(50);
-        this.bmwBouncerVisuals.push(rightLeg);
-        this.bmwBouncerRightLeg = rightLeg;
-        const leftFoot = this.scene.add.rectangle(px - 7, py + 30, 12, 6, 0x222222);
-        leftFoot.setStrokeStyle(1, blue);
-        leftFoot.setDepth(50);
-        this.bmwBouncerVisuals.push(leftFoot);
-        this.bmwBouncerLeftFoot = leftFoot;
-        const rightFoot = this.scene.add.rectangle(px + 7, py + 30, 12, 6, 0x222222);
-        rightFoot.setStrokeStyle(1, red);
-        rightFoot.setDepth(50);
-        this.bmwBouncerVisuals.push(rightFoot);
-        this.bmwBouncerRightFoot = rightFoot;
-        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
-    }
-
-    createBmwBouncerCarVisuals() {
-        const px = this.sprite.x;
-        const py = this.sprite.y;
-        const dir = this.facingRight ? 1 : -1;
-        const white = 0xffffff;
-        const blue = 0x0066b2;
-        const violet = 0x6e27c5;
-        const red = 0xe22400;
-        // CSL 3.0 M low-slung body
-        const body = this.scene.add.ellipse(px, py, 52, 20, white);
-        body.setStrokeStyle(2, 0x111111);
-        body.setDepth(51);
-        this.bmwBouncerVisuals.push(body);
-        this.bmwBouncerBody = body;
-        const hood = this.scene.add.ellipse(px + dir * 22, py - 2, 18, 10, white);
-        hood.setStrokeStyle(2, 0x111111);
-        hood.setDepth(52);
-        this.bmwBouncerVisuals.push(hood);
-        this.bmwBouncerHood = hood;
-        const roof = this.scene.add.ellipse(px - dir * 4, py - 10, 22, 10, white);
-        roof.setStrokeStyle(2, 0x111111);
-        roof.setDepth(52);
-        this.bmwBouncerVisuals.push(roof);
-        this.bmwBouncerRoof = roof;
-        const spoiler = this.scene.add.rectangle(px - dir * 24, py - 6, 6, 8, 0x111111);
-        spoiler.setDepth(52);
-        this.bmwBouncerVisuals.push(spoiler);
-        this.bmwBouncerSpoiler = spoiler;
-        const wheel1 = this.scene.add.circle(px - dir * 20, py + 10, 8, 0x111111);
-        wheel1.setStrokeStyle(2, 0x444444);
-        wheel1.setDepth(50);
-        this.bmwBouncerVisuals.push(wheel1);
-        this.bmwBouncerWheel1 = wheel1;
-        const wheel2 = this.scene.add.circle(px + dir * 20, py + 10, 8, 0x111111);
-        wheel2.setStrokeStyle(2, 0x444444);
-        wheel2.setDepth(50);
-        this.bmwBouncerVisuals.push(wheel2);
-        this.bmwBouncerWheel2 = wheel2;
-        // BMW M livery stripes along the side
-        const stripeBlue = this.scene.add.rectangle(px - 10, py - 4, 14, 3, blue);
-        stripeBlue.setDepth(53);
-        this.bmwBouncerVisuals.push(stripeBlue);
-        this.bmwBouncerLiveryBlue = stripeBlue;
-        const stripeViolet = this.scene.add.rectangle(px + 4, py - 4, 14, 3, violet);
-        stripeViolet.setDepth(53);
-        this.bmwBouncerVisuals.push(stripeViolet);
-        this.bmwBouncerLiveryViolet = stripeViolet;
-        const stripeRed = this.scene.add.rectangle(px + 18, py - 4, 14, 3, red);
-        stripeRed.setDepth(53);
-        this.bmwBouncerVisuals.push(stripeRed);
-        this.bmwBouncerLiveryRed = stripeRed;
-        if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(0);
-    }
-
-    createBmwBouncerTransformEffect(towardsCar) {
-        const x = this.sprite.x;
-        const y = this.sprite.y;
-        const colors = [0x0066b2, 0x6e27c5, 0xe22400];
-        for (let i = 0; i < 3; i++) {
-            const ring = this.scene.add.circle(x, y, 18 + i * 4, colors[i], 0);
-            ring.setStrokeStyle(3, colors[i]);
-            ring.setDepth(100);
-            this.scene.tweens.add({
-                targets: ring,
-                scaleX: 3, scaleY: 3, alpha: 0,
-                duration: 500,
-                delay: i * 50,
-                onComplete: () => ring.destroy()
-            });
-        }
-        const transformText = this.scene.add.text(x, y - 50,
-            towardsCar ? '🏁 CSL 3.0 M MODE!' : '🤖 ROBOT MODE!',
-            { fontSize: '18px', fill: '#ffffff', stroke: '#0066b2', strokeThickness: 4, fontWeight: 'bold' }
-        ).setOrigin(0.5).setDepth(102);
-        this.scene.tweens.add({
-            targets: transformText,
-            y: y - 80, alpha: 0,
-            duration: 1000,
-            onComplete: () => transformText.destroy()
-        });
-    }
+    // BMW Bouncer visuals are owned by BMWBouncerTransformer (the
+    // shared Transformer strategy). The legacy createBmwBouncer*Visuals,
+    // updateBmwBouncerVisuals, and createBmwBouncerTransformEffect helpers
+    // were intentionally removed here as part of R1.4–R1.6.
 
     updatePortalbotVisuals() {
         if (this.portalbotVisuals && this.portalbotVisuals.length > 0) {
@@ -3239,56 +3253,10 @@ class Player {
         });
     }
 
-    updateBmwBouncerVisualsIfNeeded() {
-        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-        if (currentOutfit !== 'bmwBouncer') {
-            if (this.bmwBouncerVisuals && this.bmwBouncerVisuals.length > 0) {
-                this.bmwBouncerVisuals.forEach(v => { if (v && v.destroy) v.destroy(); });
-                this.bmwBouncerVisuals = [];
-                this.bmwBouncerCurrentForm = null;
-                if (this.sprite && this.sprite.setAlpha) this.sprite.setAlpha(1);
-            }
-            return;
-        }
-        const directionChanged = this.bmwBouncerLastFacingRight !== undefined && this.bmwBouncerLastFacingRight !== this.facingRight;
-        const needsRecreate = !this.bmwBouncerVisuals || this.bmwBouncerVisuals.length === 0 ||
-            this.bmwBouncerCurrentForm !== this.bmwBouncerForm ||
-            (this.bmwBouncerForm === 'car' && directionChanged);
-        if (needsRecreate) {
-            this.bmwBouncerCurrentForm = this.bmwBouncerForm;
-            this.bmwBouncerLastFacingRight = this.facingRight;
-            this.updateBmwBouncerVisuals();
-        }
-        const px = this.sprite.x;
-        const py = this.sprite.y;
-        const dir = this.facingRight ? 1 : -1;
-        if (this.bmwBouncerVisuals && this.bmwBouncerVisuals.length > 0) {
-            if (this.bmwBouncerForm === 'robot') {
-                if (this.bmwBouncerChest) { this.bmwBouncerChest.x = px; this.bmwBouncerChest.y = py; }
-                if (this.bmwBouncerStripeBlue) { this.bmwBouncerStripeBlue.x = px - 6; this.bmwBouncerStripeBlue.y = py; }
-                if (this.bmwBouncerStripeViolet) { this.bmwBouncerStripeViolet.x = px; this.bmwBouncerStripeViolet.y = py; }
-                if (this.bmwBouncerStripeRed) { this.bmwBouncerStripeRed.x = px + 6; this.bmwBouncerStripeRed.y = py; }
-                if (this.bmwBouncerHead) { this.bmwBouncerHead.x = px; this.bmwBouncerHead.y = py - 20; }
-                if (this.bmwBouncerVisor) { this.bmwBouncerVisor.x = px; this.bmwBouncerVisor.y = py - 20; }
-                if (this.bmwBouncerLeftArm) { this.bmwBouncerLeftArm.x = px - 16; this.bmwBouncerLeftArm.y = py - 2; }
-                if (this.bmwBouncerRightArm) { this.bmwBouncerRightArm.x = px + 16; this.bmwBouncerRightArm.y = py - 2; }
-                if (this.bmwBouncerLeftLeg) { this.bmwBouncerLeftLeg.x = px - 7; this.bmwBouncerLeftLeg.y = py + 20; }
-                if (this.bmwBouncerRightLeg) { this.bmwBouncerRightLeg.x = px + 7; this.bmwBouncerRightLeg.y = py + 20; }
-                if (this.bmwBouncerLeftFoot) { this.bmwBouncerLeftFoot.x = px - 7; this.bmwBouncerLeftFoot.y = py + 30; }
-                if (this.bmwBouncerRightFoot) { this.bmwBouncerRightFoot.x = px + 7; this.bmwBouncerRightFoot.y = py + 30; }
-            } else {
-                if (this.bmwBouncerBody) { this.bmwBouncerBody.x = px; this.bmwBouncerBody.y = py; }
-                if (this.bmwBouncerHood) { this.bmwBouncerHood.x = px + dir * 22; this.bmwBouncerHood.y = py - 2; }
-                if (this.bmwBouncerRoof) { this.bmwBouncerRoof.x = px - dir * 4; this.bmwBouncerRoof.y = py - 10; }
-                if (this.bmwBouncerSpoiler) { this.bmwBouncerSpoiler.x = px - dir * 24; this.bmwBouncerSpoiler.y = py - 6; }
-                if (this.bmwBouncerWheel1) { this.bmwBouncerWheel1.x = px - dir * 20; this.bmwBouncerWheel1.y = py + 10; }
-                if (this.bmwBouncerWheel2) { this.bmwBouncerWheel2.x = px + dir * 20; this.bmwBouncerWheel2.y = py + 10; }
-                if (this.bmwBouncerLiveryBlue) { this.bmwBouncerLiveryBlue.x = px - 10; this.bmwBouncerLiveryBlue.y = py - 4; }
-                if (this.bmwBouncerLiveryViolet) { this.bmwBouncerLiveryViolet.x = px + 4; this.bmwBouncerLiveryViolet.y = py - 4; }
-                if (this.bmwBouncerLiveryRed) { this.bmwBouncerLiveryRed.x = px + 18; this.bmwBouncerLiveryRed.y = py - 4; }
-            }
-        }
-    }
+    // BMW Bouncer per-frame visual refresh is owned by the Transformer
+    // strategy (Transformer.update -> rebuildVisualsIfNeeded + onUpdate hook).
+    // The legacy updateBmwBouncerVisualsIfNeeded helper was intentionally
+    // removed here as part of R1.4–R1.6.
 
     updatePortalbotVisualsIfNeeded() {
         const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
@@ -3349,8 +3317,12 @@ class Player {
         if (currentOutfit !== 'bmwBouncer') return;
         const costume = this.getDragonCostume();
         if (!costume.bounceSlamEnabled) return;
-        // Only in robot form - car mode uses nets
-        if (this.bmwBouncerForm !== 'robot') return;
+        // Only in robot form - car mode uses nets. Form lives on the
+        // Transformer instance now.
+        const form = this.transformer && typeof this.transformer.currentForm === 'function'
+            ? this.transformer.currentForm()
+            : 'robot';
+        if (form !== 'robot') return;
         if (this.controls.isDuckLaser() && !this.previousInputs.duckLaser) {
             this.performBmwBouncerBounceSlam();
         }
@@ -4106,7 +4078,10 @@ class Player {
         let projectileEffect = costume.projectileEffect;
         let projectileColor = costume.projectileColor;
         let projectileSecondaryColor = costume.projectileSecondaryColor;
-        if (costume.isBmwBouncer && this.bmwBouncerForm === 'car') {
+        const bmwBouncerForm = (costume.isBmwBouncer && this.transformer && typeof this.transformer.currentForm === 'function')
+            ? this.transformer.currentForm()
+            : null;
+        if (costume.isBmwBouncer && bmwBouncerForm === 'car') {
             projectileType = costume.carProjectileType || 'captureNet';
             projectileDamage = costume.carProjectileDamage || projectileDamage;
             projectileEffect = 'netCapture';
@@ -6016,6 +5991,13 @@ class Player {
         this.previousInputs.grimlockTransform = this.controls.isGrimlockTransform();
         this.previousInputs.duckLaser = this.controls.isDuckLaser();
         this.previousInputs.dogLaser = this.controls.isDuckLaser();
+        this.previousInputs.vibeCoderTransform = (typeof this.controls.isVibeCoderTransform === 'function')
+            ? this.controls.isVibeCoderTransform()
+            : false;
+        this.previousInputs.vibeSpawn1 = !!(this.controls.keys && this.controls.keys['Digit1']);
+        this.previousInputs.vibeSpawn2 = !!(this.controls.keys && this.controls.keys['Digit2']);
+        this.previousInputs.vibeSpawn3 = !!(this.controls.keys && this.controls.keys['Digit3']);
+        this.previousInputs.vibeCharm  = !!(this.controls.keys && this.controls.keys['KeyX']);
     }
 
     // Power-up queue methods
@@ -7310,6 +7292,45 @@ class Player {
     getDragonCostume() {
         const currentOutfit = window.gameInstance.gameData.outfits.current;
         return window.gameInstance.getDragonCostume(currentOutfit);
+    }
+
+    /**
+     * Resolve and (re)bind the Transformer strategy that matches the active
+     * outfit. If the outfit has changed since last sync, the previous
+     * transformer is destroyed and a fresh one is built from
+     * window.TransformerRegistry.
+     *
+     * Returns the active Transformer instance (or null when the active outfit
+     * has no registered transformer).
+     */
+    syncTransformerForOutfit() {
+        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+        if (this._activeTransformerKey === currentOutfit) {
+            return this.transformer;
+        }
+        // Outfit changed — discard the old transformer and rebuild.
+        if (this.transformer && typeof this.transformer.destroy === 'function') {
+            try { this.transformer.destroy(); } catch (e) { /* noop */ }
+        }
+        this.transformer = null;
+        this._activeTransformerKey = currentOutfit;
+        const registry = (typeof window !== 'undefined') ? window.TransformerRegistry : null;
+        const factory = registry ? registry[currentOutfit] : null;
+        if (typeof factory === 'function') {
+            try {
+                this.transformer = factory(this);
+            } catch (e) {
+                console.error('Failed to instantiate transformer for outfit', currentOutfit, e);
+                this.transformer = null;
+            }
+        }
+        // Restore the underlying sprite alpha when we move OUT of a transformer
+        // costume (e.g. swapping back to default). Per-form alpha hides happen
+        // inside the transformer's buildVisuals.
+        if (!this.transformer && this.sprite && this.sprite.setAlpha) {
+            this.sprite.setAlpha(1);
+        }
+        return this.transformer;
     }
 
     updateOutfitColor() {

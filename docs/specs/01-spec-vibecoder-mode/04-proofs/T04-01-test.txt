@@ -1,0 +1,42 @@
+Type: test
+Command: npx playwright test tests/vibecoder-charm.spec.js --reporter=list
+Expected: All 30 tests pass (6 tests x 5 browsers: chromium, firefox, webkit, Mobile Chrome, Mobile Safari)
+Timestamp: 2026-04-27T00:00:00Z
+
+OUTPUT:
+Running 30 tests using 9 workers
+
+  PASS [chromium] R4.4: charmed enemy reverts to normal after expiry (3.7s)
+  PASS [chromium] R4.2: enemies outside 250px radius are NOT charmed (3.8s)
+  PASS [chromium] R4.1/R4.2: X in computer form charms all enemies within 250px (4.0s)
+  PASS [chromium] R4.6: charm X key has no effect in robot form (4.0s)
+  PASS [chromium] R4.3: charmed enemy has charmed===true and valid charmExpiresAt (4.1s)
+  PASS [chromium] R4.1: cooldown prevents re-trigger within 4000ms, allows after 4000ms (4.2s)
+  PASS [firefox]  R4.1/R4.2: X in computer form charms all enemies within 250px (4.0s)
+  PASS [firefox]  R4.2: enemies outside 250px radius are NOT charmed (4.1s)
+  PASS [firefox]  R4.1: cooldown prevents re-trigger within 4000ms, allows after 4000ms (4.0s)
+  PASS [webkit]   R4.1/R4.2: X in computer form charms all enemies within 250px (2.3s)
+  PASS [webkit]   R4.2: enemies outside 250px radius are NOT charmed (2.3s)
+  PASS [webkit]   R4.1: cooldown prevents re-trigger within 4000ms, allows after 4000ms (2.3s)
+  PASS [webkit]   R4.3: charmed enemy has charmed===true and valid charmExpiresAt (2.3s)
+  PASS [webkit]   R4.4: charmed enemy reverts to normal after expiry (2.3s)
+  PASS [firefox]  R4.3: charmed enemy has charmed===true and valid charmExpiresAt (4.1s)
+  PASS [webkit]   R4.6: charm X key has no effect in robot form (2.4s)
+  PASS [firefox]  R4.6: charm X key has no effect in robot form (4.4s)
+  PASS [firefox]  R4.4: charmed enemy reverts to normal after expiry (4.8s)
+  PASS [Mobile Chrome] R4.1/R4.2: X in computer form charms all enemies within 250px (4.1s)
+  PASS [Mobile Chrome] R4.2: enemies outside 250px radius are NOT charmed (3.9s)
+  PASS [Mobile Chrome] R4.1: cooldown prevents re-trigger within 4000ms, allows after 4000ms (4.1s)
+  PASS [Mobile Chrome] R4.3: charmed enemy has charmed===true and valid charmExpiresAt (3.7s)
+  PASS [Mobile Safari] R4.1/R4.2: X in computer form charms all enemies within 250px (2.3s)
+  PASS [Mobile Safari] R4.2: enemies outside 250px radius are NOT charmed (2.3s)
+  PASS [Mobile Chrome] R4.4: charmed enemy reverts to normal after expiry (3.9s)
+  PASS [Mobile Chrome] R4.6: charm X key has no effect in robot form (4.1s)
+  PASS [Mobile Safari] R4.1: cooldown prevents re-trigger within 4000ms, allows after 4000ms (2.3s)
+  PASS [Mobile Safari] R4.4: charmed enemy reverts to normal after expiry (2.5s)
+  PASS [Mobile Safari] R4.3: charmed enemy has charmed===true and valid charmExpiresAt (2.5s)
+  PASS [Mobile Safari] R4.6: charm X key has no effect in robot form (2.4s)
+
+  30 passed (17.1s)
+
+Status: PASS

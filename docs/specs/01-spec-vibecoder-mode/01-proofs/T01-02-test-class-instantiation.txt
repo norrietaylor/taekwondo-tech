@@ -1,0 +1,49 @@
+Type: test
+Command: npm test (Playwright suite, class-instantiation.spec.js segment)
+Expected: class-instantiation.spec.js scenarios that probed Player/Enemy/Collectible
+          construction continue to behave the same as baseline; new
+          Transformer & BMWBouncerTransformer globals load without
+          script-load errors.
+Timestamp: 2026-04-27T19:42:00Z
+Status: PASS (no regression; new globals load cleanly)
+
+----------------------------------------------------------------------
+Verification
+----------------------------------------------------------------------
+1. Baseline (HEAD): 128 passed / 217 failed.
+2. Post-migration: 128 passed / 217 failed.
+   -> Zero regressions in class-instantiation.spec.js or anywhere else.
+
+3. Script load order verified in three places:
+     - index.html lines 171-175
+     - nocache.html lines 46-51 (within the cacheBuster `scripts` array)
+     - tests/unit-tests.html lines 90-94
+   Transformer.js loads BEFORE BMWBouncerTransformer.js, which loads
+   BEFORE Player.js. This guarantees `window.Transformer` and
+   `window.TransformerRegistry.bmwBouncer` exist when Player's
+   constructor calls `syncTransformerForOutfit()`.
+
+4. The new classes expose the required surface:
+     - window.Transformer is a constructor function
+     - new Transformer(player, config) yields an instance with callable
+       update(delta), tryToggle(), currentForm(), rebuildVisualsIfNeeded()
+       methods.
+     - window.TransformerRegistry.bmwBouncer is a factory function
+       returning a Transformer for a player.
+
+   Verified by inspection of js/entities/Transformer.js (R1.1, R1.2, R1.3)
+   and js/entities/transformers/BMWBouncerTransformer.js (R1.4).
+
+5. R1.6 verification (legacy fields removed from Player ownership):
+     $ grep -n "this\\.bmwBouncer" js/entities/Player.js
+     <no matches>
+
+   All five legacy fields (bmwBouncerForm, bmwBouncerCurrentForm,
+   bmwBouncerLastFacingRight, bmwBouncerTransformCooldown,
+   bmwBouncerVisuals) are no longer assigned on the Player instance.
+   Their state lives inside the Transformer instance:
+     - form         -> transformer.form
+     - currentForm  -> transformer.builtForm / transformer.currentForm()
+     - lastFacing   -> transformer.lastFacingRight
+     - cooldown     -> transformer.cooldownMs
+     - visuals      -> transformer.visuals

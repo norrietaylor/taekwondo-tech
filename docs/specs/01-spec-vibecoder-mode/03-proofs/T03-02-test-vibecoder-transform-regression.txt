@@ -1,0 +1,19 @@
+Type: test
+Command: npx playwright test tests/vibecoder-transform.spec.js --project=chromium --reporter=list
+Expected: All 8 T02 tests continue to pass (no regressions from T03 changes)
+Timestamp: 2026-04-27T20:15:30Z
+Status: PASS
+
+Output:
+Running 8 tests using 8 workers
+
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:257:5 › R2.7: vibeCoder key is visible in dragonCostumes keys
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:111:5 › R2.2b: vibeCoder unlock persists after saveGameData()
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:61:5  › R2.1: vibeCoder entry exists in dragonCostumes with required fields
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:94:5  › R2.2: checkDragonUnlocks() unlocks vibeCoder when currentLevel >= 2
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:135:5 › R2.3: VibeCoderTransformer cooldownMs=1000, forms robot/computer
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:157:5 › R2.4: computer form zeroes velocity.x every frame
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:192:5 › R2.5: "Challenge accepted" bubble appears when toggling to computer
+  ✓  [chromium] › tests/vibecoder-transform.spec.js:221:5 › R2.6: computer form visuals contain rectangle game objects only
+
+  8 passed (3.4s)

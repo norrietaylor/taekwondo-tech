@@ -417,6 +417,11 @@ class Controls {
         return this.keys['Digit2'] || this.keys['Numpad2'];
     }
 
+    isVibeCoderTransform() {
+        // VibeCoder transformation - Press V to toggle between robot and computer
+        return this.keys['KeyV'];
+    }
+
     isDuckLaser() {
         // Dino Grimlock duck laser - Press L to fire duck-transforming laser
         return this.keys['KeyL'];
