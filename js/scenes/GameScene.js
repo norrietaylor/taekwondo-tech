@@ -902,6 +902,82 @@ class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(102)
       .setOrigin(0.5);
+
+    // Keybinding hint HUD — bottom-left. Two stacked lines:
+    //  - line 1 (white): universal controls (move/jump/attack/activate)
+    //  - line 2 (cyan): costume-specific controls, refreshed each frame
+    const hudY = this.cameras.main.height - 56;
+    this.keybindingHudBase = this.add
+      .text(20, hudY, '←/→ Move  •  Space/↑ Jump  •  Z Punch  •  X Kick  •  E Activate', {
+        fontSize: '13px',
+        fill: '#ffffff',
+        backgroundColor: '#000000',
+        padding: { x: 8, y: 3 },
+      })
+      .setScrollFactor(0)
+      .setDepth(110);
+
+    this.keybindingHudCostume = this.add
+      .text(20, hudY + 24, '', {
+        fontSize: '13px',
+        fill: '#00ffff',
+        backgroundColor: '#000000',
+        padding: { x: 8, y: 3 },
+      })
+      .setScrollFactor(0)
+      .setDepth(110)
+      .setVisible(false);
+  }
+
+  // Map active costume + current form to a one-line costume-specific
+  // keybinding hint. Returns '' to hide the costume hint line.
+  _costumeKeybindingHint() {
+    const outfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+    const costume = window.gameInstance?.getDragonCostume?.(outfit);
+    if (!costume || outfit === 'default') return '';
+
+    if (outfit === 'vibeCoder' && this.player?.transformer) {
+      const form = this.player.transformer.currentForm();
+      return form === 'computer'
+        ? 'V Robot  •  1 Chicken  •  2 Duck  •  3 Dog House  •  X Charm (4s CD)'
+        : 'V Computer Mode';
+    }
+    if (outfit === 'bmwBouncer') {
+      return '2 Transform  •  L Bounce Slam (robot form)';
+    }
+    if (outfit === 'portalbot') {
+      return '2 Transform  •  T Teleport (between portals)';
+    }
+    if (outfit === 'grimlock') {
+      return '2 Transform Dino  •  L Duck Laser';
+    }
+    if (outfit === 'bumblebee' || outfit === 'hotrod' || outfit === 'elita') {
+      return '2 Transform';
+    }
+    if (outfit === 'stone') {
+      return 'Z/X Stone Projectile  •  T+S Stone Blast';
+    }
+    if (outfit === 'earth') {
+      return 'Z/X Earth Projectile  •  T Teleport';
+    }
+    if (costume.isLegendary) {
+      return 'Z/X Mega Fireball (rotates colors)';
+    }
+    if (costume.projectileEnabled) {
+      return 'Z/X Fire Projectile';
+    }
+    return '';
+  }
+
+  updateVibeCoderHud() {
+    if (!this.keybindingHudCostume) return;
+    const hint = this._costumeKeybindingHint();
+    if (!hint) {
+      this.keybindingHudCostume.setVisible(false);
+      return;
+    }
+    this.keybindingHudCostume.setText(hint);
+    this.keybindingHudCostume.setVisible(true);
   }
 
   setupCollisions() {
@@ -1541,6 +1617,9 @@ class GameScene extends Phaser.Scene {
     if (this.player) {
       this.player.update(time, delta);
     }
+
+    // Refresh VibeCoder keybinding hint HUD (cheap; hidden unless equipped).
+    this.updateVibeCoderHud();
 
     // Update enemies
     if (this.enemies) {

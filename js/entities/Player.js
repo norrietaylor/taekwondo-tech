@@ -2888,14 +2888,22 @@ class Player {
     const k2 = !!(this.controls.keys && this.controls.keys['Digit2']);
     const k3 = !!(this.controls.keys && this.controls.keys['Digit3']);
 
+    // Offset spawn position to the side of the player so the new ally
+    // sprite is not stuck inside the player physics body (which would
+    // hide it visually and cause weird collision resolution).
+    const facing = this.facingRight ? 1 : -1;
+    const offsetX = 36 * facing;
+    const sx = this.sprite.x + offsetX;
+    const sy = this.sprite.y - 6;
+
     if (k1 && !this.previousInputs.vibeSpawn1) {
-      this.spawnVibeAlly('chicken', this.sprite.x, this.sprite.y);
+      this.spawnVibeAlly('chicken', sx, sy);
     }
     if (k2 && !this.previousInputs.vibeSpawn2) {
-      this.spawnVibeAlly('duck', this.sprite.x, this.sprite.y);
+      this.spawnVibeAlly('duck', sx, sy);
     }
     if (k3 && !this.previousInputs.vibeSpawn3) {
-      this.spawnVibeAlly('doghouse', this.sprite.x, this.sprite.y);
+      this.spawnVibeAlly('doghouse', sx, sy);
     }
   }
 

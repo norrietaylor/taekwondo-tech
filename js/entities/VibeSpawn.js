@@ -79,6 +79,13 @@ class VibeSpawn {
       // Spawns don't jump or fall — they slide along the ground.
       // Allow gravity so they land on platforms.
       this.body.setSize(this.sprite.width, this.sprite.height);
+
+      // Collide with platforms so allies stand on the ground instead of
+      // falling through. GameScene exposes a static `platforms` group;
+      // other scenes may not, so null-guard.
+      if (this.scene.platforms) {
+        this.scene.physics.add.collider(this.sprite, this.scene.platforms);
+      }
     }
   }
 
