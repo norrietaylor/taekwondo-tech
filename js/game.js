@@ -640,15 +640,15 @@ class TaekwondoRobotBuilder {
 
     setupFullscreenListeners() {
         // Listen for fullscreen errors (silently handle - they're expected due to browser security)
-        document.addEventListener('fullscreenerror', (e) => {
+        document.addEventListener('fullscreenerror', (_e) => {
             // Fullscreen errors are expected when not triggered by user gesture
         });
-        
-        document.addEventListener('webkitfullscreenerror', (e) => {
+
+        document.addEventListener('webkitfullscreenerror', (_e) => {
             // Fullscreen errors are expected when not triggered by user gesture
         });
-        
-        document.addEventListener('mozfullscreenerror', (e) => {
+
+        document.addEventListener('mozfullscreenerror', (_e) => {
             // Fullscreen errors are expected when not triggered by user gesture
         });
         
@@ -808,7 +808,6 @@ class TaekwondoRobotBuilder {
             if (result) {
                 newUnlocks.push('grimlock');
             }
-        } else {
         }
         
         // Bumblebee - Complete Level 3
@@ -899,7 +898,6 @@ class TaekwondoRobotBuilder {
 
     nextLevel() {
 
-        const previousLevel = this.gameData.currentLevel;
         this.gameData.currentLevel++;
 
         this.saveGameData();
@@ -992,7 +990,7 @@ class TaekwondoRobotBuilder {
         
         if (requestFS) {
             try {
-                requestFS.call(canvas).catch(err => {
+                requestFS.call(canvas).catch(_err => {
                     // Silently fallback to iOS method - fullscreen API restrictions are expected
                     this.enterIOSFullscreen();
                 });
@@ -1057,7 +1055,7 @@ class TaekwondoRobotBuilder {
         
         // Request orientation lock if available
         if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(err => {
+            screen.orientation.lock('landscape').catch(_err => {
                 // Orientation lock not supported on this device - this is normal
             });
         }
@@ -1206,9 +1204,7 @@ window.GameUtils = {
 
     generateRobotPart: function() {
         const types = ['head', 'body', 'arms', 'legs', 'powerCore'];
-        const rarities = ['common', 'rare', 'epic'];
-        const rarityWeights = [70, 25, 5]; // Percentages
-        
+
         const randomType = types[Math.floor(Math.random() * types.length)];
         
         // Weighted random rarity

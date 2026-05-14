@@ -1018,13 +1018,13 @@ class PacManScene extends Phaser.Scene {
     }
 
     showResults(victory) {
-        const overlay = this.add.rectangle(512, 288, 500, 350, 0x000000, 0.85)
+        this.add.rectangle(512, 288, 500, 350, 0x000000, 0.85)
             .setDepth(200);
 
         const titleColor = victory ? '#ffff00' : '#ff4444';
         const titleText = victory ? 'PAC-MAN COMPLETE!' : 'GAME OVER';
 
-        const title = this.add.text(512, 160, titleText, {
+        this.add.text(512, 160, titleText, {
             fontSize: '28px', fontFamily: 'monospace', color: titleColor,
             stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5).setDepth(201);
@@ -1041,7 +1041,7 @@ class PacManScene extends Phaser.Scene {
             stats.push('Pac-Man Dragon');
         }
 
-        const statsText = this.add.text(512, 260, stats.join('\n'), {
+        this.add.text(512, 260, stats.join('\n'), {
             fontSize: '16px', fontFamily: 'monospace', color: '#ffffff',
             align: 'center', lineSpacing: 6
         }).setOrigin(0.5).setDepth(201);
@@ -1049,7 +1049,7 @@ class PacManScene extends Phaser.Scene {
         // Continue button
         const btnBg = this.add.rectangle(512, 380, 250, 40, 0x2121DE)
             .setDepth(201).setInteractive({ useHandCursor: true });
-        const btnText = this.add.text(512, 380, 'CONTINUE TO NEXT LEVEL', {
+        this.add.text(512, 380, 'CONTINUE TO NEXT LEVEL', {
             fontSize: '14px', fontFamily: 'monospace', color: '#ffffff'
         }).setOrigin(0.5).setDepth(201);
 

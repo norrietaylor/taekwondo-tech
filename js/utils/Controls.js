@@ -46,9 +46,6 @@ class Controls {
         // iPad in desktop mode detection - has touch but claims to be Macintosh
         const isPadInDesktopMode = isTouchDevice && navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1;
         
-        // Fallback for small screens (phones in landscape, small tablets)
-        const isSmallScreen = window.innerWidth <= 768;
-
         // Mobile if: explicit mobile device OR has touch capability OR iPad in desktop mode
         return isMobileDevice || isTouchDevice || hasCoarsePointer || isPadInDesktopMode;
     }

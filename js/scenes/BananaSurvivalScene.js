@@ -483,7 +483,7 @@ class BananaSurvivalScene extends Phaser.Scene {
 
     showGameOverScreen() {
         // Overlay
-        const overlay = this.add.rectangle(
+        this.add.rectangle(
             this.levelWidth / 2,
             this.levelHeight / 2,
             400,
