@@ -11,7 +11,8 @@ A dynamic side-scrolling action game where players use taekwondo martial arts to
 The game is **already running** on your local server and ready to play!
 
 ### Controls
-- **Desktop**: WASD/Arrow keys (movement), Space (jump), X (kick), Z (punch), **E/Q (activate power-up)**  
+
+- **Desktop**: WASD/Arrow keys (movement), Space (jump), X (kick), Z (punch), **E/Q (activate power-up)**
 - **Mobile**: Virtual joystick + touch buttons for all actions
 - **Combat**: Combine attacks for special abilities (Fire Breath, Ultra Blast, Fly Mode)
 - **Power-Ups**: Collect power-ups and press E/Q to activate them when needed
@@ -19,6 +20,7 @@ The game is **already running** on your local server and ready to play!
 ## 🌟 Game Features
 
 ### Core Gameplay
+
 - **🥋 Taekwondo Combat System**: Authentic martial arts moves with kick/punch combinations
 - **🏃‍♂️ Fluid Movement**: Responsive physics-based movement with enhanced jumping mechanics
 - **🚀 Double Jump System**: Air-based double jumping with golden visual effects and strategic timing
@@ -27,6 +29,7 @@ The game is **already running** on your local server and ready to play!
 - **💾 Save System**: Automatic progress saving with continue functionality
 
 ### Combat & Enemies
+
 - **⚔️ Titan Battles**: Greek mythology-inspired enemies with distinctive red line indicators
 - **🦶 Mario-Style Stomping**: Jump on enemy heads to instantly defeat them with satisfying bounce effects
 - **🧠 Smart AI**: Dynamic enemy behavior with patrol, chase, attack, and stun states
@@ -38,12 +41,14 @@ The game is **already running** on your local server and ready to play!
 - **🎯 Combo System**: Chain consecutive enemy stomps for increasing score bonuses (up to 5x multiplier)
 
 ### Collection & Progression
+
 - **⭐ Robot Parts**: Collect Common, Rare, and Epic parts with rarity-based visual effects
 - **🪙 Coins & Scoring**: Point-based progression system (10 pts/coin, 50-200 pts/part)
 - **🔧 Robot Building**: Interactive drag-and-drop assembly in craft mode
 - **🏆 Win Condition**: Build the super robot to complete your martial arts journey
 
 ### Customization
+
 - **🐉 Dragon Costume System**: 5 unique dragon-themed martial arts uniforms
   - **Default Gi**: Traditional blue uniform (always unlocked)
   - **Fire Dragon** 🔥: Red/orange flames (unlock: complete Level 1)
@@ -56,12 +61,14 @@ The game is **already running** on your local server and ready to play!
 ## 🛠️ Technical Architecture
 
 ### Built With
+
 - **Phaser.js 3.70.0** - Professional HTML5 game engine
 - **HTML5 Canvas** - Hardware-accelerated rendering
 - **Vanilla JavaScript** - No external dependencies beyond Phaser
 - **LocalStorage API** - Client-side save system
 
 ### Project Structure
+
 ```
 taekwondo-tech/
 ├── docs/                     # Project documentation
@@ -78,6 +85,7 @@ taekwondo-tech/
 ```
 
 ### Performance Targets
+
 - **Frame Rate**: 30 FPS minimum on mobile devices
 - **Load Time**: < 3 seconds on broadband connections
 - **Memory Usage**: < 100MB peak usage
@@ -86,11 +94,13 @@ taekwondo-tech/
 ### 📖 Development Documentation
 
 ### Core Documentation
+
 - **[📋 Project Plan](docs/project-plan.md)**: Complete game specifications, mechanics, and development timeline
 - **[🧪 Testing Guide](docs/testing-guide.md)**: Manual and automated testing procedures
 - **[📝 Work Log](docs/work-log.md)**: Detailed development history and technical decisions
 
 ### Debug Tools
+
 - **[debug.html](debug.html)**: Development debugging with console logging
 - **[debug-mobile.html](debug-mobile.html)**: Mobile control testing and diagnostics
 - **[nocache.html](nocache.html)**: Cache-busted version for development
@@ -101,6 +111,7 @@ taekwondo-tech/
 ### Collaboration Guidelines
 
 #### For ALL Contributors
+
 1. **Read Documentation First**
    - Review the [Project Plan](docs/project-plan.md) for game vision and technical specs
    - Check the [Work Log](docs/work-log.md) for development history and context
@@ -124,14 +135,16 @@ taekwondo-tech/
    - Submit a comprehensive summary of changes and their impact
 
 #### Documentation Standards
+
 - **Project Plan**: Living document for specifications, timeline, and architecture
-- **Work Log**: Chronological record of all development work and decisions  
+- **Work Log**: Chronological record of all development work and decisions
 - **Testing Guide**: Current procedures for validating functionality
 - **Code Comments**: Inline documentation for complex logic and architectural decisions
 
 ### Development Workflow
 
 #### 1. Project Planning Phase
+
 - **📋 Update Project Plan**: Before starting any new feature or significant change
   - Review and modify [docs/project-plan.md](docs/project-plan.md)
   - Update technical specifications, timelines, or requirements
@@ -139,6 +152,7 @@ taekwondo-tech/
   - Add new features to the roadmap with priority and complexity estimates
 
 #### 2. Development Phase
+
 - **📝 Work Log Updates**: Document all development work in [docs/work-log.md](docs/work-log.md)
   - Create new session entry with date, duration, and focus area
   - Log completed tasks with time estimates and technical details
@@ -147,23 +161,24 @@ taekwondo-tech/
   - Include file changes and new features added
 
 #### 3. Testing & Quality Assurance
+
 - **🧪 Testing Documentation**: Update [docs/testing-guide.md](docs/testing-guide.md)
   - Add new test cases for features implemented
   - Update manual testing checklists with new functionality
   - Document any new testing tools or procedures
   - Record known issues and their current status
 
-
 #### Communication & Review Process
+
 1. **Technical Decisions**: Document in Work Log with rationale and alternatives considered
 2. **Feature Changes**: Update Project Plan first, then implement, then document completion
 3. **Bug Reports**: Include browser, steps to reproduce, expected vs actual behavior
 4. **Performance Issues**: Document with specific metrics and testing methodology
 
-
 ## 🚀 Getting Started (Development)
 
 ### Prerequisites
+
 - Node.js and npm (for testing and development tools)
 - Modern web browser (Chrome, Firefox, Safari)
 - Local web server (included with npm start)

@@ -26,6 +26,7 @@ The natural next investments are: (a) a `Transformer` strategy/state base inside
 ## 1. Tech Stack & Project Structure
 
 ### Languages & Runtime
+
 - **JS**: vanilla ES5+, no transpilation
 - **Engine**: Phaser **3.70.0** via jsDelivr CDN — `index.html:168`, `nocache.html:40`
 - **Markup**: HTML5 only, no CSS preprocessor
@@ -33,9 +34,11 @@ The natural next investments are: (a) a `Transformer` strategy/state base inside
 - **Build**: none — no webpack/rollup/esbuild
 
 ### Module Loading
+
 No ES modules. Globals via ordered `<script>` tags: Phaser → utils → entities → scenes → `game.js` (instantiates `window.gameInstance`). `nocache.html` adds `?v=${Date.now()}` cache-busting for development.
 
 ### Directory Layout
+
 ```
 js/
 ├── entities/   Player.js (~7400), Enemy.js, Collectible.js, Banana.js
@@ -47,21 +50,25 @@ docs/           project-plan.md, work-log.md (45 KB), testing-guide.md
 ```
 
 ### HTML Entry Points
-| File | Purpose |
-|---|---|
-| `index.html` | Production: canvas + mobile touchpad, ordered scripts, iOS fullscreen meta |
-| `nocache.html` | Dev: dynamic script loader with timestamp cache-bust |
+
+| File           | Purpose                                                                            |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `index.html`   | Production: canvas + mobile touchpad, ordered scripts, iOS fullscreen meta         |
+| `nocache.html` | Dev: dynamic script loader with timestamp cache-bust                               |
 | `debug-*.html` | Standalone harnesses (dragon-wings, finish-line, legendary, level, mobile, pacman) |
-| `test-*.html` | Playwright fixtures (test-game, test-ipad-fullscreen, etc.) |
+| `test-*.html`  | Playwright fixtures (test-game, test-ipad-fullscreen, etc.)                        |
 
 ### Assets
+
 **Procedural only** — no images, sprite atlases, or audio files. Visuals are rectangles, stars, circles, and tween-driven graphics. All costume colors live in `game.js:5-536`.
 
 ### Deploy
+
 - **Docker**: `nginx:alpine`; HTML `no-cache`, JS/CSS `1y immutable`, gzip on, `:80` (`Dockerfile:16-49`).
 - **deploy-docker.sh** (164 lines): builds, optionally smoke-tests on `:8080`, pushes to Docker Hub, optionally emits `docker-compose.yml`.
 
-### Root *.md Files
+### Root \*.md Files
+
 A pile of feature implementation logs at repo root: `DRAGON_COSTUME_IMPLEMENTATION.md`, `DRAGON_WINGS_FEATURE.md`, `LEGENDARY_MODE_IMPLEMENTATION.md`, `NEW_LEVELS_IMPLEMENTATION.md`, `POWER_UP_SYSTEM.md`, `IOS_FULLSCREEN_FIX.md`. Combined with `docs/work-log.md` (45 KB) these are de-facto change logs/specs.
 
 ---
@@ -69,38 +76,47 @@ A pile of feature implementation logs at repo root: `DRAGON_COSTUME_IMPLEMENTATI
 ## 2. Architecture & Patterns
 
 ### Scene Lifecycle
+
 - Scenes register in Phaser config array (`game.js:571-590`), transition via `this.scene.start()`.
 - Flow: `MenuScene → GameScene → CraftScene → GameScene` loop, plus `BananaSurvivalScene`, `PacManScene` mini-games.
 - **No formal shutdown/cleanup** patterns; level completion calls `window.gameInstance.nextLevel()` imperatively (`GameScene.js:1296-1448`).
 
 ### Entities: Composition, Not Inheritance
+
 Entities **do not** extend `Phaser.GameObjects.Sprite`. They wrap `this.sprite` (Rectangle, Container, or Graphics) and `this.body` (physics) as composed properties. Example: Player swaps Rectangle → Container at runtime when entering Legendary mode.
 
 ### Player.js Monolith (7,405 lines)
+
 Single class managing: movement, combat, 15+ costumes, 6 transformer state machines, legendary-mode sprite rebuild, projectiles, transforms, abilities. No subclassing or strategy pattern; all costume logic inline.
 
 ### Costume System (Data-Driven, Weakly Extensible)
+
 - Costumes registered as flat config dicts in `game.js:5-536` (`this.dragonCostumes`).
 - Player resolves current outfit via `window.gameInstance.getDragonCostume(name)` (`Player.js:7310-7313`).
 - Adding a transformer costume requires touching `game.js`, `Player.js`, and (sometimes) `CraftScene.js` — see §6 deep-dive.
 
 ### Cross-Scene State
+
 - Singleton: `window.gameInstance = new TaekwondoRobotBuilder()` (`game.js:642`).
 - All scenes/entities access `gameData` directly. **Zero use** of `scene.registry` or `scene.events.emit`.
 - 275 `window.gameInstance` references across the repo.
 
 ### Controls.js
+
 Multiplexes keyboard + touch joystick + mobile buttons; mobile detected via UA + touch + iPad-in-desktop heuristic. Polling-based: `getHorizontal()`, `isJump()`, etc.; no events. Clean abstraction — scenes do not see input source.
 
 ### SaveSystem.js
+
 LocalStorage adapter, key `taekwondo-robot-builder-save`, versioned envelope `{version: '1.0.0', timestamp, data}`, in-memory fallback when localStorage unavailable. Auto-save runs on a 30s timer; explicit `save()` is also called by mutation methods.
 
 ### Architectural Strengths
+
 1. Composition lets sprite type swap at runtime (Rectangle ↔ Container for legendary).
 2. Controls abstraction cleanly hides input source.
 3. Costume catalog is a single editable data file for cosmetic-only additions.
 
 ### Fragilities
+
 1. **Global singleton** — refactor blast radius spans every scene + entity + half the test suite.
 2. **Player.js monolith** — extension cost grows superlinearly.
 3. **Scene-tight entities** — `this.scene.add.*`, `this.scene.physics.add.*` make isolation testing infeasible.
@@ -112,24 +128,28 @@ LocalStorage adapter, key `taekwondo-robot-builder-save`, versioned envelope `{v
 ## 3. Dependencies & Integrations
 
 ### Runtime Dependencies
-| Dep | Source | Notes |
-|---|---|---|
-| Phaser 3.70.0 | jsDelivr CDN script tag | only runtime dep |
-| localStorage | browser native | `SaveSystem.js:4-24` |
-| Touch/Keyboard | browser native | `Controls.js:36-50` |
+
+| Dep            | Source                  | Notes                |
+| -------------- | ----------------------- | -------------------- |
+| Phaser 3.70.0  | jsDelivr CDN script tag | only runtime dep     |
+| localStorage   | browser native          | `SaveSystem.js:4-24` |
+| Touch/Keyboard | browser native          | `Controls.js:36-50`  |
 
 **Zero npm runtime deps. Zero analytics/telemetry/tracking.** No `fetch` or `XMLHttpRequest` in the code; the game is fully offline-capable.
 
 ### Cache-Busting (`nocache.html`)
+
 Sequential script loader appends `?v=${Date.now()}` and chains via `onload`/`onerror` callbacks (`nocache.html:43-82`).
 
 ### Test Infrastructure
+
 - `playwright.config.js`: 5 projects (chromium, firefox, webkit, Pixel 5, iPhone 12).
 - `baseURL: http://localhost:8000`.
 - `webServer`: auto-spawns `python3 -m http.server 8000`.
 - HTML reporter, video/screenshot on failure, trace on first retry.
 
 ### Docker
+
 `nginx:alpine`, gzip on, HTML `no-cache`, static assets `1y immutable`, `curl -f localhost/` health check, port 80.
 
 ---
@@ -137,25 +157,29 @@ Sequential script loader appends `?v=${Date.now()}` and chains via `onload`/`one
 ## 4. Test & Quality Patterns
 
 ### Strategy
+
 Real browser, real HTTP server, real Phaser canvas. **No mocks.** Tests use `page.evaluate(() => window.gameInstance.gameData.currentLevel)` to introspect game state since the canvas is opaque to DOM selectors.
 
 ### Coverage
-| Spec | Lines | Targets |
-|---|---|---|
-| `class-instantiation.spec.js` | 192 | Class constructors, `setTint` vs `setFillStyle` correctness |
-| `menu-operations.spec.js` | 332 | Menu nav, settings, credits, layout, leaks |
-| `game-flow.spec.js` | 454 | Scene transitions, controls, FPS, error monitoring |
-| `dragon-costume.spec.js` | 526 | Unlock flow, persistence, legendary, UI |
-| `level-completion.spec.js` | 352 | Level finish lines, progression |
+
+| Spec                          | Lines | Targets                                                     |
+| ----------------------------- | ----- | ----------------------------------------------------------- |
+| `class-instantiation.spec.js` | 192   | Class constructors, `setTint` vs `setFillStyle` correctness |
+| `menu-operations.spec.js`     | 332   | Menu nav, settings, credits, layout, leaks                  |
+| `game-flow.spec.js`           | 454   | Scene transitions, controls, FPS, error monitoring          |
+| `dragon-costume.spec.js`      | 526   | Unlock flow, persistence, legendary, UI                     |
+| `level-completion.spec.js`    | 352   | Level finish lines, progression                             |
 
 **Tested scenes**: MenuScene, GameScene, CraftScene.
 **Untested scenes**: `BananaSurvivalScene`, `PacManScene`.
 **Untested**: Enemy AI behaviour, collectible spawn logic, physics interactions, scoring math, animation timing.
 
 ### unit-tests.html (522 lines)
+
 Standalone in-browser unit harness — **not** invoked by Playwright. `MockScene` / `MockSprite` / `MockBody` stubs allow constructor smoke tests without a real scene. Runs manually by opening the file.
 
 ### Quality Tooling
+
 - ❌ No ESLint, Prettier, tsconfig.
 - ❌ No Husky / pre-commit hooks.
 - ❌ No GitHub Actions test gating (CI is Jekyll-deploy only).
@@ -166,23 +190,29 @@ Standalone in-browser unit harness — **not** invoked by Playwright. `MockScene
 ## 5. Data Models & Game "API" Surface
 
 ### Save Schema
+
 ```
 localStorage['taekwondo-robot-builder-save'] =
   { version: '1.0.0', timestamp: ISO-8601, data: gameData }
 ```
+
 `gameData` = `{ currentLevel, score, robotParts: { head, body, arms, legs, powerCore }, outfits: { current, unlocked[] }, powerUps, settings }` (`game.js:594-617`).
 
 ### Levels
+
 Hardcoded in switch dispatch in `GameScene.createLevel()` (`GameScene.js:221-263`) → per-level method (`createIceLevelPlatforms()`, etc.). 6-color theme map at `GameScene.js:135-142`. Level dimensions 2048×576. **No external data files.**
 
 ### Pac-Man Maze
+
 Static 21×21 grid in `PacManScene.MAZE` (lines 11-33). Tile codes: 0=path/food, 1=wall, 2=power pellet, 3=ghost spawn, 4=player spawn, 5=empty. `TILE_SIZE=25`.
 
 ### Costume Catalog (`game.js:5-536`)
+
 **Required fields**: `name, icon, primaryColor, secondaryColor, beltColor, description, unlockCondition, effectColor, hasWings, wing*, projectile*, unlocked`.
 **Optional**: `canTransform, transformKey, currentForm, [form]Speed, [form]Jump, [ability]Cooldown, isLegendary, isStoneDragon, ...` — boolean feature flags drive imperative branches in Player.
 
 ### Player Public API (called from scenes/tests)
+
 Movement: `moveLeft, moveRight, jump, takeDamage`.
 Combat: `shootFireball, shootDragonProjectile, shootLaserEyes, shootPresentBomb`.
 Transform: `transformLaserToBoulder, transformToDuck, transformToDog`.
@@ -195,6 +225,7 @@ State props: `health, speed, jumpPower, facingRight, isGrounded, isSlipping, isA
 ### 6.1 Player.js Refactor Targets
 
 **Costume-specific guard branches** (15+ occurrences):
+
 - Stone Dragon — `Player.js:841`
 - Earth Dragon — `Player.js:1254, 1431`
 - Grimlock — `Player.js:1612, 1858, 1869`
@@ -221,19 +252,21 @@ Each transformer maintains `{form, currentForm, lastFacingRight, transformCooldo
 
 ### 6.2 Costume Extensibility (Cost to Add One)
 
-| Costume Type | LOC | Files Touched | Notes |
-|---|---|---|---|
-| Color-only | ~20 | `game.js` only | Add config + unlock check |
-| With transform | 300–600 | `game.js`, `Player.js`, `CraftScene.js` | Duplicate transformer state pipeline |
-| With ability | 100–200 | `game.js`, `Player.js` | Cooldown + handler |
-| With mini-game | 1000+ | new `*Scene.js` + `game.js` + `CraftScene.js` + `index.html` + `nocache.html` | imperative unlock |
+| Costume Type   | LOC     | Files Touched                                                                 | Notes                                |
+| -------------- | ------- | ----------------------------------------------------------------------------- | ------------------------------------ |
+| Color-only     | ~20     | `game.js` only                                                                | Add config + unlock check            |
+| With transform | 300–600 | `game.js`, `Player.js`, `CraftScene.js`                                       | Duplicate transformer state pipeline |
+| With ability   | 100–200 | `game.js`, `Player.js`                                                        | Cooldown + handler                   |
+| With mini-game | 1000+   | new `*Scene.js` + `game.js` + `CraftScene.js` + `index.html` + `nocache.html` | imperative unlock                    |
 
 **Real PR sizes (recent commits):**
+
 - BMW Bouncer (#22, `c9a7e83`): +566 LOC across `Player.js, game.js, CraftScene.js`.
 - Portal Bot (#20, `6b1819d`): +673 LOC across same 3 files.
 - Pac-Man (#21, `7c02e59`): +1147 LOC; new `PacManScene.js` (1068 lines), deletes `BananaBonusScene.js`, edits `index.html`, `nocache.html`.
 
 **Unlock pattern split:**
+
 - Data-driven (preferred): condition in `checkDragonUnlocks()` (`game.js:762-886`) e.g., `if (currentLevel >= 3) unlockOutfit('portalbot')`.
 - Imperative (escape hatch): scene-completion calls `gameData.outfits.unlocked.push('pacman')` directly (`PacManScene.js:1006-1008`).
 
@@ -241,24 +274,25 @@ Each transformer maintains `{form, currentForm, lastFacingRight, transformCooldo
 
 ### 6.3 Singleton Coupling
 
-| File | `window.gameInstance` refs |
-|---|---|
-| `tests/dragon-costume.spec.js` | 95 |
-| `js/entities/Player.js` | 38 |
-| `tests/level-completion.spec.js` | 36 |
-| `js/scenes/MenuScene.js` | 24 |
-| `js/scenes/CraftScene.js` | 24 |
-| **Total (js/ + tests/)** | **275** |
+| File                             | `window.gameInstance` refs |
+| -------------------------------- | -------------------------- |
+| `tests/dragon-costume.spec.js`   | 95                         |
+| `js/entities/Player.js`          | 38                         |
+| `tests/level-completion.spec.js` | 36                         |
+| `js/scenes/MenuScene.js`         | 24                         |
+| `js/scenes/CraftScene.js`        | 24                         |
+| **Total (js/ + tests/)**         | **275**                    |
 
 **De facto API surface (18 members):**
-*Read-only*: `gameData, dragonCostumes, controls, game, saveSystem`.
-*Methods*: `addScore, addRobotPart, unlockOutfit, setOutfit, nextLevel, checkDragonUnlocks, getDragonCostume, getTotalPartsCollected, saveGameData, loadGameData, resetGameData, completeGame, resetGame, requestFullscreen, toggleFullscreen`.
+_Read-only_: `gameData, dragonCostumes, controls, game, saveSystem`.
+_Methods_: `addScore, addRobotPart, unlockOutfit, setOutfit, nextLevel, checkDragonUnlocks, getDragonCostume, getTotalPartsCollected, saveGameData, loadGameData, resetGameData, completeGame, resetGame, requestFullscreen, toggleFullscreen`.
 
 **Read/write asymmetry**: methods wrap mutations with `saveGameData()`, but `MenuScene.js:540` mutates `gameData.settings.soundEnabled` directly — bypassing the facade. A migration to events/registry must first audit and gate every direct mutation.
 
 **Phaser-native alternatives unused**: 0 references to `scene.registry`, `this.registry`, `scene.events.emit`, `this.events.emit`.
 
 **Refactor seams (incremental path):**
+
 1. **Phase 1**: facade-only — wrap every `gameData` mutation in a method, including settings.
 2. **Phase 2**: methods emit `scene.events.emit(...)`; `SaveSystem` listens and saves on event.
 3. **Phase 3**: replace direct reads with `scene.registry.get(...)`.

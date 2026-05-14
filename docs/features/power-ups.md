@@ -1,17 +1,20 @@
 # Power-Up Queue System
 
 ## Overview
+
 The power-up system has been completely redesigned to give players strategic control over when they use their power-ups. Instead of auto-activating upon collection, power-ups are now queued and activated manually by the player.
 
 ## Key Features
 
 ### 1. **Queue System**
+
 - Power-ups are collected and stored in a queue
 - Queue capacity: **2 power-ups maximum**
 - When collecting a 3rd power-up, the **oldest** power-up is automatically discarded without activation
 - Visual feedback shows which power-up will be discarded
 
 ### 2. **Manual Activation**
+
 - **Desktop Controls**: Press **E** or **Q** to activate the next power-up in queue
 - **Mobile Controls**: Tap the **⚡ (lightning)** button
 - Only one power-up can be active at a time
@@ -20,6 +23,7 @@ The power-up system has been completely redesigned to give players strategic con
 ### 3. **Visual UI**
 
 #### Queue Display (Top Center of Screen)
+
 - Shows the next 2 power-ups in queue
 - **First slot** (with ▶ arrow): Next power-up to be activated
 - **Second slot**: Power-up that will be activated after the first
@@ -33,6 +37,7 @@ The power-up system has been completely redesigned to give players strategic con
   - 🎁 **Present Bomb** (Red)
 
 #### Active Power-Up Display
+
 - Shows currently active power-up
 - Displays remaining duration visually
 - Border color matches the power-up type
@@ -82,19 +87,23 @@ All power-ups now follow the queue system:
 A special dragon costume that uses the Present Bomb attack as its **default elemental attack** (no power-up needed!).
 
 ### How to Unlock
+
 - Complete Level 3
 
 ### Appearance
+
 - **Primary Color**: Festive red
 - **Secondary Color**: Christmas green
 - **Belt**: Gold ribbon
 - **Wings**: Green with gold tips (festive style)
 
 ### Abilities
+
 - **Default Attack (Kick)**: Shoots wrapped presents that become bombs and summon dragon allies
 - **Laser Eyes (Punch)**: Red laser beams
 
 ### Stats
+
 - Explosion damage: 60
 - Dragon ally duration: 8 seconds
 - Dragon ally damage: 25 per fireball
@@ -104,12 +113,14 @@ This is the only dragon that can summon allies as part of its normal attack kit!
 ## Gameplay Strategy
 
 ### When to Activate Power-Ups
+
 - **Save for tough sections**: Don't waste power-ups on easy areas
 - **Boss fights**: Invincibility or Ultra Blast can be game-changers
 - **Platforming challenges**: Fly Mode helps with difficult jumps
 - **Speed runs**: Speed Boost for time-based challenges
 
 ### Queue Management
+
 - **Prioritize**: Keep the most useful power-up in first position
 - **Plan ahead**: Know which power-up you'll need next
 - **Don't hoard**: Use power-ups before reaching the 2-item limit
@@ -146,6 +157,7 @@ This is the only dragon that can summon allies as part of its normal attack kit!
    - Styled with gold/yellow theme to stand out
 
 ### Technical Notes
+
 - Queue uses FIFO (First In, First Out) principle
 - Edge detection prevents accidental multiple activations
 - UI updates happen automatically on queue changes
@@ -165,7 +177,9 @@ This is the only dragon that can summon allies as part of its normal attack kit!
 - [ ] Verify invincibility works as a queued power-up
 
 ## User Feedback
+
 The system provides clear feedback for:
+
 - ✅ Power-up collected and queued
 - ✅ Power-up activated
 - ⚠️ Queue full - power-up discarded
@@ -173,5 +187,3 @@ The system provides clear feedback for:
 - ⚠️ Power-up already active
 
 All feedback appears as temporary messages near the player character for easy visibility during gameplay.
-
-

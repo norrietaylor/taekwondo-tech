@@ -1,567 +1,578 @@
 // Main menu scene
 class MenuScene extends Phaser.Scene {
-    constructor() {
-        super({ key: 'MenuScene' });
-        
-        // Menu state
-        this.selectedOption = 0;
-        this.menuOptions = ['Start Game', 'Continue', 'Settings', 'Credits'];
-        this.menuItems = [];
-        
-        // Animation properties
-        this.backgroundElements = [];
-        this.titleTween = null;
-    }
+  constructor() {
+    super({ key: 'MenuScene' });
 
-    create() {
-        
-        // Create animated background
-        this.createBackground();
-        
-        // Create title
-        this.createTitle();
-        
-        // Create menu options
-        this.createMenu();
-        
-        // Create credits/info
-        this.createFooter();
-        
-        // Set up input handlers
-        this.setupInput();
-        
-        // Start background animations
-        this.startAnimations();
-        
-    }
+    // Menu state
+    this.selectedOption = 0;
+    this.menuOptions = ['Start Game', 'Continue', 'Settings', 'Credits'];
+    this.menuItems = [];
 
-    createBackground() {
-        // Create gradient background
-        const width = this.cameras.main.width;
-        const height = this.cameras.main.height;
-        
-        this.background = this.add.rectangle(width/2, height/2, width, height, 0x2c5f5d);
-        
-        // Create floating geometric elements
-        this.createBackgroundElements();
-    }
+    // Animation properties
+    this.backgroundElements = [];
+    this.titleTween = null;
+  }
 
-    createBackgroundElements() {
-        const width = this.cameras.main.width;
-        const height = this.cameras.main.height;
-        
-        // Create various geometric shapes floating in background
-        for (let i = 0; i < 15; i++) {
-            const x = Math.random() * width;
-            const y = Math.random() * height;
-            const size = 20 + Math.random() * 40;
-            const alpha = 0.1 + Math.random() * 0.3;
-            
-            let element;
-            
-            switch (Math.floor(Math.random() * 4)) {
-                case 0:
-                    element = this.add.rectangle(x, y, size, size, 0x3e8084, alpha);
-                    break;
-                case 1:
-                    element = this.add.circle(x, y, size/2, 0x4a9eff, alpha);
-                    break;
-                case 2:
-                    element = this.add.triangle(x, y, 0, size, size, 0, size/2, size, 0x87ceeb, alpha);
-                    break;
-                case 3:
-                    element = this.add.star(x, y, 6, size/3, size/2, 0xa8d5d1, alpha);
-                    break;
-            }
-            
-            element.setRotation(Math.random() * Math.PI * 2);
-            this.backgroundElements.push(element);
-        }
-    }
+  create() {
+    // Create animated background
+    this.createBackground();
 
-    createTitle() {
-        const centerX = this.cameras.main.centerX;
-        const centerY = this.cameras.main.centerY;
-        
-        // Main title
-        this.titleText = this.add.text(centerX, centerY - 180, '🥋 TAEKWONDO', {
-            fontSize: '48px',
-            fill: '#ffffff',
-            fontWeight: 'bold',
-            stroke: '#2c5f5d',
-            strokeThickness: 4
-        }).setOrigin(0.5);
-        
-        this.subtitleText = this.add.text(centerX, centerY - 130, 'ROBOT BUILDER', {
-            fontSize: '36px',
-            fill: '#a8d5d1',
-            fontWeight: 'bold',
-            stroke: '#2c5f5d',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-        
-        // Add martial arts icon/decoration
-        this.createTitleDecorations();
-    }
+    // Create title
+    this.createTitle();
 
-    createTitleDecorations() {
-        const centerX = this.cameras.main.centerX;
-        const titleY = this.cameras.main.centerY - 155;
-        
-        // Create simple martial arts pose silhouettes
-        const leftFigure = this.add.rectangle(centerX - 200, titleY, 8, 30, 0x4a9eff);
-        const rightFigure = this.add.rectangle(centerX + 200, titleY, 8, 30, 0x4a9eff);
-        
-        // Add "kicking" pose elements
-        const leftKick = this.add.rectangle(centerX - 185, titleY + 5, 15, 6, 0x4a9eff);
-        const rightKick = this.add.rectangle(centerX + 185, titleY + 5, 15, 6, 0x4a9eff);
-        
-        leftKick.setRotation(-0.3);
-        rightKick.setRotation(0.3);
-        
-        this.decorations = [leftFigure, rightFigure, leftKick, rightKick];
-    }
+    // Create menu options
+    this.createMenu();
 
-    createMenu() {
-        const centerX = this.cameras.main.centerX;
-        const startY = this.cameras.main.centerY - 50;
-        
-        // Check if save data exists
-        const hasSaveData = window.gameInstance ? window.gameInstance.saveSystem.exists() : false;
-        
-        let displayIndex = 0;
-        this.menuOptions.forEach((option, index) => {
-            // Skip continue option if no save data
-            if (option === 'Continue' && !hasSaveData) {
-                return;
-            }
-            
-            const y = startY + (displayIndex * 60);
-            displayIndex++;
-            
-            const menuItem = this.add.text(centerX, y, option, {
-                fontSize: '28px',
-                fill: '#ffffff',
-                backgroundColor: '#3e8084',
-                padding: { x: 20, y: 10 },
-                borderRadius: 8
-            }).setOrigin(0.5);
-            
-            // Make interactive
-            menuItem.setInteractive({ useHandCursor: true });
-            
-            // Hover effects
-            menuItem.on('pointerover', () => {
-                menuItem.setTint(0xcccccc);
-                this.selectedOption = index;
-                this.updateMenuSelection();
-            });
-            
-            menuItem.on('pointerout', () => {
-                menuItem.clearTint();
-            });
-            
-            // Click handler
-            menuItem.on('pointerdown', () => {
-                this.selectMenuItem(option);
-            });
-            
-            this.menuItems.push(menuItem);
-        });
-        
+    // Create credits/info
+    this.createFooter();
+
+    // Set up input handlers
+    this.setupInput();
+
+    // Start background animations
+    this.startAnimations();
+  }
+
+  createBackground() {
+    // Create gradient background
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    this.background = this.add.rectangle(width / 2, height / 2, width, height, 0x2c5f5d);
+
+    // Create floating geometric elements
+    this.createBackgroundElements();
+  }
+
+  createBackgroundElements() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Create various geometric shapes floating in background
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = 20 + Math.random() * 40;
+      const alpha = 0.1 + Math.random() * 0.3;
+
+      let element;
+
+      switch (Math.floor(Math.random() * 4)) {
+        case 0:
+          element = this.add.rectangle(x, y, size, size, 0x3e8084, alpha);
+          break;
+        case 1:
+          element = this.add.circle(x, y, size / 2, 0x4a9eff, alpha);
+          break;
+        case 2:
+          element = this.add.triangle(x, y, 0, size, size, 0, size / 2, size, 0x87ceeb, alpha);
+          break;
+        case 3:
+          element = this.add.star(x, y, 6, size / 3, size / 2, 0xa8d5d1, alpha);
+          break;
+      }
+
+      element.setRotation(Math.random() * Math.PI * 2);
+      this.backgroundElements.push(element);
+    }
+  }
+
+  createTitle() {
+    const centerX = this.cameras.main.centerX;
+    const centerY = this.cameras.main.centerY;
+
+    // Main title
+    this.titleText = this.add
+      .text(centerX, centerY - 180, '🥋 TAEKWONDO', {
+        fontSize: '48px',
+        fill: '#ffffff',
+        fontWeight: 'bold',
+        stroke: '#2c5f5d',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5);
+
+    this.subtitleText = this.add
+      .text(centerX, centerY - 130, 'ROBOT BUILDER', {
+        fontSize: '36px',
+        fill: '#a8d5d1',
+        fontWeight: 'bold',
+        stroke: '#2c5f5d',
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5);
+
+    // Add martial arts icon/decoration
+    this.createTitleDecorations();
+  }
+
+  createTitleDecorations() {
+    const centerX = this.cameras.main.centerX;
+    const titleY = this.cameras.main.centerY - 155;
+
+    // Create simple martial arts pose silhouettes
+    const leftFigure = this.add.rectangle(centerX - 200, titleY, 8, 30, 0x4a9eff);
+    const rightFigure = this.add.rectangle(centerX + 200, titleY, 8, 30, 0x4a9eff);
+
+    // Add "kicking" pose elements
+    const leftKick = this.add.rectangle(centerX - 185, titleY + 5, 15, 6, 0x4a9eff);
+    const rightKick = this.add.rectangle(centerX + 185, titleY + 5, 15, 6, 0x4a9eff);
+
+    leftKick.setRotation(-0.3);
+    rightKick.setRotation(0.3);
+
+    this.decorations = [leftFigure, rightFigure, leftKick, rightKick];
+  }
+
+  createMenu() {
+    const centerX = this.cameras.main.centerX;
+    const startY = this.cameras.main.centerY - 50;
+
+    // Check if save data exists
+    const hasSaveData = window.gameInstance ? window.gameInstance.saveSystem.exists() : false;
+
+    let displayIndex = 0;
+    this.menuOptions.forEach((option, index) => {
+      // Skip continue option if no save data
+      if (option === 'Continue' && !hasSaveData) {
+        return;
+      }
+
+      const y = startY + displayIndex * 60;
+      displayIndex++;
+
+      const menuItem = this.add
+        .text(centerX, y, option, {
+          fontSize: '28px',
+          fill: '#ffffff',
+          backgroundColor: '#3e8084',
+          padding: { x: 20, y: 10 },
+          borderRadius: 8,
+        })
+        .setOrigin(0.5);
+
+      // Make interactive
+      menuItem.setInteractive({ useHandCursor: true });
+
+      // Hover effects
+      menuItem.on('pointerover', () => {
+        menuItem.setTint(0xcccccc);
+        this.selectedOption = index;
         this.updateMenuSelection();
+      });
+
+      menuItem.on('pointerout', () => {
+        menuItem.clearTint();
+      });
+
+      // Click handler
+      menuItem.on('pointerdown', () => {
+        this.selectMenuItem(option);
+      });
+
+      this.menuItems.push(menuItem);
+    });
+
+    this.updateMenuSelection();
+  }
+
+  createFooter() {
+    const centerX = this.cameras.main.centerX;
+    const bottomY = this.cameras.main.height - 40;
+
+    // Detect if iOS/iPad
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // Game version and controls info
+    this.add
+      .text(centerX, bottomY - 80, 'Use WASD/Arrow Keys to move, X to kick, Z to punch', {
+        fontSize: '16px',
+        fill: '#a8d5d1',
+        align: 'center',
+      })
+      .setOrigin(0.5);
+
+    this.add
+      .text(centerX, bottomY - 60, 'Collect robot parts to build the ultimate robot!', {
+        fontSize: '16px',
+        fill: '#a8d5d1',
+        align: 'center',
+      })
+      .setOrigin(0.5);
+
+    // Different instructions for iOS vs desktop
+    if (isIOS) {
+      this.add
+        .text(centerX, bottomY - 40, 'Tap fullscreen button for immersive mode 🎮', {
+          fontSize: '14px',
+          fill: '#87ceeb',
+          align: 'center',
+        })
+        .setOrigin(0.5);
+    } else {
+      this.add
+        .text(centerX, bottomY - 40, 'Press F for fullscreen | ESC to exit fullscreen', {
+          fontSize: '14px',
+          fill: '#87ceeb',
+          align: 'center',
+        })
+        .setOrigin(0.5);
     }
 
-    createFooter() {
-        const centerX = this.cameras.main.centerX;
-        const bottomY = this.cameras.main.height - 40;
-        
-        // Detect if iOS/iPad
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        
-        // Game version and controls info
-        this.add.text(centerX, bottomY - 80, 'Use WASD/Arrow Keys to move, X to kick, Z to punch', {
-            fontSize: '16px',
-            fill: '#a8d5d1',
-            align: 'center'
-        }).setOrigin(0.5);
-        
-        this.add.text(centerX, bottomY - 60, 'Collect robot parts to build the ultimate robot!', {
-            fontSize: '16px',
-            fill: '#a8d5d1',
-            align: 'center'
-        }).setOrigin(0.5);
-        
-        // Different instructions for iOS vs desktop
-        if (isIOS) {
-            this.add.text(centerX, bottomY - 40, 'Tap fullscreen button for immersive mode 🎮', {
-                fontSize: '14px',
-                fill: '#87ceeb',
-                align: 'center'
-            }).setOrigin(0.5);
-        } else {
-            this.add.text(centerX, bottomY - 40, 'Press F for fullscreen | ESC to exit fullscreen', {
-                fontSize: '14px',
-                fill: '#87ceeb',
-                align: 'center'
-            }).setOrigin(0.5);
+    this.add
+      .text(centerX, bottomY, 'v1.0.0 - Made with ❤️ and Phaser.js', {
+        fontSize: '12px',
+        fill: '#666666',
+        align: 'center',
+      })
+      .setOrigin(0.5);
+
+    // Add fullscreen toggle button in corner
+    this.createFullscreenButton();
+  }
+
+  setupInput() {
+    // Keyboard navigation
+    this.input.keyboard.on('keydown-UP', () => {
+      this.selectedOption = Math.max(0, this.selectedOption - 1);
+      this.updateMenuSelection();
+    });
+
+    this.input.keyboard.on('keydown-DOWN', () => {
+      this.selectedOption = Math.min(this.menuItems.length - 1, this.selectedOption + 1);
+      this.updateMenuSelection();
+    });
+
+    this.input.keyboard.on('keydown-ENTER', () => {
+      this.selectMenuItem(this.menuOptions[this.selectedOption]);
+    });
+
+    this.input.keyboard.on('keydown-SPACE', () => {
+      this.selectMenuItem('Start Game');
+    });
+
+    // Fullscreen toggle with F key
+    this.input.keyboard.on('keydown-F', () => {
+      if (window.gameInstance) {
+        window.gameInstance.toggleFullscreen();
+      }
+    });
+  }
+
+  updateMenuSelection() {
+    this.menuItems.forEach((item, index) => {
+      if (index === this.selectedOption) {
+        item.setTint(0xffff99);
+        item.setScale(1.1);
+      } else {
+        item.clearTint();
+        item.setScale(1.0);
+      }
+    });
+  }
+
+  selectMenuItem(option) {
+    switch (option) {
+      case 'Start Game':
+        this.startNewGame();
+        break;
+
+      case 'Continue':
+        this.continueGame();
+        break;
+
+      case 'Settings':
+        this.showSettings();
+        break;
+
+      case 'Credits':
+        this.showCredits();
+        break;
+
+      case '🍌 Banana Mode':
+        this.showBananaModeMenu();
+        break;
+    }
+  }
+
+  showBananaModeMenu() {
+    // Show banana mode selection overlay
+    const overlay = this.add
+      .rectangle(this.cameras.main.centerX, this.cameras.main.centerY, 450, 350, 0x8b4513, 0.95)
+      .setDepth(100);
+
+    // Add banana pattern border
+    overlay.setStrokeStyle(6, 0xffe135);
+
+    // Title
+    const title = this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY - 130, '🍌 BANANA MODE 🍌', {
+        fontSize: '36px',
+        fill: '#FFE135',
+        fontWeight: 'bold',
+        stroke: '#5C4033',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(101);
+
+    // Description
+    const desc = this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY - 80,
+        'Dodge bananas thrown by Monkey Titans!\nKick or punch to deflect them back!',
+        {
+          fontSize: '16px',
+          fill: '#ffffff',
+          align: 'center',
         }
-        
-        this.add.text(centerX, bottomY, 'v1.0.0 - Made with ❤️ and Phaser.js', {
-            fontSize: '12px',
-            fill: '#666666',
-            align: 'center'
-        }).setOrigin(0.5);
-        
-        // Add fullscreen toggle button in corner
-        this.createFullscreenButton();
-    }
+      )
+      .setOrigin(0.5)
+      .setDepth(101);
 
-    setupInput() {
-        // Keyboard navigation
-        this.input.keyboard.on('keydown-UP', () => {
-            this.selectedOption = Math.max(0, this.selectedOption - 1);
-            this.updateMenuSelection();
-        });
-        
-        this.input.keyboard.on('keydown-DOWN', () => {
-            this.selectedOption = Math.min(this.menuItems.length - 1, this.selectedOption + 1);
-            this.updateMenuSelection();
-        });
-        
-        this.input.keyboard.on('keydown-ENTER', () => {
-            this.selectMenuItem(this.menuOptions[this.selectedOption]);
-        });
-        
-        this.input.keyboard.on('keydown-SPACE', () => {
-            this.selectMenuItem('Start Game');
-        });
-        
-        // Fullscreen toggle with F key
-        this.input.keyboard.on('keydown-F', () => {
-            if (window.gameInstance) {
-                window.gameInstance.toggleFullscreen();
-            }
-        });
-    }
+    // Survival Mode button
+    const survivalBtn = this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY - 10, '🏆 Endless Survival', {
+        fontSize: '24px',
+        fill: '#ffffff',
+        backgroundColor: '#228B22',
+        padding: { x: 25, y: 12 },
+      })
+      .setOrigin(0.5)
+      .setDepth(101)
+      .setInteractive({ useHandCursor: true });
 
-    updateMenuSelection() {
-        this.menuItems.forEach((item, index) => {
-            if (index === this.selectedOption) {
-                item.setTint(0xffff99);
-                item.setScale(1.1);
-            } else {
-                item.clearTint();
-                item.setScale(1.0);
-            }
-        });
-    }
-
-    selectMenuItem(option) {
-        
-        switch (option) {
-            case 'Start Game':
-                this.startNewGame();
-                break;
-                
-            case 'Continue':
-                this.continueGame();
-                break;
-                
-            case 'Settings':
-                this.showSettings();
-                break;
-                
-            case 'Credits':
-                this.showCredits();
-                break;
-                
-            case '🍌 Banana Mode':
-                this.showBananaModeMenu();
-                break;
+    const survivalDesc = this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY + 30,
+        'Survive as long as you can! Waves get harder.',
+        {
+          fontSize: '12px',
+          fill: '#a8d5d1',
+          align: 'center',
         }
-    }
+      )
+      .setOrigin(0.5)
+      .setDepth(101);
 
-    showBananaModeMenu() {
-        // Show banana mode selection overlay
-        const overlay = this.add.rectangle(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY,
-            450,
-            350,
-            0x8B4513,
-            0.95
-        ).setDepth(100);
-        
-        // Add banana pattern border
-        overlay.setStrokeStyle(6, 0xFFE135);
-        
-        // Title
-        const title = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY - 130,
-            '🍌 BANANA MODE 🍌',
-            {
-                fontSize: '36px',
-                fill: '#FFE135',
-                fontWeight: 'bold',
-                stroke: '#5C4033',
-                strokeThickness: 4
-            }
-        ).setOrigin(0.5).setDepth(101);
-        
-        // Description
-        const desc = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY - 80,
-            'Dodge bananas thrown by Monkey Titans!\nKick or punch to deflect them back!',
-            {
-                fontSize: '16px',
-                fill: '#ffffff',
-                align: 'center'
-            }
-        ).setOrigin(0.5).setDepth(101);
-        
-        // Survival Mode button
-        const survivalBtn = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY - 10,
-            '🏆 Endless Survival',
-            {
-                fontSize: '24px',
-                fill: '#ffffff',
-                backgroundColor: '#228B22',
-                padding: { x: 25, y: 12 }
-            }
-        ).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
-        
-        const survivalDesc = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY + 30,
-            'Survive as long as you can! Waves get harder.',
-            {
-                fontSize: '12px',
-                fill: '#a8d5d1',
-                align: 'center'
-            }
-        ).setOrigin(0.5).setDepth(101);
-        
-        // Bonus Mode info
-        const bonusInfo = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY + 70,
-            '💡 Bonus stages appear between levels\nin the main game!',
-            {
-                fontSize: '14px',
-                fill: '#FFD700',
-                align: 'center',
-                fontStyle: 'italic'
-            }
-        ).setOrigin(0.5).setDepth(101);
-        
-        // Close button
-        const closeBtn = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY + 130,
-            'Back to Menu',
-            {
-                fontSize: '20px',
-                fill: '#ffffff',
-                backgroundColor: '#ff6b6b',
-                padding: { x: 20, y: 10 }
-            }
-        ).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
-        
-        // Store elements for cleanup
-        const elements = [overlay, title, desc, survivalBtn, survivalDesc, bonusInfo, closeBtn];
-        
-        // Button handlers
-        survivalBtn.on('pointerdown', () => {
-            elements.forEach(e => e.destroy());
-            this.startBananaSurvival();
-        });
-        
-        survivalBtn.on('pointerover', () => survivalBtn.setScale(1.05));
-        survivalBtn.on('pointerout', () => survivalBtn.setScale(1.0));
-        
-        closeBtn.on('pointerdown', () => {
-            elements.forEach(e => e.destroy());
-        });
-        
-        closeBtn.on('pointerover', () => closeBtn.setScale(1.05));
-        closeBtn.on('pointerout', () => closeBtn.setScale(1.0));
-        
-        // Add floating banana decorations
-        for (let i = 0; i < 5; i++) {
-            const bananaX = this.cameras.main.centerX + (Math.random() - 0.5) * 350;
-            const bananaY = this.cameras.main.centerY + (Math.random() - 0.5) * 250;
-            
-            const banana = this.add.ellipse(bananaX, bananaY, 25, 10, 0xFFE135, 0.6);
-            banana.setRotation(-0.4 + Math.random() * 0.8);
-            banana.setDepth(100);
-            
-            elements.push(banana);
-            
-            this.tweens.add({
-                targets: banana,
-                y: banana.y + 15,
-                rotation: banana.rotation + 0.3,
-                duration: 1000 + Math.random() * 1000,
-                yoyo: true,
-                repeat: -1
-            });
+    // Bonus Mode info
+    const bonusInfo = this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY + 70,
+        '💡 Bonus stages appear between levels\nin the main game!',
+        {
+          fontSize: '14px',
+          fill: '#FFD700',
+          align: 'center',
+          fontStyle: 'italic',
         }
+      )
+      .setOrigin(0.5)
+      .setDepth(101);
+
+    // Close button
+    const closeBtn = this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY + 130, 'Back to Menu', {
+        fontSize: '20px',
+        fill: '#ffffff',
+        backgroundColor: '#ff6b6b',
+        padding: { x: 20, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setDepth(101)
+      .setInteractive({ useHandCursor: true });
+
+    // Store elements for cleanup
+    const elements = [overlay, title, desc, survivalBtn, survivalDesc, bonusInfo, closeBtn];
+
+    // Button handlers
+    survivalBtn.on('pointerdown', () => {
+      elements.forEach((e) => e.destroy());
+      this.startBananaSurvival();
+    });
+
+    survivalBtn.on('pointerover', () => survivalBtn.setScale(1.05));
+    survivalBtn.on('pointerout', () => survivalBtn.setScale(1.0));
+
+    closeBtn.on('pointerdown', () => {
+      elements.forEach((e) => e.destroy());
+    });
+
+    closeBtn.on('pointerover', () => closeBtn.setScale(1.05));
+    closeBtn.on('pointerout', () => closeBtn.setScale(1.0));
+
+    // Add floating banana decorations
+    for (let i = 0; i < 5; i++) {
+      const bananaX = this.cameras.main.centerX + (Math.random() - 0.5) * 350;
+      const bananaY = this.cameras.main.centerY + (Math.random() - 0.5) * 250;
+
+      const banana = this.add.ellipse(bananaX, bananaY, 25, 10, 0xffe135, 0.6);
+      banana.setRotation(-0.4 + Math.random() * 0.8);
+      banana.setDepth(100);
+
+      elements.push(banana);
+
+      this.tweens.add({
+        targets: banana,
+        y: banana.y + 15,
+        rotation: banana.rotation + 0.3,
+        duration: 1000 + Math.random() * 1000,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
+  }
+
+  startBananaSurvival() {
+    // Request fullscreen
+    if (window.gameInstance && window.gameInstance.requestFullscreen) {
+      window.gameInstance.requestFullscreen();
     }
 
-    startBananaSurvival() {
-        
-        // Request fullscreen
-        if (window.gameInstance && window.gameInstance.requestFullscreen) {
-            window.gameInstance.requestFullscreen();
-        }
-        
-        // Transition effect
-        this.cameras.main.fadeOut(500, 139, 69, 19); // Brown fade for banana theme
-        
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-            this.scene.start('BananaSurvivalScene');
-        });
-    }
+    // Transition effect
+    this.cameras.main.fadeOut(500, 139, 69, 19); // Brown fade for banana theme
 
-    startNewGame() {
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.start('BananaSurvivalScene');
+    });
+  }
+
+  startNewGame() {
+    try {
+      // Check if game instance exists
+      if (!window.gameInstance) {
+        console.error('window.gameInstance not found!');
+        return;
+      }
+
+      // Reset game data for new game
+      window.gameInstance.resetGame();
+
+      // Request fullscreen
+      if (window.gameInstance.requestFullscreen) {
+        window.gameInstance.requestFullscreen();
+      }
+
+      // Add transition effect
+      this.cameras.main.fadeOut(500, 0, 0, 0);
+
+      this.cameras.main.once('camerafadeoutcomplete', () => {
         try {
-            
-            // Check if game instance exists
-            if (!window.gameInstance) {
-                console.error('window.gameInstance not found!');
-                return;
-            }
-            
-            // Reset game data for new game
-            window.gameInstance.resetGame();
-            
-            // Request fullscreen
-            if (window.gameInstance.requestFullscreen) {
-                window.gameInstance.requestFullscreen();
-            }
-            
-            // Add transition effect
-            this.cameras.main.fadeOut(500, 0, 0, 0);
-            
-            this.cameras.main.once('camerafadeoutcomplete', () => {
-                try {
-                    this.scene.start('GameScene');
-                } catch (error) {
-                    console.error('Failed to start GameScene:', error);
-                }
-            });
-            
+          this.scene.start('GameScene');
         } catch (error) {
-            console.error('Error in startNewGame():', error);
-            console.error('Stack trace:', error.stack);
+          console.error('Failed to start GameScene:', error);
         }
+      });
+    } catch (error) {
+      console.error('Error in startNewGame():', error);
+      console.error('Stack trace:', error.stack);
+    }
+  }
+
+  continueGame() {
+    // Load existing save data
+    window.gameInstance.loadGameData();
+
+    // Request fullscreen
+    if (window.gameInstance.requestFullscreen) {
+      window.gameInstance.requestFullscreen();
     }
 
-    continueGame() {
-        // Load existing save data
-        window.gameInstance.loadGameData();
-        
-        // Request fullscreen
-        if (window.gameInstance.requestFullscreen) {
-            window.gameInstance.requestFullscreen();
+    // Add transition effect
+    this.cameras.main.fadeOut(500, 0, 0, 0);
+
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      // Check current level and go to appropriate scene
+      if (window.gameInstance.gameData.currentLevel > 5) {
+        // Game completed, show craft scene
+        this.scene.start('CraftScene');
+      } else {
+        this.scene.start('GameScene');
+      }
+    });
+  }
+
+  showSettings() {
+    // Simple settings overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      400,
+      300,
+      0x000000,
+      0.8
+    );
+
+    const settingsText = this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY - 100, 'Settings', {
+        fontSize: '32px',
+        fill: '#ffffff',
+      })
+      .setOrigin(0.5);
+
+    const soundToggle = this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY - 30,
+        `Sound: ${window.gameInstance.gameData.settings.soundEnabled ? 'ON' : 'OFF'}`,
+        {
+          fontSize: '20px',
+          fill: '#ffffff',
+          backgroundColor: '#3e8084',
+          padding: { x: 15, y: 8 },
         }
-        
-        // Add transition effect
-        this.cameras.main.fadeOut(500, 0, 0, 0);
-        
-        this.cameras.main.once('camerafadeoutcomplete', () => {
-            // Check current level and go to appropriate scene
-            if (window.gameInstance.gameData.currentLevel > 5) {
-                // Game completed, show craft scene
-                this.scene.start('CraftScene');
-            } else {
-                this.scene.start('GameScene');
-            }
-        });
-        
-    }
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
 
-    showSettings() {
-        // Simple settings overlay
-        const overlay = this.add.rectangle(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY,
-            400,
-            300,
-            0x000000,
-            0.8
-        );
-        
-        const settingsText = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY - 100,
-            'Settings',
-            {
-                fontSize: '32px',
-                fill: '#ffffff'
-            }
-        ).setOrigin(0.5);
-        
-        const soundToggle = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY - 30,
-            `Sound: ${window.gameInstance.gameData.settings.soundEnabled ? 'ON' : 'OFF'}`,
-            {
-                fontSize: '20px',
-                fill: '#ffffff',
-                backgroundColor: '#3e8084',
-                padding: { x: 15, y: 8 }
-            }
-        ).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        
-        soundToggle.on('pointerdown', () => {
-            window.gameInstance.gameData.settings.soundEnabled = 
-                !window.gameInstance.gameData.settings.soundEnabled;
-            window.gameInstance.saveGameData();
-            soundToggle.setText(`Sound: ${window.gameInstance.gameData.settings.soundEnabled ? 'ON' : 'OFF'}`);
-        });
-        
-        const closeButton = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY + 80,
-            'Close',
-            {
-                fontSize: '20px',
-                fill: '#ffffff',
-                backgroundColor: '#ff6b6b',
-                padding: { x: 15, y: 8 }
-            }
-        ).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        
-        closeButton.on('pointerdown', () => {
-            overlay.destroy();
-            settingsText.destroy();
-            soundToggle.destroy();
-            closeButton.destroy();
-        });
-    }
+    soundToggle.on('pointerdown', () => {
+      window.gameInstance.gameData.settings.soundEnabled =
+        !window.gameInstance.gameData.settings.soundEnabled;
+      window.gameInstance.saveGameData();
+      soundToggle.setText(
+        `Sound: ${window.gameInstance.gameData.settings.soundEnabled ? 'ON' : 'OFF'}`
+      );
+    });
 
-    showCredits() {
-        // Simple credits overlay
-        const overlay = this.add.rectangle(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY,
-            500,
-            400,
-            0x000000,
-            0.8
-        );
-        
-        const creditsText = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY,
-            `Credits
+    const closeButton = this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY + 80, 'Close', {
+        fontSize: '20px',
+        fill: '#ffffff',
+        backgroundColor: '#ff6b6b',
+        padding: { x: 15, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    closeButton.on('pointerdown', () => {
+      overlay.destroy();
+      settingsText.destroy();
+      soundToggle.destroy();
+      closeButton.destroy();
+    });
+  }
+
+  showCredits() {
+    // Simple credits overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      500,
+      400,
+      0x000000,
+      0.8
+    );
+
+    const creditsText = this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY,
+        `Credits
 
 🥋 Taekwondo Robot Builder
 
@@ -578,151 +589,153 @@ Special Thanks:
 • Open Source Contributors
 
 Made with ❤️ in 2025`,
-            {
-                fontSize: '18px',
-                fill: '#ffffff',
-                align: 'center',
-                lineSpacing: 5
-            }
-        ).setOrigin(0.5);
-        
-        const closeButton = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY + 160,
-            'Close',
-            {
-                fontSize: '20px',
-                fill: '#ffffff',
-                backgroundColor: '#ff6b6b',
-                padding: { x: 15, y: 8 }
-            }
-        ).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        
-        closeButton.on('pointerdown', () => {
-            overlay.destroy();
-            creditsText.destroy();
-            closeButton.destroy();
-        });
-    }
+        {
+          fontSize: '18px',
+          fill: '#ffffff',
+          align: 'center',
+          lineSpacing: 5,
+        }
+      )
+      .setOrigin(0.5);
 
-    createFullscreenButton() {
-        // Create a fullscreen button in top-right corner
-        const buttonX = this.cameras.main.width - 50;
-        const buttonY = 30;
-        
-        // Detect if iOS/iPad
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        
-        this.fullscreenButton = this.add.text(buttonX, buttonY, '⛶', {
-            fontSize: '28px',
-            fill: '#ffffff',
-            backgroundColor: '#3e8084',
-            padding: { x: 15, y: 10 }
-        }).setOrigin(0.5)
-          .setDepth(1000) // High depth to ensure it's clickable
-          .setInteractive({ 
-              useHandCursor: true,
-              // Larger hit area for better touch targeting on mobile
-              hitArea: new Phaser.Geom.Rectangle(-25, -20, 50, 40),
-              hitAreaCallback: Phaser.Geom.Rectangle.Contains
-          });
-        
-        // iOS needs special handling for touch events
-        const handleFullscreenToggle = () => {
-            if (window.gameInstance) {
-                window.gameInstance.toggleFullscreen();
-                
-                // Visual feedback on iOS
-                if (isIOS) {
-                    this.cameras.main.flash(200, 255, 255, 255, false, (camera, progress) => {
-                        if (progress === 1) {
-                        }
-                    });
-                }
-            } else {
-                console.error('window.gameInstance not available!');
-            }
-        };
-        
-        // Add visual press effect
-        this.fullscreenButton.on('pointerdown', function() {
-            this.setScale(0.9);
-            this.setTint(0xaaaaaa);
-        });
-        
-        // Use pointerup for the actual action (better iOS compatibility)
-        this.fullscreenButton.on('pointerup', function() {
-            this.setScale(1.0);
-            this.clearTint();
-            handleFullscreenToggle();
-        });
-        
-        this.fullscreenButton.on('pointerover', function() {
-            this.setTint(0xcccccc);
-        });
-        
-        this.fullscreenButton.on('pointerout', function() {
-            this.clearTint();
-            this.setScale(1.0);
-        });
-        
-        // Add tooltip with iOS-specific text
-        const tooltipText = isIOS ? 'Immersive' : 'Fullscreen';
-        this.add.text(buttonX, buttonY + 35, tooltipText, {
-            fontSize: '10px',
-            fill: '#a8d5d1',
-            align: 'center'
-        }).setOrigin(0.5).setDepth(1000);
-    }
+    const closeButton = this.add
+      .text(this.cameras.main.centerX, this.cameras.main.centerY + 160, 'Close', {
+        fontSize: '20px',
+        fill: '#ffffff',
+        backgroundColor: '#ff6b6b',
+        padding: { x: 15, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
 
-    startAnimations() {
-        // Animate background elements
-        this.backgroundElements.forEach((element, index) => {
-            this.tweens.add({
-                targets: element,
-                rotation: element.rotation + Math.PI * 2,
-                duration: 10000 + (index * 1000),
-                repeat: -1,
-                ease: 'Linear'
-            });
-            
-            this.tweens.add({
-                targets: element,
-                y: element.y + (50 + Math.random() * 100),
-                duration: 8000 + (index * 500),
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-        });
-        
-        // Animate title
-        this.titleTween = this.tweens.add({
-            targets: [this.titleText, this.subtitleText],
-            scaleX: 1.05,
-            scaleY: 1.05,
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-        
-        // Animate decorations
-        this.decorations.forEach((decoration, index) => {
-            this.tweens.add({
-                targets: decoration,
-                scaleX: 1.2,
-                scaleY: 1.2,
-                duration: 1500 + (index * 200),
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-        });
-    }
+    closeButton.on('pointerdown', () => {
+      overlay.destroy();
+      creditsText.destroy();
+      closeButton.destroy();
+    });
+  }
 
-    update() {
-        // Update any menu animations or effects
-    }
+  createFullscreenButton() {
+    // Create a fullscreen button in top-right corner
+    const buttonX = this.cameras.main.width - 50;
+    const buttonY = 30;
+
+    // Detect if iOS/iPad
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    this.fullscreenButton = this.add
+      .text(buttonX, buttonY, '⛶', {
+        fontSize: '28px',
+        fill: '#ffffff',
+        backgroundColor: '#3e8084',
+        padding: { x: 15, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setDepth(1000) // High depth to ensure it's clickable
+      .setInteractive({
+        useHandCursor: true,
+        // Larger hit area for better touch targeting on mobile
+        hitArea: new Phaser.Geom.Rectangle(-25, -20, 50, 40),
+        hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      });
+
+    // iOS needs special handling for touch events
+    const handleFullscreenToggle = () => {
+      if (window.gameInstance) {
+        window.gameInstance.toggleFullscreen();
+
+        // Visual feedback on iOS
+        if (isIOS) {
+          this.cameras.main.flash(200, 255, 255, 255, false);
+        }
+      } else {
+        console.error('window.gameInstance not available!');
+      }
+    };
+
+    // Add visual press effect
+    this.fullscreenButton.on('pointerdown', function () {
+      this.setScale(0.9);
+      this.setTint(0xaaaaaa);
+    });
+
+    // Use pointerup for the actual action (better iOS compatibility)
+    this.fullscreenButton.on('pointerup', function () {
+      this.setScale(1.0);
+      this.clearTint();
+      handleFullscreenToggle();
+    });
+
+    this.fullscreenButton.on('pointerover', function () {
+      this.setTint(0xcccccc);
+    });
+
+    this.fullscreenButton.on('pointerout', function () {
+      this.clearTint();
+      this.setScale(1.0);
+    });
+
+    // Add tooltip with iOS-specific text
+    const tooltipText = isIOS ? 'Immersive' : 'Fullscreen';
+    this.add
+      .text(buttonX, buttonY + 35, tooltipText, {
+        fontSize: '10px',
+        fill: '#a8d5d1',
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setDepth(1000);
+  }
+
+  startAnimations() {
+    // Animate background elements
+    this.backgroundElements.forEach((element, index) => {
+      this.tweens.add({
+        targets: element,
+        rotation: element.rotation + Math.PI * 2,
+        duration: 10000 + index * 1000,
+        repeat: -1,
+        ease: 'Linear',
+      });
+
+      this.tweens.add({
+        targets: element,
+        y: element.y + (50 + Math.random() * 100),
+        duration: 8000 + index * 500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    });
+
+    // Animate title
+    this.titleTween = this.tweens.add({
+      targets: [this.titleText, this.subtitleText],
+      scaleX: 1.05,
+      scaleY: 1.05,
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // Animate decorations
+    this.decorations.forEach((decoration, index) => {
+      this.tweens.add({
+        targets: decoration,
+        scaleX: 1.2,
+        scaleY: 1.2,
+        duration: 1500 + index * 200,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    });
+  }
+
+  update() {
+    // Update any menu animations or effects
+  }
 }

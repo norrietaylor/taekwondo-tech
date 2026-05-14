@@ -1,6 +1,7 @@
 # iOS/iPad Fullscreen Fix
 
 ## Problem
+
 1. Standard fullscreen API doesn't work on iPad/iOS Safari for canvas elements
 2. Buttons in Craft Mode weren't responding to clicks when in fullscreen mode
 3. Coordinate system was getting out of sync with touch/pointer events
@@ -13,11 +14,13 @@ Added iOS detection and custom fullscreen implementation:
 
 ```javascript
 // Detects iOS/iPad devices (including new iPadOS that identifies as Mac)
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isIOS =
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 ```
 
 **Key Changes:**
+
 - `enterIOSFullscreen()`: Uses viewport manipulation instead of standard fullscreen API
 - `exitIOSFullscreen()`: Properly resets all styles
 - Uses Phaser's `scale.refresh()` to update coordinate system after viewport changes
@@ -36,6 +39,7 @@ All events trigger `game.scale.refresh()` to keep Phaser's coordinate system in 
 ### 3. Fixed Button Interactivity (`js/scenes/CraftScene.js`)
 
 **Changes Made:**
+
 - Added `.setDepth(50)` to all navigation buttons (back, outfit, continue)
 - Added `.setDepth(10)` to all part inventory items
 - Added `.setDepth(50)` to craft button
@@ -47,10 +51,13 @@ All events trigger `game.scale.refresh()` to keep Phaser's coordinate system in 
 Added to `index.html` and `debug-legendary-mode.html`:
 
 ```html
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="format-detection" content="telephone=no">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+/>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="format-detection" content="telephone=no" />
 ```
 
 ### 5. Updated UI Text (`js/scenes/MenuScene.js`)
@@ -62,6 +69,7 @@ Added to `index.html` and `debug-legendary-mode.html`:
 ## Testing
 
 Created `test-ipad-fullscreen.html` to verify:
+
 1. Device detection works correctly
 2. iOS fullscreen mode activates properly
 3. Touch/click events work in fullscreen mode
@@ -131,8 +139,8 @@ This ensures buttons are always above background and receive pointer events.
 ## Future Improvements
 
 Consider:
+
 - Add PWA manifest for "Add to Home Screen" for true fullscreen
 - Add landscape orientation enforcement
 - Add haptic feedback for iOS devices
 - Cache game assets for offline play
-

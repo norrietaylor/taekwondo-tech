@@ -14,6 +14,7 @@ This guide explains how to package and deploy the Taekwondo Robot Builder game u
    - Verify Docker is running: `docker --version`
 
 2. **Run the deployment script**:
+
    ```bash
    ./deploy-docker.sh
    ```
@@ -38,11 +39,13 @@ export VERSION="v1.0.0"                     # Version tag (defaults to "latest")
 If you prefer to run the commands manually:
 
 ### 1. Build the Docker image
+
 ```bash
 docker build -t your-username/taekwondo-robot-builder:latest .
 ```
 
 ### 2. Test locally (optional)
+
 ```bash
 docker run -d -p 8080:80 --name taekwondo-test your-username/taekwondo-robot-builder:latest
 # Visit http://localhost:8080 to test
@@ -50,6 +53,7 @@ docker stop taekwondo-test && docker rm taekwondo-test
 ```
 
 ### 3. Push to Docker Hub
+
 ```bash
 docker login
 docker push your-username/taekwondo-robot-builder:latest
@@ -73,7 +77,7 @@ The deployment script can optionally create a `docker-compose.yml` file for easi
 # Start the game
 docker-compose up -d
 
-# Stop the game  
+# Stop the game
 docker-compose down
 
 # Update to latest version
@@ -94,7 +98,7 @@ The Docker setup includes these files:
 - **Base Image**: nginx:alpine (lightweight web server)
 - **Port**: 80 (standard HTTP port)
 - **Size**: ~25MB (optimized for production)
-- **Features**: 
+- **Features**:
   - Gzip compression enabled
   - Static asset caching
   - Health checks included
@@ -103,31 +107,41 @@ The Docker setup includes these files:
 ## Troubleshooting
 
 ### Docker daemon not running
+
 ```
 ERROR: Cannot connect to the Docker daemon
 ```
+
 **Solution**: Start Docker Desktop
 
 ### Permission denied
+
 ```
 docker: permission denied
 ```
+
 **Solution**: On Linux, add your user to the docker group:
+
 ```bash
 sudo usermod -aG docker $USER
 ```
 
 ### Login failed
+
 ```
 Error response from daemon: unauthorized
 ```
+
 **Solution**: Login to Docker Hub:
+
 ```bash
 docker login
 ```
 
 ### Build failed
+
 **Check**:
+
 - All required files are present
 - Docker has enough disk space
 - Network connection is stable
@@ -142,6 +156,7 @@ docker login
 ## Support
 
 For issues with Docker deployment, check:
+
 1. Docker Desktop is running and updated
 2. Network connectivity to Docker Hub
 3. Sufficient disk space for image building

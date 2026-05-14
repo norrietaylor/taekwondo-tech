@@ -2,525 +2,525 @@
 const { test, expect } = require('@playwright/test');
 
 test.describe('Dragon Costume System', () => {
-    
-    test.beforeEach(async ({ page }) => {
-        // Navigate to game
-        await page.goto('http://localhost:8000/nocache.html');
-        
-        // Wait for game to load
-        await page.waitForTimeout(2000);
-        
-        // Clear any existing save data to start fresh
-        await page.evaluate(() => {
-            localStorage.clear();
-            if (window.gameInstance) {
-                window.gameInstance.resetGame();
-            }
-        });
-        
-        await page.reload();
-        await page.waitForTimeout(2000);
+  test.beforeEach(async ({ page }) => {
+    // Navigate to game
+    await page.goto('http://localhost:8000/nocache.html');
+
+    // Wait for game to load
+    await page.waitForTimeout(2000);
+
+    // Clear any existing save data to start fresh
+    await page.evaluate(() => {
+      localStorage.clear();
+      if (window.gameInstance) {
+        window.gameInstance.resetGame();
+      }
     });
 
-    test('should have 5 dragon costumes defined in game instance', async ({ page }) => {
-        const costumes = await page.evaluate(() => {
-            return Object.keys(window.gameInstance.dragonCostumes);
-        });
-        
-        expect(costumes).toHaveLength(5);
-        expect(costumes).toContain('default');
-        expect(costumes).toContain('fire');
-        expect(costumes).toContain('ice');
-        expect(costumes).toContain('lightning');
-        expect(costumes).toContain('shadow');
+    await page.reload();
+    await page.waitForTimeout(2000);
+  });
+
+  test('should have 5 dragon costumes defined in game instance', async ({ page }) => {
+    const costumes = await page.evaluate(() => {
+      return Object.keys(window.gameInstance.dragonCostumes);
     });
 
-    test('should have default costume unlocked at start', async ({ page }) => {
-        const currentOutfit = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.current;
-        });
-        
-        const unlockedOutfits = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked;
-        });
-        
-        expect(currentOutfit).toBe('default');
-        expect(unlockedOutfits).toContain('default');
+    expect(costumes).toHaveLength(5);
+    expect(costumes).toContain('default');
+    expect(costumes).toContain('fire');
+    expect(costumes).toContain('ice');
+    expect(costumes).toContain('lightning');
+    expect(costumes).toContain('shadow');
+  });
+
+  test('should have default costume unlocked at start', async ({ page }) => {
+    const currentOutfit = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.current;
     });
 
-    test('should display dragon costume definitions correctly', async ({ page }) => {
-        const fireDragon = await page.evaluate(() => {
-            return window.gameInstance.getDragonCostume('fire');
-        });
-        
-        expect(fireDragon.name).toBe('Fire Dragon');
-        expect(fireDragon.icon).toBe('🔥');
-        expect(fireDragon.primaryColor).toBe(0xff4500);
-        expect(fireDragon.description).toContain('flames');
+    const unlockedOutfits = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked;
     });
 
-    test('should unlock Fire Dragon after completing level 1', async ({ page }) => {
-        // Simulate completing level 1
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 2;
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        const unlockedOutfits = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked;
-        });
-        
-        expect(unlockedOutfits).toContain('fire');
+    expect(currentOutfit).toBe('default');
+    expect(unlockedOutfits).toContain('default');
+  });
+
+  test('should display dragon costume definitions correctly', async ({ page }) => {
+    const fireDragon = await page.evaluate(() => {
+      return window.gameInstance.getDragonCostume('fire');
     });
 
-    test('should unlock Ice Dragon after collecting 5 parts', async ({ page }) => {
-        // Simulate collecting 5 robot parts
-        await page.evaluate(() => {
-            for (let i = 0; i < 5; i++) {
-                window.gameInstance.addRobotPart('head', 'common');
-            }
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        const unlockedOutfits = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked;
-        });
-        
-        expect(unlockedOutfits).toContain('ice');
+    expect(fireDragon.name).toBe('Fire Dragon');
+    expect(fireDragon.icon).toBe('🔥');
+    expect(fireDragon.primaryColor).toBe(0xff4500);
+    expect(fireDragon.description).toContain('flames');
+  });
+
+  test('should unlock Fire Dragon after completing level 1', async ({ page }) => {
+    // Simulate completing level 1
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 2;
+      return window.gameInstance.checkDragonUnlocks();
     });
 
-    test('should unlock Lightning Dragon after completing level 2', async ({ page }) => {
-        // Simulate completing level 2
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 3;
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        const unlockedOutfits = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked;
-        });
-        
-        expect(unlockedOutfits).toContain('lightning');
+    const unlockedOutfits = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked;
     });
 
-    test('should unlock Shadow Dragon after completing game', async ({ page }) => {
-        // Simulate completing the game
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 4;
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        const unlockedOutfits = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked;
-        });
-        
-        expect(unlockedOutfits).toContain('shadow');
+    expect(unlockedOutfits).toContain('fire');
+  });
+
+  test('should unlock Ice Dragon after collecting 5 parts', async ({ page }) => {
+    // Simulate collecting 5 robot parts
+    await page.evaluate(() => {
+      for (let i = 0; i < 5; i++) {
+        window.gameInstance.addRobotPart('head', 'common');
+      }
+      return window.gameInstance.checkDragonUnlocks();
     });
 
-    test('should switch to Fire Dragon costume when selected', async ({ page }) => {
-        // Unlock and switch to Fire Dragon
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 2;
-            window.gameInstance.checkDragonUnlocks();
-            window.gameInstance.setOutfit('fire');
-        });
-        
-        const currentOutfit = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.current;
-        });
-        
-        expect(currentOutfit).toBe('fire');
+    const unlockedOutfits = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked;
     });
 
-    test('should not allow equipping locked costumes', async ({ page }) => {
-        // Try to equip Fire Dragon without unlocking
-        const result = await page.evaluate(() => {
-            window.gameInstance.setOutfit('fire');
-            return window.gameInstance.gameData.outfits.current;
-        });
-        
-        // Should still be default since fire is locked
-        expect(result).toBe('default');
+    expect(unlockedOutfits).toContain('ice');
+  });
+
+  test('should unlock Lightning Dragon after completing level 2', async ({ page }) => {
+    // Simulate completing level 2
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 3;
+      return window.gameInstance.checkDragonUnlocks();
     });
 
-    test('should persist costume selection after save/load', async ({ page }) => {
-        // Unlock and equip Fire Dragon
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 2;
-            window.gameInstance.checkDragonUnlocks();
-            window.gameInstance.setOutfit('fire');
-            window.gameInstance.saveGameData();
-        });
-        
-        // Reload page
-        await page.reload();
-        await page.waitForTimeout(2000);
-        
-        // Check if Fire Dragon is still equipped
-        const currentOutfit = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.current;
-        });
-        
-        expect(currentOutfit).toBe('fire');
+    const unlockedOutfits = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked;
     });
 
-    test('should open dragon costume selection UI in CraftScene', async ({ page }) => {
-        // Start game
-        await page.click('text=Start Game');
-        await page.waitForTimeout(1000);
-        
-        // Navigate to CraftScene (simulate level completion)
-        await page.evaluate(() => {
-            window.gameInstance.game.scene.start('CraftScene');
-        });
-        
-        await page.waitForTimeout(1000);
-        
-        // Click Change Outfit button
-        const outfitButton = await page.locator('text=Change Outfit').first();
-        if (await outfitButton.isVisible()) {
-            await outfitButton.click();
-            await page.waitForTimeout(500);
-            
-            // Check if dragon costume UI is displayed
-            const titleVisible = await page.locator('text=DRAGON COSTUME SELECTION').isVisible();
-            expect(titleVisible).toBeTruthy();
-        }
+    expect(unlockedOutfits).toContain('lightning');
+  });
+
+  test('should unlock Shadow Dragon after completing game', async ({ page }) => {
+    // Simulate completing the game
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 4;
+      return window.gameInstance.checkDragonUnlocks();
     });
 
-    test('should display unlock progress for locked costumes', async ({ page }) => {
-        // Navigate to CraftScene
-        await page.evaluate(() => {
-            window.gameInstance.game.scene.start('CraftScene');
-        });
-        
-        await page.waitForTimeout(1000);
-        
-        // Get unlock progress text for Fire Dragon
-        const progressText = await page.evaluate(() => {
-            const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
-            return craftScene.getUnlockProgressText('fire');
-        });
-        
-        expect(progressText).toContain('Complete Level 1');
+    const unlockedOutfits = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked;
     });
 
-    test('should update player colors based on dragon costume', async ({ page }) => {
-        // Start game
-        await page.click('text=Start Game');
-        await page.waitForTimeout(2000);
-        
-        // Get default costume color
-        const defaultColor = await page.evaluate(() => {
-            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
-            if (gameScene && gameScene.player) {
-                return gameScene.player.getDragonCostume().primaryColor;
-            }
-            return null;
-        });
-        
-        expect(defaultColor).toBe(0x4a9eff);
+    expect(unlockedOutfits).toContain('shadow');
+  });
+
+  test('should switch to Fire Dragon costume when selected', async ({ page }) => {
+    // Unlock and switch to Fire Dragon
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 2;
+      window.gameInstance.checkDragonUnlocks();
+      window.gameInstance.setOutfit('fire');
     });
 
-    test('should check for dragon unlocks when entering CraftScene', async ({ page }) => {
-        // Set up to unlock Fire Dragon
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 2;
-        });
-        
-        // Navigate to CraftScene
-        await page.evaluate(() => {
-            window.gameInstance.game.scene.start('CraftScene');
-        });
-        
-        await page.waitForTimeout(1000);
-        
-        // Check if Fire Dragon is now unlocked
-        const isUnlocked = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked.includes('fire');
-        });
-        
-        expect(isUnlocked).toBeTruthy();
+    const currentOutfit = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.current;
     });
 
-    test('should return array of newly unlocked costumes', async ({ page }) => {
-        // Set up multiple unlock conditions
-        const newUnlocks = await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 3;
-            for (let i = 0; i < 5; i++) {
-                window.gameInstance.addRobotPart('body', 'rare');
-            }
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        // Should unlock fire, ice, and lightning
-        expect(newUnlocks.length).toBeGreaterThan(0);
-        expect(newUnlocks).toContain('fire');
-        expect(newUnlocks).toContain('ice');
-        expect(newUnlocks).toContain('lightning');
+    expect(currentOutfit).toBe('fire');
+  });
+
+  test('should not allow equipping locked costumes', async ({ page }) => {
+    // Try to equip Fire Dragon without unlocking
+    const result = await page.evaluate(() => {
+      window.gameInstance.setOutfit('fire');
+      return window.gameInstance.gameData.outfits.current;
     });
 
-    test('should not unlock costumes multiple times', async ({ page }) => {
-        // Unlock Fire Dragon
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 2;
-            window.gameInstance.checkDragonUnlocks();
-        });
-        
-        // Try to unlock again
-        const secondUnlock = await page.evaluate(() => {
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        // Should return empty array since fire is already unlocked
-        expect(secondUnlock).toHaveLength(0);
+    // Should still be default since fire is locked
+    expect(result).toBe('default');
+  });
+
+  test('should persist costume selection after save/load', async ({ page }) => {
+    // Unlock and equip Fire Dragon
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 2;
+      window.gameInstance.checkDragonUnlocks();
+      window.gameInstance.setOutfit('fire');
+      window.gameInstance.saveGameData();
     });
 
-    test('should apply dragon effects to jump particles', async ({ page }) => {
-        // Start game and unlock Fire Dragon
-        await page.evaluate(() => {
-            window.gameInstance.gameData.currentLevel = 2;
-            window.gameInstance.checkDragonUnlocks();
-            window.gameInstance.setOutfit('fire');
-        });
-        
-        await page.click('text=Start Game');
-        await page.waitForTimeout(2000);
-        
-        // Check that player has Fire Dragon costume
-        const costume = await page.evaluate(() => {
-            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
-            if (gameScene && gameScene.player) {
-                return gameScene.player.getDragonCostume().name;
-            }
-            return null;
-        });
-        
-        expect(costume).toBe('Fire Dragon');
+    // Reload page
+    await page.reload();
+    await page.waitForTimeout(2000);
+
+    // Check if Fire Dragon is still equipped
+    const currentOutfit = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.current;
     });
 
-    test('should display all 5 costumes in selection UI', async ({ page }) => {
-        await page.evaluate(() => {
-            window.gameInstance.game.scene.start('CraftScene');
-        });
-        
-        await page.waitForTimeout(1000);
-        
-        const costumeCount = await page.evaluate(() => {
-            const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
-            return craftScene ? 5 : 0; // We expect 5 dragon costumes
-        });
-        
-        expect(costumeCount).toBe(5);
+    expect(currentOutfit).toBe('fire');
+  });
+
+  test('should open dragon costume selection UI in CraftScene', async ({ page }) => {
+    // Start game
+    await page.click('text=Start Game');
+    await page.waitForTimeout(1000);
+
+    // Navigate to CraftScene (simulate level completion)
+    await page.evaluate(() => {
+      window.gameInstance.game.scene.start('CraftScene');
     });
 
-    test('should validate costume data structure', async ({ page }) => {
-        const costumeData = await page.evaluate(() => {
-            const costume = window.gameInstance.getDragonCostume('ice');
-            return {
-                hasName: !!costume.name,
-                hasIcon: !!costume.icon,
-                hasPrimaryColor: typeof costume.primaryColor === 'number',
-                hasSecondaryColor: typeof costume.secondaryColor === 'number',
-                hasBeltColor: typeof costume.beltColor === 'number',
-                hasDescription: !!costume.description,
-                hasUnlockCondition: !!costume.unlockCondition,
-                hasEffectColor: typeof costume.effectColor === 'number'
-            };
-        });
-        
-        expect(costumeData.hasName).toBeTruthy();
-        expect(costumeData.hasIcon).toBeTruthy();
-        expect(costumeData.hasPrimaryColor).toBeTruthy();
-        expect(costumeData.hasSecondaryColor).toBeTruthy();
-        expect(costumeData.hasBeltColor).toBeTruthy();
-        expect(costumeData.hasDescription).toBeTruthy();
-        expect(costumeData.hasUnlockCondition).toBeTruthy();
-        expect(costumeData.hasEffectColor).toBeTruthy();
+    await page.waitForTimeout(1000);
+
+    // Click Change Outfit button
+    const outfitButton = await page.locator('text=Change Outfit').first();
+    if (await outfitButton.isVisible()) {
+      await outfitButton.click();
+      await page.waitForTimeout(500);
+
+      // Check if dragon costume UI is displayed
+      const titleVisible = await page.locator('text=DRAGON COSTUME SELECTION').isVisible();
+      expect(titleVisible).toBeTruthy();
+    }
+  });
+
+  test('should display unlock progress for locked costumes', async ({ page }) => {
+    // Navigate to CraftScene
+    await page.evaluate(() => {
+      window.gameInstance.game.scene.start('CraftScene');
     });
 
-    // Legendary Mode Tests
-    test('should have legendary mode costume defined', async ({ page }) => {
-        const legendary = await page.evaluate(() => {
-            return window.gameInstance.getDragonCostume('legendary');
-        });
-        
-        expect(legendary.name).toContain('Legendary');
-        expect(legendary.isLegendary).toBeTruthy();
-        expect(legendary.size).toBe(5);
-        expect(legendary.fireballEnabled).toBeTruthy();
+    await page.waitForTimeout(1000);
+
+    // Get unlock progress text for Fire Dragon
+    const progressText = await page.evaluate(() => {
+      const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
+      return craftScene.getUnlockProgressText('fire');
     });
 
-    test('should unlock legendary mode when all 5 robot part types are collected', async ({ page }) => {
-        // Collect all 5 robot part types
-        await page.evaluate(() => {
-            window.gameInstance.addRobotPart('head', 'common');
-            window.gameInstance.addRobotPart('body', 'common');
-            window.gameInstance.addRobotPart('arms', 'common');
-            window.gameInstance.addRobotPart('legs', 'common');
-            window.gameInstance.addRobotPart('powerCore', 'common');
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        const unlockedOutfits = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked;
-        });
-        
-        expect(unlockedOutfits).toContain('legendary');
+    expect(progressText).toContain('Complete Level 1');
+  });
+
+  test('should update player colors based on dragon costume', async ({ page }) => {
+    // Start game
+    await page.click('text=Start Game');
+    await page.waitForTimeout(2000);
+
+    // Get default costume color
+    const defaultColor = await page.evaluate(() => {
+      const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+      if (gameScene && gameScene.player) {
+        return gameScene.player.getDragonCostume().primaryColor;
+      }
+      return null;
     });
 
-    test('should not unlock legendary mode if not all part types are collected', async ({ page }) => {
-        // Collect only 4 part types
-        await page.evaluate(() => {
-            window.gameInstance.addRobotPart('head', 'common');
-            window.gameInstance.addRobotPart('body', 'common');
-            window.gameInstance.addRobotPart('arms', 'common');
-            window.gameInstance.addRobotPart('legs', 'common');
-            // powerCore not collected
-            return window.gameInstance.checkDragonUnlocks();
-        });
-        
-        const unlockedOutfits = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.unlocked;
-        });
-        
-        expect(unlockedOutfits).not.toContain('legendary');
+    expect(defaultColor).toBe(0x4a9eff);
+  });
+
+  test('should check for dragon unlocks when entering CraftScene', async ({ page }) => {
+    // Set up to unlock Fire Dragon
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 2;
     });
 
-    test('should have body part mapping for legendary mode', async ({ page }) => {
-        const mapping = await page.evaluate(() => {
-            const costume = window.gameInstance.getDragonCostume('legendary');
-            return costume.bodyPartMapping;
-        });
-        
-        expect(mapping.leftLeg).toBe('ice');
-        expect(mapping.rightLeg).toBe('fire');
-        expect(mapping.leftArm).toBe('lightning');
-        expect(mapping.rightArm).toBe('shadow');
-        expect(mapping.body).toBe('default');
+    // Navigate to CraftScene
+    await page.evaluate(() => {
+      window.gameInstance.game.scene.start('CraftScene');
     });
 
-    test('should have fireball properties configured for legendary mode', async ({ page }) => {
-        const fireballConfig = await page.evaluate(() => {
-            const costume = window.gameInstance.getDragonCostume('legendary');
-            return {
-                fireballEnabled: costume.fireballEnabled,
-                fireballDamageMultiplier: costume.fireballDamageMultiplier,
-                fireballCooldown: costume.fireballCooldown,
-                fireballColors: costume.fireballColors
-            };
-        });
-        
-        expect(fireballConfig.fireballEnabled).toBeTruthy();
-        expect(fireballConfig.fireballDamageMultiplier).toBe(5);
-        expect(fireballConfig.fireballCooldown).toBe(3);
-        expect(fireballConfig.fireballColors.length).toBe(5); // One for each dragon
+    await page.waitForTimeout(1000);
+
+    // Check if Fire Dragon is now unlocked
+    const isUnlocked = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked.includes('fire');
     });
 
-    test('should display legendary mode in costume selection UI', async ({ page }) => {
-        // Collect all robot parts
-        await page.evaluate(() => {
-            window.gameInstance.addRobotPart('head', 'common');
-            window.gameInstance.addRobotPart('body', 'common');
-            window.gameInstance.addRobotPart('arms', 'common');
-            window.gameInstance.addRobotPart('legs', 'common');
-            window.gameInstance.addRobotPart('powerCore', 'common');
-            window.gameInstance.checkDragonUnlocks();
-            window.gameInstance.game.scene.start('CraftScene');
-        });
-        
-        await page.waitForTimeout(1000);
-        
-        // Click Change Outfit button
-        const outfitButton = await page.locator('text=Change Outfit').first();
-        if (await outfitButton.isVisible()) {
-            await outfitButton.click();
-            await page.waitForTimeout(500);
-            
-            // Check if legendary mode is displayed
-            const legendaryVisible = await page.locator('text=Legendary').isVisible();
-            expect(legendaryVisible).toBeTruthy();
-        }
+    expect(isUnlocked).toBeTruthy();
+  });
+
+  test('should return array of newly unlocked costumes', async ({ page }) => {
+    // Set up multiple unlock conditions
+    const newUnlocks = await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 3;
+      for (let i = 0; i < 5; i++) {
+        window.gameInstance.addRobotPart('body', 'rare');
+      }
+      return window.gameInstance.checkDragonUnlocks();
     });
 
-    test('should show unlock progress for legendary mode', async ({ page }) => {
-        // Collect only some robot part types
-        await page.evaluate(() => {
-            window.gameInstance.addRobotPart('head', 'common');
-            window.gameInstance.addRobotPart('body', 'common');
-            window.gameInstance.addRobotPart('arms', 'common');
-            window.gameInstance.game.scene.start('CraftScene');
-        });
-        
-        await page.waitForTimeout(1000);
-        
-        const progressText = await page.evaluate(() => {
-            const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
-            return craftScene.getUnlockProgressText('legendary');
-        });
-        
-        expect(progressText).toContain('3/5');
+    // Should unlock fire, ice, and lightning
+    expect(newUnlocks.length).toBeGreaterThan(0);
+    expect(newUnlocks).toContain('fire');
+    expect(newUnlocks).toContain('ice');
+    expect(newUnlocks).toContain('lightning');
+  });
+
+  test('should not unlock costumes multiple times', async ({ page }) => {
+    // Unlock Fire Dragon
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 2;
+      window.gameInstance.checkDragonUnlocks();
     });
 
-    test('should allow switching to legendary mode when unlocked', async ({ page }) => {
-        // Collect all robot parts and switch to legendary
-        await page.evaluate(() => {
-            window.gameInstance.addRobotPart('head', 'common');
-            window.gameInstance.addRobotPart('body', 'common');
-            window.gameInstance.addRobotPart('arms', 'common');
-            window.gameInstance.addRobotPart('legs', 'common');
-            window.gameInstance.addRobotPart('powerCore', 'common');
-            window.gameInstance.checkDragonUnlocks();
-            window.gameInstance.setOutfit('legendary');
-        });
-        
-        const currentOutfit = await page.evaluate(() => {
-            return window.gameInstance.gameData.outfits.current;
-        });
-        
-        expect(currentOutfit).toBe('legendary');
+    // Try to unlock again
+    const secondUnlock = await page.evaluate(() => {
+      return window.gameInstance.checkDragonUnlocks();
     });
 
-    test('should have larger wings for legendary mode', async ({ page }) => {
-        // Collect all robot parts and equip legendary mode
-        await page.evaluate(() => {
-            window.gameInstance.addRobotPart('head', 'common');
-            window.gameInstance.addRobotPart('body', 'common');
-            window.gameInstance.addRobotPart('arms', 'common');
-            window.gameInstance.addRobotPart('legs', 'common');
-            window.gameInstance.addRobotPart('powerCore', 'common');
-            window.gameInstance.checkDragonUnlocks();
-            window.gameInstance.setOutfit('legendary');
-        });
-        
-        await page.click('text=Start Game');
-        await page.waitForTimeout(2000);
-        
-        const hasWings = await page.evaluate(() => {
-            const gameScene = window.gameInstance.game.scene.getScene('GameScene');
-            if (gameScene && gameScene.player) {
-                const costume = gameScene.player.getDragonCostume();
-                return costume.hasWings && costume.isLegendary;
-            }
-            return false;
-        });
-        
-        expect(hasWings).toBeTruthy();
+    // Should return empty array since fire is already unlocked
+    expect(secondUnlock).toHaveLength(0);
+  });
+
+  test('should apply dragon effects to jump particles', async ({ page }) => {
+    // Start game and unlock Fire Dragon
+    await page.evaluate(() => {
+      window.gameInstance.gameData.currentLevel = 2;
+      window.gameInstance.checkDragonUnlocks();
+      window.gameInstance.setOutfit('fire');
     });
 
-    test('should display all 6 costumes in selection UI', async ({ page }) => {
-        await page.evaluate(() => {
-            window.gameInstance.game.scene.start('CraftScene');
-        });
-        
-        await page.waitForTimeout(1000);
-        
-        const costumeCount = await page.evaluate(() => {
-            const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
-            return craftScene ? 6 : 0; // We expect 6 dragon costumes including legendary
-        });
-        
-        expect(costumeCount).toBe(6);
+    await page.click('text=Start Game');
+    await page.waitForTimeout(2000);
+
+    // Check that player has Fire Dragon costume
+    const costume = await page.evaluate(() => {
+      const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+      if (gameScene && gameScene.player) {
+        return gameScene.player.getDragonCostume().name;
+      }
+      return null;
     });
+
+    expect(costume).toBe('Fire Dragon');
+  });
+
+  test('should display all 5 costumes in selection UI', async ({ page }) => {
+    await page.evaluate(() => {
+      window.gameInstance.game.scene.start('CraftScene');
+    });
+
+    await page.waitForTimeout(1000);
+
+    const costumeCount = await page.evaluate(() => {
+      const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
+      return craftScene ? 5 : 0; // We expect 5 dragon costumes
+    });
+
+    expect(costumeCount).toBe(5);
+  });
+
+  test('should validate costume data structure', async ({ page }) => {
+    const costumeData = await page.evaluate(() => {
+      const costume = window.gameInstance.getDragonCostume('ice');
+      return {
+        hasName: !!costume.name,
+        hasIcon: !!costume.icon,
+        hasPrimaryColor: typeof costume.primaryColor === 'number',
+        hasSecondaryColor: typeof costume.secondaryColor === 'number',
+        hasBeltColor: typeof costume.beltColor === 'number',
+        hasDescription: !!costume.description,
+        hasUnlockCondition: !!costume.unlockCondition,
+        hasEffectColor: typeof costume.effectColor === 'number',
+      };
+    });
+
+    expect(costumeData.hasName).toBeTruthy();
+    expect(costumeData.hasIcon).toBeTruthy();
+    expect(costumeData.hasPrimaryColor).toBeTruthy();
+    expect(costumeData.hasSecondaryColor).toBeTruthy();
+    expect(costumeData.hasBeltColor).toBeTruthy();
+    expect(costumeData.hasDescription).toBeTruthy();
+    expect(costumeData.hasUnlockCondition).toBeTruthy();
+    expect(costumeData.hasEffectColor).toBeTruthy();
+  });
+
+  // Legendary Mode Tests
+  test('should have legendary mode costume defined', async ({ page }) => {
+    const legendary = await page.evaluate(() => {
+      return window.gameInstance.getDragonCostume('legendary');
+    });
+
+    expect(legendary.name).toContain('Legendary');
+    expect(legendary.isLegendary).toBeTruthy();
+    expect(legendary.size).toBe(5);
+    expect(legendary.fireballEnabled).toBeTruthy();
+  });
+
+  test('should unlock legendary mode when all 5 robot part types are collected', async ({
+    page,
+  }) => {
+    // Collect all 5 robot part types
+    await page.evaluate(() => {
+      window.gameInstance.addRobotPart('head', 'common');
+      window.gameInstance.addRobotPart('body', 'common');
+      window.gameInstance.addRobotPart('arms', 'common');
+      window.gameInstance.addRobotPart('legs', 'common');
+      window.gameInstance.addRobotPart('powerCore', 'common');
+      return window.gameInstance.checkDragonUnlocks();
+    });
+
+    const unlockedOutfits = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked;
+    });
+
+    expect(unlockedOutfits).toContain('legendary');
+  });
+
+  test('should not unlock legendary mode if not all part types are collected', async ({ page }) => {
+    // Collect only 4 part types
+    await page.evaluate(() => {
+      window.gameInstance.addRobotPart('head', 'common');
+      window.gameInstance.addRobotPart('body', 'common');
+      window.gameInstance.addRobotPart('arms', 'common');
+      window.gameInstance.addRobotPart('legs', 'common');
+      // powerCore not collected
+      return window.gameInstance.checkDragonUnlocks();
+    });
+
+    const unlockedOutfits = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.unlocked;
+    });
+
+    expect(unlockedOutfits).not.toContain('legendary');
+  });
+
+  test('should have body part mapping for legendary mode', async ({ page }) => {
+    const mapping = await page.evaluate(() => {
+      const costume = window.gameInstance.getDragonCostume('legendary');
+      return costume.bodyPartMapping;
+    });
+
+    expect(mapping.leftLeg).toBe('ice');
+    expect(mapping.rightLeg).toBe('fire');
+    expect(mapping.leftArm).toBe('lightning');
+    expect(mapping.rightArm).toBe('shadow');
+    expect(mapping.body).toBe('default');
+  });
+
+  test('should have fireball properties configured for legendary mode', async ({ page }) => {
+    const fireballConfig = await page.evaluate(() => {
+      const costume = window.gameInstance.getDragonCostume('legendary');
+      return {
+        fireballEnabled: costume.fireballEnabled,
+        fireballDamageMultiplier: costume.fireballDamageMultiplier,
+        fireballCooldown: costume.fireballCooldown,
+        fireballColors: costume.fireballColors,
+      };
+    });
+
+    expect(fireballConfig.fireballEnabled).toBeTruthy();
+    expect(fireballConfig.fireballDamageMultiplier).toBe(5);
+    expect(fireballConfig.fireballCooldown).toBe(3);
+    expect(fireballConfig.fireballColors.length).toBe(5); // One for each dragon
+  });
+
+  test('should display legendary mode in costume selection UI', async ({ page }) => {
+    // Collect all robot parts
+    await page.evaluate(() => {
+      window.gameInstance.addRobotPart('head', 'common');
+      window.gameInstance.addRobotPart('body', 'common');
+      window.gameInstance.addRobotPart('arms', 'common');
+      window.gameInstance.addRobotPart('legs', 'common');
+      window.gameInstance.addRobotPart('powerCore', 'common');
+      window.gameInstance.checkDragonUnlocks();
+      window.gameInstance.game.scene.start('CraftScene');
+    });
+
+    await page.waitForTimeout(1000);
+
+    // Click Change Outfit button
+    const outfitButton = await page.locator('text=Change Outfit').first();
+    if (await outfitButton.isVisible()) {
+      await outfitButton.click();
+      await page.waitForTimeout(500);
+
+      // Check if legendary mode is displayed
+      const legendaryVisible = await page.locator('text=Legendary').isVisible();
+      expect(legendaryVisible).toBeTruthy();
+    }
+  });
+
+  test('should show unlock progress for legendary mode', async ({ page }) => {
+    // Collect only some robot part types
+    await page.evaluate(() => {
+      window.gameInstance.addRobotPart('head', 'common');
+      window.gameInstance.addRobotPart('body', 'common');
+      window.gameInstance.addRobotPart('arms', 'common');
+      window.gameInstance.game.scene.start('CraftScene');
+    });
+
+    await page.waitForTimeout(1000);
+
+    const progressText = await page.evaluate(() => {
+      const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
+      return craftScene.getUnlockProgressText('legendary');
+    });
+
+    expect(progressText).toContain('3/5');
+  });
+
+  test('should allow switching to legendary mode when unlocked', async ({ page }) => {
+    // Collect all robot parts and switch to legendary
+    await page.evaluate(() => {
+      window.gameInstance.addRobotPart('head', 'common');
+      window.gameInstance.addRobotPart('body', 'common');
+      window.gameInstance.addRobotPart('arms', 'common');
+      window.gameInstance.addRobotPart('legs', 'common');
+      window.gameInstance.addRobotPart('powerCore', 'common');
+      window.gameInstance.checkDragonUnlocks();
+      window.gameInstance.setOutfit('legendary');
+    });
+
+    const currentOutfit = await page.evaluate(() => {
+      return window.gameInstance.gameData.outfits.current;
+    });
+
+    expect(currentOutfit).toBe('legendary');
+  });
+
+  test('should have larger wings for legendary mode', async ({ page }) => {
+    // Collect all robot parts and equip legendary mode
+    await page.evaluate(() => {
+      window.gameInstance.addRobotPart('head', 'common');
+      window.gameInstance.addRobotPart('body', 'common');
+      window.gameInstance.addRobotPart('arms', 'common');
+      window.gameInstance.addRobotPart('legs', 'common');
+      window.gameInstance.addRobotPart('powerCore', 'common');
+      window.gameInstance.checkDragonUnlocks();
+      window.gameInstance.setOutfit('legendary');
+    });
+
+    await page.click('text=Start Game');
+    await page.waitForTimeout(2000);
+
+    const hasWings = await page.evaluate(() => {
+      const gameScene = window.gameInstance.game.scene.getScene('GameScene');
+      if (gameScene && gameScene.player) {
+        const costume = gameScene.player.getDragonCostume();
+        return costume.hasWings && costume.isLegendary;
+      }
+      return false;
+    });
+
+    expect(hasWings).toBeTruthy();
+  });
+
+  test('should display all 6 costumes in selection UI', async ({ page }) => {
+    await page.evaluate(() => {
+      window.gameInstance.game.scene.start('CraftScene');
+    });
+
+    await page.waitForTimeout(1000);
+
+    const costumeCount = await page.evaluate(() => {
+      const craftScene = window.gameInstance.game.scene.getScene('CraftScene');
+      return craftScene ? 6 : 0; // We expect 6 dragon costumes including legendary
+    });
+
+    expect(costumeCount).toBe(6);
+  });
 });
-
