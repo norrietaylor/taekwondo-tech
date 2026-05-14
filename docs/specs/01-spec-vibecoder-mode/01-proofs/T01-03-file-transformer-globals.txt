@@ -1,0 +1,53 @@
+Type: file
+Command: ls + grep on js/entities/Transformer.js
+Expected: Transformer.js exists and exports `Transformer` and
+          `TransformerRegistry` on window.
+Timestamp: 2026-04-27T19:42:00Z
+Status: PASS
+
+----------------------------------------------------------------------
+Files
+----------------------------------------------------------------------
+-rw-r--r--  5344 bytes   js/entities/Transformer.js
+-rw-r--r-- 10949 bytes   js/entities/transformers/BMWBouncerTransformer.js
+
+----------------------------------------------------------------------
+Global exports (grep for `window.X = ...` in Transformer.js)
+----------------------------------------------------------------------
+js/entities/Transformer.js:
+  127:if (typeof window !== 'undefined') {
+  128:    window.Transformer = Transformer;
+  129:    window.TransformerRegistry = TransformerRegistry;
+  130:}
+
+js/entities/transformers/BMWBouncerTransformer.js (registers under registry):
+  224:if (typeof window !== 'undefined') {
+  225:    window.BMWBouncerTransformerConfig = bmwBouncerConfig;
+  226:    window.BMWBouncerTransformerFactory = factory;
+  227:    if (window.TransformerRegistry) {
+  228:        window.TransformerRegistry.bmwBouncer = factory;
+  229:    } else {
+  230:        // Defer registration if the registry hasn't loaded yet (script order).
+  231:        window.TransformerRegistry = { bmwBouncer: factory };
+  232:    }
+  233:}
+
+----------------------------------------------------------------------
+Required surface (per R1.1 / R1.2 / R1.3)
+----------------------------------------------------------------------
+Transformer class methods (verified at js/entities/Transformer.js):
+  - constructor(player, config)                  line 14
+  - update(delta)                                line 34
+  - tryToggle()                                  line 50
+  - rebuildVisualsIfNeeded(force)                line 71
+  - currentForm()                                line 88
+  - key()                                        line 95
+  - destroyVisuals()                             line 103
+  - destroy()                                    line 111
+
+R1.3 Registry resolution (Player.js):
+  syncTransformerForOutfit()  line 7261
+    - reads window.TransformerRegistry[currentOutfit]
+    - calls factory(this) on outfit change
+    - destroys previous transformer first
+    - falls back to null when no factory registered

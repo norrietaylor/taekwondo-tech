@@ -1,0 +1,273 @@
+[1A[2K[2m[WebServer] [22m::ffff:127.0.0.1 - - [27/Apr/2026 20:37:33] "GET / HTTP/1.1" 200 -
+
+
+Running 8 tests using 8 workers
+
+[1A[2K[1/8] [chromium] › tests/vibecoder-transform.spec.js:135:5 › VibeCoder costume + robot<->computer transform › R2.3: VibeCoderTransformer cooldownMs=1000, forms robot/computer
+[1A[2K[2/8] [chromium] › tests/vibecoder-transform.spec.js:61:5 › VibeCoder costume + robot<->computer transform › R2.1: vibeCoder entry exists in dragonCostumes with required fields
+[1A[2K[3/8] [chromium] › tests/vibecoder-transform.spec.js:111:5 › VibeCoder costume + robot<->computer transform › R2.2b: vibeCoder unlock persists after saveGameData()
+[1A[2K[4/8] [chromium] › tests/vibecoder-transform.spec.js:94:5 › VibeCoder costume + robot<->computer transform › R2.2: checkDragonUnlocks() unlocks vibeCoder when currentLevel >= 2
+[1A[2K[5/8] [chromium] › tests/vibecoder-transform.spec.js:192:5 › VibeCoder costume + robot<->computer transform › R2.5: "Challenge accepted" bubble appears when toggling to computer
+[1A[2K[6/8] [chromium] › tests/vibecoder-transform.spec.js:157:5 › VibeCoder costume + robot<->computer transform › R2.4: computer form zeroes velocity.x every frame
+[1A[2K[7/8] [chromium] › tests/vibecoder-transform.spec.js:221:5 › VibeCoder costume + robot<->computer transform › R2.6: computer form visuals contain rectangle game objects only (no sprites/images)
+[1A[2K[8/8] [chromium] › tests/vibecoder-transform.spec.js:257:5 › VibeCoder costume + robot<->computer transform › R2.7: vibeCoder key is visible in dragonCostumes keys (CraftScene-agnostic)
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /nocache.html HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454469 HTTP/1.1" 200 -
+[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/Controls.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454476 HTTP/1.1" 200 -
+[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/utils/SaveSystem.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Transformer.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/BMWBouncerTransformer.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/transformers/VibeCoderTransformer.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Player.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Enemy.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Collectible.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/entities/Banana.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/MenuScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454476 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/GameScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454482 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454469 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454488 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454489 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/CraftScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/BananaSurvivalScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/scenes/PacManScene.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K[2m[WebServer] [22m::1 - - [27/Apr/2026 20:37:34] "GET /js/game.js?v=1777347454486 HTTP/1.1" 200 -
+
+[1A[2K  8 passed (4.0s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m

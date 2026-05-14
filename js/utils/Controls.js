@@ -49,6 +49,9 @@ class Controls {
     const isPadInDesktopMode =
       isTouchDevice && navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1;
 
+    // Fallback for small screens (phones in landscape, small tablets)
+    const _isSmallScreen = window.innerWidth <= 768;
+
     // Mobile if: explicit mobile device OR has touch capability OR iPad in desktop mode
     return isMobileDevice || isTouchDevice || hasCoarsePointer || isPadInDesktopMode;
   }
@@ -443,6 +446,11 @@ class Controls {
   isGrimlockTransform() {
     // Dino Grimlock transformation - Press 2 to transform between Robot and Dinosaur
     return this.keys['Digit2'] || this.keys['Numpad2'];
+  }
+
+  isVibeCoderTransform() {
+    // VibeCoder transformation - Press V to toggle between robot and computer
+    return this.keys['KeyV'];
   }
 
   isDuckLaser() {

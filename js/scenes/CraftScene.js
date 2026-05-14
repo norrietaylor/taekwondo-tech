@@ -666,6 +666,7 @@ class CraftScene extends Phaser.Scene {
     const dragonCostumes = [
       'default',
       'bmwBouncer',
+      'vibeCoder',
       'fire',
       'banana',
       'stone',
@@ -1134,6 +1135,9 @@ class CraftScene extends Phaser.Scene {
       case 'bmwBouncer':
         // Available from start
         return true;
+      case 'vibeCoder':
+        // Unlock after completing level 1
+        return gameData.currentLevel >= 2;
       case 'portalbot':
         // Unlock after completing level 2
         return gameData.currentLevel >= 3;
@@ -1182,6 +1186,8 @@ class CraftScene extends Phaser.Scene {
         return `🔒 Complete Level 4 (Current: Level ${gameData.currentLevel})`;
       case 'portalbot':
         return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
+      case 'vibeCoder':
+        return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
       case 'legendary':
         const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
         const collectedTypes = partTypes.filter(

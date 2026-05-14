@@ -106,6 +106,44 @@ class Enemy {
       return;
     }
 
+    // --- Charmed branch (R4.3 / R4.4) ---
+    // While charmed, the enemy attacks the nearest uncharmed enemy instead of
+    // the player. On expiry, the charm flag is cleared and the spiral graphic
+    // is destroyed; the prior AI state is restored.
+    if (this.charmed) {
+      const now = this.scene.time ? this.scene.time.now : Date.now();
+      if (this.charmExpiresAt && now >= this.charmExpiresAt) {
+        // Expiry — revert (R4.4).
+        this.charmed = false;
+        this.charmExpiresAt = 0;
+        if (this._charmSpiral && typeof this._charmSpiral.destroy === 'function') {
+          try {
+            this._charmSpiral.destroy();
+          } catch (e) {
+            /* noop */
+          }
+          this._charmSpiral = null;
+        }
+        // Restore prior AI state (default to patrol if unknown).
+        this.changeState(this._preCharmState || 'patrol');
+        this._preCharmState = undefined;
+      } else {
+        // Still charmed — find nearest uncharmed enemy and chase/attack it.
+        this._updateCharmBehavior(delta);
+        // Keep spiral positioned above the enemy.
+        if (this._charmSpiral) {
+          this._charmSpiral.x = this.sprite.x;
+          this._charmSpiral.y = this.sprite.y - 50;
+        }
+        // Update cooldowns and visuals even while charmed.
+        if (this.attackCooldown > 0) this.attackCooldown -= delta;
+        if (this.flashTimer > 0) this.flashTimer -= delta;
+        this.updateVisuals();
+        this.updateAnimations(delta);
+        return; // Skip normal AI.
+      }
+    }
+
     // Update cooldowns
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
     if (this.flashTimer > 0) this.flashTimer -= delta;
@@ -118,6 +156,50 @@ class Enemy {
 
     // Update animations
     this.updateAnimations(delta);
+  }
+
+  /**
+   * Charmed-enemy AI: locate the nearest uncharmed, alive enemy and pursue
+   * or attack it. If no target is found, idle.
+   * @param {number} delta
+   */
+  _updateCharmBehavior(_delta) {
+    if (!this.scene || !this.scene.enemies) {
+      this.body.setVelocityX(0);
+      return;
+    }
+
+    let nearestEnemy = null;
+    let nearestDist = Infinity;
+
+    this.scene.enemies.children.entries.forEach((sprite) => {
+      if (!sprite || !sprite.active) return;
+      const e = typeof sprite.getData === 'function' ? sprite.getData('enemy') : null;
+      if (!e || e === this || e.health <= 0 || e.charmed) return; // skip self and charmed
+      const d = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, sprite.x, sprite.y);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestEnemy = e;
+      }
+    });
+
+    if (!nearestEnemy) {
+      // No valid target — idle.
+      this.body.setVelocityX(0);
+      return;
+    }
+
+    // Chase the target enemy.
+    const dir = nearestEnemy.sprite.x < this.sprite.x ? -1 : 1;
+    this.body.setVelocityX(dir * this.speed);
+    this.facingRight = dir > 0;
+
+    // Attack if in range.
+    if (nearestDist < this.attackRange && this.attackCooldown <= 0) {
+      nearestEnemy.takeDamage(this.damage);
+      this.attackCooldown = this.attackDelay;
+      this.createAttackEffect();
+    }
   }
 
   updateAI(time, _delta) {
@@ -500,6 +582,15 @@ class Enemy {
     this.eyes.forEach((eye) => eye.destroy());
     if (this.electricGlow) this.electricGlow.destroy();
     if (this.shadowAura) this.shadowAura.destroy();
+    // Destroy charm spiral if active.
+    if (this._charmSpiral && typeof this._charmSpiral.destroy === 'function') {
+      try {
+        this._charmSpiral.destroy();
+      } catch (e) {
+        /* noop */
+      }
+      this._charmSpiral = null;
+    }
     if (this.sprite) this.sprite.destroy();
   }
 }
