@@ -44,7 +44,6 @@ class Enemy {
         this.flashTimer = 0;
         this.isFlashing = false;
         
-        console.log(`${enemyType} enemy created at:`, x, y);
     }
 
     createVisualElements() {
@@ -206,7 +205,6 @@ class Enemy {
     }
 
     performAttack(player) {
-        console.log('Titan enemy attacks!');
         
         // Create attack effect
         this.createAttackEffect();
@@ -248,7 +246,6 @@ class Enemy {
             this.stunEndTime = this.scene.time.now + duration;
             this.pendingStunDuration = undefined;
         }
-        console.log(`Enemy state changed to: ${newState}`);
     }
 
     applySonicStun(durationMs) {
@@ -272,7 +269,6 @@ class Enemy {
         this.pendingStunDuration = damageType === 'stomp' ? 100 : 500;
         this.changeState('stunned');
         
-        console.log(`Enemy took ${amount} ${damageType} damage. Health: ${this.health}/${this.maxHealth}`);
         
         // Create damage effect
         this.createDamageEffect(damageType);
@@ -383,7 +379,6 @@ class Enemy {
     }
 
     die(deathType = 'combat') {
-        console.log(`Enemy defeated by ${deathType}!`);
         
         // Award points to player (stomp points are handled in GameScene)
         if (deathType !== 'stomp') {
@@ -672,7 +667,6 @@ window.EnemyFactory = {
         // Override attack to create ground shake effect
         const originalPerformAttack = enemy.performAttack;
         enemy.performAttack = function(player) {
-            console.log('🌍 Earth Titan ground pound!');
             
             // Create ground pound effect
             this.createGroundPoundEffect();
@@ -884,7 +878,6 @@ window.EnemyFactory = {
         
         // Banana throwing method
         enemy.throwBanana = function(player) {
-            console.log('🐒 Monkey Titan throws a banana!');
             
             // Check if BananaManager exists (banana mode active)
             if (scene.bananaManager) {
@@ -988,7 +981,6 @@ window.EnemyFactory = {
             enemy.redLineIndicator.setFillStyle(0xFFE135);
         }
         
-        console.log('🐒 Monkey Titan created at:', x, y);
         
         return enemy;
     }

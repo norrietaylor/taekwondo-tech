@@ -2,7 +2,6 @@
 class Player {
     constructor(scene, x, y) {
         try {
-            console.log('Player constructor started at:', x, y);
             this.scene = scene;
             
             // Check if controls exist - wait a moment for them to initialize if needed
@@ -14,7 +13,6 @@ class Player {
                 this.controlsRetryAttempts = 0;
             } else {
                 this.controls = window.gameInstance.controls;
-                console.log('✅ Controls assigned');
             }
         
         // Create player sprite with outfit colors
@@ -22,17 +20,9 @@ class Player {
         const costume = window.gameInstance?.getDragonCostume(currentOutfit);
         const isLegendary = costume?.isLegendary || false;
         const spriteSize = isLegendary ? { width: 80, height: 120 } : { width: 32, height: 48 }; // 2.5x instead of 5x
-        
-        console.log('🎨 Creating player sprite:', {
-            currentOutfit,
-            isLegendary,
-            costumeName: costume?.name,
-            spriteSize
-        });
-        
+
         // Create main sprite container if legendary, otherwise simple rectangle
         if (isLegendary) {
-            console.log('🌟 Creating LEGENDARY MODE sprite (5x size with all dragon colors)!');
             this.sprite = scene.add.container(x, y);
             this.createLegendarySprite();
             scene.physics.add.existing(this.sprite);
@@ -61,11 +51,6 @@ class Player {
             // Set player depth higher than wings (wings will be at 49)
             this.sprite.setDepth(50);
             
-            console.log('✅ Legendary sprite created! Size:', spriteSize.width, 'x', spriteSize.height);
-            console.log('   Body size:', bodyWidth, 'x', bodyHeight, 'offset:', -bodyWidth/2, -bodyHeight/2);
-            console.log('   Body enabled:', this.body.enable);
-            console.log('   Body type:', this.sprite.body ? this.sprite.body.type : 'NO BODY');
-            console.log('   Gravity enabled:', this.body.allowGravity);
         } else {
             const outfitColor = this.getOutfitColor();
             this.sprite = scene.add.rectangle(x, y, spriteSize.width, spriteSize.height, outfitColor);
@@ -80,7 +65,6 @@ class Player {
             // Set player depth higher than wings (wings will be at 49)
             this.sprite.setDepth(50);
             
-            console.log('✅ Normal sprite created for costume:', costume?.name);
         }
         
         // Player properties
@@ -229,7 +213,6 @@ class Player {
         // Input handling
         this.setupInputHandlers();
         
-            console.log('✅ Player created successfully at:', x, y);
             
         } catch (error) {
             console.error('💥 ERROR in Player constructor:', error.message);
@@ -366,14 +349,12 @@ class Player {
         this.eye2 = this.legendaryEye2;
         this.belt = this.legendaryBelt;
         
-        console.log('🌟 Legendary sprite created with all 5 dragon colors!');
     }
 
     createDragonWings() {
         const costume = this.getDragonCostume();
         const isLegendary = costume.isLegendary;
         
-        console.log('🦅 Creating wings for costume:', costume.name, 'hasWings:', costume.hasWings, 'isLegendary:', isLegendary);
         
         // Wing size multiplier for legendary mode
         const sizeMultiplier = isLegendary ? 5 : 1;
@@ -389,7 +370,6 @@ class Player {
         
         // Only create wing graphics if costume has wings
         if (costume.hasWings) {
-            console.log('🦅 Adding wing segments with colors:', costume.wingColor.toString(16), costume.wingTipColor.toString(16));
             
             // Left wing segments
             const leftWingSegments = [];
@@ -439,11 +419,9 @@ class Player {
             
             this.leftWing.setVisible(true);
             this.rightWing.setVisible(true);
-            console.log('✅ Wings created and visible!' + (isLegendary ? ' (LEGENDARY SIZE)' : ''));
         } else {
             this.leftWing.setVisible(false);
             this.rightWing.setVisible(false);
-            console.log('❌ No wings for this costume');
         }
     }
 
@@ -557,7 +535,6 @@ class Player {
                 this.controlsRetryAttempts++;
                 if (window.gameInstance && window.gameInstance.controls) {
                     this.controls = window.gameInstance.controls;
-                    console.log('✅ Controls assigned on retry', this.controlsRetryAttempts);
                 }
             }
         }
@@ -851,11 +828,9 @@ class Player {
     performStoneBlast() {
         // Check cooldown
         if (this.stoneBlastCooldown > 0) {
-            console.log('🪨 Stone Blast on cooldown!', Math.ceil(this.stoneBlastCooldown / 1000), 's remaining');
             return;
         }
         
-        console.log('🪨💥 STONE DRAGON LASER-TO-BOULDER BLAST!');
         
         // Set cooldown
         this.stoneBlastCooldown = this.stoneBlastCooldownTime;
@@ -998,7 +973,6 @@ class Player {
         const y = laser.y;
         const costume = this.getDragonCostume();
         
-        console.log('🪨➡️💥 Laser transforming into BOULDER at', x, y);
         
         // Destroy the laser
         laser.destroy();
@@ -1074,7 +1048,6 @@ class Player {
     }
 
     createBoulderExplosion(x, y, costume) {
-        console.log('💥🪨 BOULDER EXPLOSION at', x, y);
         
         const explosionRadius = costume?.boulderRadius || 80;
         const explosionDamage = costume?.boulderDamage || 50;
@@ -1264,7 +1237,6 @@ class Player {
     performTeleport() {
         // Check cooldown
         if (this.teleportCooldown > 0) {
-            console.log('🌍 Teleport on cooldown!');
             return;
         }
         
@@ -1293,7 +1265,6 @@ class Player {
         // Create appear effect at destination
         this.createTeleportAppearEffect(targetX, startY);
         
-        console.log(`🌍 Earth Dragon teleported from ${startX} to ${targetX}!`);
     }
 
     createTeleportDisappearEffect(x, y) {
@@ -1441,7 +1412,6 @@ class Player {
     performTeleport() {
         // Check cooldown
         if (this.teleportCooldown > 0) {
-            console.log('🌍 Teleport on cooldown!');
             return;
         }
         
@@ -1470,7 +1440,6 @@ class Player {
         // Create appear effect at destination
         this.createTeleportAppearEffect(targetX, startY);
         
-        console.log(`🌍 Earth Dragon teleported from ${startX} to ${targetX}!`);
     }
 
     createTeleportDisappearEffect(x, y) {
@@ -1622,7 +1591,6 @@ class Player {
     performGrimlockTransform() {
         // Check cooldown
         if (this.grimlockTransformCooldown > 0) {
-            console.log('🦖🤖 Transform on cooldown!', Math.ceil(this.grimlockTransformCooldown / 1000), 's remaining');
             return;
         }
         
@@ -1635,7 +1603,6 @@ class Player {
         // Toggle form
         this.grimlockForm = wasRobot ? 'dinosaur' : 'robot';
         
-        console.log(`🦖🤖 GRIMLOCK ${wasRobot ? 'TRANSFORM TO DINOSAUR!' : 'RETURN TO ROBOT!'}`);
         
         // Create transformation effect
         this.createGrimlockTransformEffect(wasRobot);
@@ -1741,7 +1708,6 @@ class Player {
             this.sprite.setAlpha(0);
         }
         
-        console.log('🤖 Robot visuals created!');
     }
     
     createDinosaurVisuals() {
@@ -1847,7 +1813,6 @@ class Player {
             this.sprite.setAlpha(0);
         }
         
-        console.log('🦖 Dinosaur visuals created!');
     }
     
     updateGrimlockVisualsPosition() {
@@ -3462,11 +3427,9 @@ class Player {
     performDuckLaser() {
         // Check cooldown
         if (this.duckLaserCooldown > 0) {
-            console.log('🦆 Duck Laser on cooldown!', Math.ceil(this.duckLaserCooldown / 1000), 's remaining');
             return;
         }
         
-        console.log('🦆⚡ GRIMLOCK DUCK LASER! Transforming bad titans into ducks!');
         
         // Set cooldown
         this.duckLaserCooldown = this.duckLaserCooldownTime;
@@ -3595,7 +3558,6 @@ class Player {
     }
 
     transformToDuck(enemy, enemySprite) {
-        console.log('🦆 Enemy transformed into a duck!');
         
         // Store original state
         const originalData = {
@@ -3709,7 +3671,6 @@ class Player {
     }
 
     restoreFromDuck(ducked) {
-        console.log('🦆➡️👹 Duck transforming back to titan!');
         
         const { enemy, sprite, duckSprite, originalSpeed, originalDamage } = ducked;
         
@@ -3964,7 +3925,6 @@ class Player {
             this.hasDoubleJumped = false; // Reset double jump when doing regular jump
             this.createJumpEffect();
             
-            console.log('Player jumped!' + (costume.isLegendary ? ' (LEGENDARY BOOST)' : ''));
         }
         // Double jump (when in air and haven't used double jump yet)
         else if (!this.isGrounded && !this.hasDoubleJumped && this.canDoubleJump && this.jumpCooldown <= 0) {
@@ -3973,7 +3933,6 @@ class Player {
             this.jumpCooldown = 100; // Prevent multi-jumping
             this.createDoubleJumpEffect();
             
-            console.log('Player double jumped!' + (costume.isLegendary ? ' (LEGENDARY BOOST)' : ''));
         }
     }
 
@@ -3989,7 +3948,6 @@ class Player {
         // Check for enemies in kick range
         this.checkAttackHit('kick');
         
-        console.log(`Kick attack! Combo: ${this.comboCount}`);
     }
 
     performPunch() {
@@ -4004,7 +3962,6 @@ class Player {
         // Check for enemies in punch range
         this.checkAttackHit('punch');
         
-        console.log(`Punch attack! Combo: ${this.comboCount}`);
     }
 
     shootFireball() {
@@ -4082,7 +4039,6 @@ class Player {
         // Create shooting effect at player
         this.createFireballShootEffect();
         
-        console.log(`🔥 Fireball shot! (${this.fireballShotCount}/${this.fireballMaxShots})`);
     }
 
     shootDragonProjectile() {
@@ -4230,7 +4186,6 @@ class Player {
         // Create shooting effect at player
         this.createDragonShootEffect(costume);
         
-        console.log(`🐉 ${costume.name} projectile shot!`);
     }
 
     shootLaserEyes() {
@@ -4324,7 +4279,6 @@ class Player {
         // Create eye glow effect at player
         this.createLaserEyeEffect(startX, startY, colors);
         
-        console.log(`👁️ ${costume.name} laser eyes!`);
     }
 
     createLaserEyeEffect(x, y, colors) {
@@ -4508,7 +4462,6 @@ class Player {
         // Add banana trail particles
         this.createBananaTrail(container);
         
-        console.log('🍌 Banana projectile created!');
         
         return container;
     }
@@ -4577,7 +4530,6 @@ class Player {
         // Add stone trail particles
         this.createStoneTrail(projectile);
         
-        console.log('🪨 Stone projectile created!');
         
         return projectile;
     }
@@ -4688,7 +4640,6 @@ class Player {
         // Create trailing fire and lightning effect
         this.createGrimlockBreathTrail(container);
         
-        console.log('🦖🔥⚡ GRIMLOCK BREATH! Fire AND Lightning!');
         
         return container;
     }
@@ -4800,7 +4751,6 @@ class Player {
         // Mark this projectile as a portal type so updateFireballs can handle placement
         container.isPortalProjectile = true;
 
-        console.log('🌀 Portal orb launched!');
         return container;
     }
 
@@ -4873,7 +4823,6 @@ class Player {
             this.destroyPortal(portalData);
         });
 
-        console.log(`🌀 Portal placed at (${Math.round(x)}, ${Math.round(y)})! Active portals: ${this.activePortals.length}`);
     }
 
     destroyPortal(portalData) {
@@ -4940,7 +4889,6 @@ class Player {
                     this.scene.cameras.main.flash(200, 0, 229, 255, false); // cyan flash
                 }
 
-                console.log(`🌀 TELEPORTED from portal ${i} to portal ${destIndex}!`);
                 break;
             }
         }
@@ -5186,7 +5134,6 @@ class Player {
             
             if (distance < 35) {
                 // Deflect the banana!
-                console.log(`🍌💥 Banana deflected by ${projectile.type} projectile!`);
                 
                 // Apply strong knockback to banana - check body exists
                 const velocityX = projectile.sprite.body ? projectile.sprite.body.velocity.x : (this.facingRight ? 1 : -1);
@@ -5300,7 +5247,6 @@ class Player {
         
         target.body.setVelocity(knockbackDirection * kb.x, kb.y);
         
-        console.log(`💥 Knockback applied: ${projectile.type} -> ${kb.x}x, ${kb.y}y`);
     }
 
     applyProjectileEffect(projectile, enemySprite, enemyObj) {
@@ -5740,7 +5686,6 @@ class Player {
             });
         }
         
-        console.log('💥 Fireball explosion at', x, y);
     }
 
     createFireballShootEffect() {
@@ -6023,7 +5968,6 @@ class Player {
         // If queue is full, remove oldest (first) item without activation
         if (this.powerUpQueue.length >= this.maxQueueSize) {
             const removed = this.powerUpQueue.shift();
-            console.log(`Power-up queue full! Removed ${removed} without activation`);
             
             // Show feedback to player
             if (this.scene && this.scene.showPowerUpMessage) {
@@ -6033,7 +5977,6 @@ class Player {
         
         // Add new power-up to queue
         this.powerUpQueue.push(powerType);
-        console.log(`Power-up ${powerType} added to queue. Queue:`, this.powerUpQueue);
         
         // Update UI to show queue
         if (this.scene && this.scene.updatePowerUpQueueUI) {
@@ -6056,18 +5999,15 @@ class Player {
     activateNextPowerUp() {
         // Can't activate if already active
         if (this.activePowerUp) {
-            console.log('Power-up already active!');
             return;
         }
         
         // Get next power-up from queue
         if (this.powerUpQueue.length === 0) {
-            console.log('No power-ups in queue!');
             return;
         }
         
         const powerType = this.powerUpQueue.shift();
-        console.log(`Activating power-up: ${powerType}`);
         
         // Activate the power-up
         this.activatePowerUp(powerType, 10000); // 10 seconds duration
@@ -6096,7 +6036,6 @@ class Player {
             this.applyPowerUpEffects(powerType, false);
             this.activePowerUp = null;
             this.activePowerUpTimer = null;
-            console.log(`Power-up ${powerType} expired`);
             
             // Update UI
             if (this.scene && this.scene.updateActivePowerUpUI) {
@@ -6109,7 +6048,6 @@ class Player {
             this.scene.updateActivePowerUpUI(powerType);
         }
         
-        console.log(`Power-up activated: ${powerType} for ${duration}ms`);
     }
 
     applyPowerUpEffects(powerType, activate) {
@@ -6195,7 +6133,6 @@ class Player {
     performFireBreath() {
         if (this.specialAbilityCooldowns.fireBreath > 0) return;
         
-        console.log('🔥 Fire Breath Attack!');
         
         // Set cooldown
         this.specialAbilityCooldowns.fireBreath = 3000; // 3 seconds
@@ -6259,7 +6196,6 @@ class Player {
     performUltraBlast() {
         if (this.specialAbilityCooldowns.ultraBlast > 0) return;
         
-        console.log('💥 Ultra Blast Attack!');
         
         // Set cooldown
         this.specialAbilityCooldowns.ultraBlast = 5000; // 5 seconds
@@ -6315,7 +6251,6 @@ class Player {
     shootPresentBomb() {
         if (this.specialAbilityCooldowns.presentBomb > 0) return;
         
-        console.log('🎁 Present Bomb launched!');
         
         // Set cooldown (faster than other special abilities)
         this.specialAbilityCooldowns.presentBomb = 800; // 0.8 seconds between presents
@@ -6410,7 +6345,6 @@ class Player {
     transformPresentToBomb(presentData, immediate = false) {
         if (!presentData.container || !presentData.container.active) return;
         
-        console.log('🎁➡️💣 Present opening into bomb!');
         
         const container = presentData.container;
         const x = container.x;
@@ -6519,7 +6453,6 @@ class Player {
     explodeBomb(presentData) {
         if (!presentData.bombSprite || !presentData.bombSprite.active) return;
         
-        console.log('💥 BOOM! Present bomb explodes!');
         
         const x = presentData.bombSprite.x;
         const y = presentData.bombSprite.y;
@@ -6667,7 +6600,6 @@ class Player {
     }
     
     spawnDragonAlly(x, y) {
-        console.log('🐉 Friendly Dragon Ally spawned!');
         
         // Create dragon ally container
         const dragonAlly = this.scene.add.container(x, y - 20);
@@ -6934,7 +6866,6 @@ class Player {
     dragonAllyAttack(allyData, enemy) {
         if (!allyData.container || !allyData.container.active) return;
         
-        console.log('🐉🔥 Dragon ally attacks!');
         
         // Set cooldown
         allyData.attackCooldown = 1200; // 1.2 seconds between attacks
@@ -7073,7 +7004,6 @@ class Player {
     despawnDragonAlly(allyData) {
         if (!allyData.container || !allyData.container.active) return;
         
-        console.log('🐉✨ Dragon ally departing!');
         
         const dragon = allyData.container;
         
@@ -7181,7 +7111,6 @@ class Player {
     takeDamage(amount) {
         // Check invincibility
         if (this.powerUps.invincibility) {
-            console.log('Damage blocked by invincibility!');
             return;
         }
         
@@ -7214,7 +7143,6 @@ class Player {
             }
         }, 100);
         
-        console.log(`Player took ${amount} damage. Health: ${this.health}/${this.maxHealth}`);
         
         if (this.health <= 0) {
             this.die();
@@ -7250,11 +7178,9 @@ class Player {
             }
         }, 100);
         
-        console.log(`Player healed ${amount}. Health: ${this.health}/${this.maxHealth}`);
     }
 
     die() {
-        console.log('Player died!');
         // Reset player health and position instead of restarting entire scene
         this.health = this.maxHealth;
         this.sprite.setPosition(100, this.scene.levelHeight - 200); // Reset to start position
@@ -7288,7 +7214,6 @@ class Player {
             this.scene.damageTaken += 50; // Death penalty
         }
         
-        console.log('Player respawned at start position');
     }
 
     // Utility methods
@@ -7320,7 +7245,6 @@ class Player {
         
         // If switching between legendary and normal, need to recreate entire sprite
         if (wasLegendary !== isLegendary) {
-            console.log('🔄 Switching sprite mode, scene restart required');
             // Store the current outfit change was made
             this.isLegendaryMode = isLegendary;
             // Restart the current scene to recreate player with new sprite type

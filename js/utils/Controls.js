@@ -48,17 +48,7 @@ class Controls {
         
         // Fallback for small screens (phones in landscape, small tablets)
         const isSmallScreen = window.innerWidth <= 768;
-        
-        console.log('Mobile detection details:', {
-            isMobileDevice,
-            isTouchDevice,
-            hasCoarsePointer,
-            isPadInDesktopMode,
-            isSmallScreen,
-            userAgent: navigator.userAgent,
-            maxTouchPoints: navigator.maxTouchPoints
-        });
-        
+
         // Mobile if: explicit mobile device OR has touch capability OR iPad in desktop mode
         return isMobileDevice || isTouchDevice || hasCoarsePointer || isPadInDesktopMode;
     }
@@ -73,20 +63,13 @@ class Controls {
         if (this.isMobile || forceTouch) {
             if (mobileControls) {
                 mobileControls.style.display = 'block';
-                console.log('Mobile controls enabled:', {
-                    reason: this.isMobile ? 'mobile detected' : 'force enabled',
-                    elementFound: true
-                });
             } else {
                 console.warn('Mobile controls element not found - looking for #mobileControls');
             }
         } else {
-            console.log('Mobile not detected - controls will remain hidden');
-            console.log('HINT: Add ?touch=true to URL or run localStorage.setItem("forceMobileControls", "true") to force enable');
             
             // Still show controls if we detect touch capability but failed mobile detection
             if (('ontouchstart' in window || navigator.maxTouchPoints > 0) && mobileControls) {
-                console.log('Touch capability detected - enabling controls anyway as fallback');
                 mobileControls.style.display = 'block';
                 this.isMobile = true; // Force mobile mode
             }
@@ -145,7 +128,6 @@ class Controls {
 
         // Joystick touch events with iPad-specific fixes
         joystick.addEventListener('touchstart', (e) => {
-            console.log('Joystick touchstart detected:', e.touches.length, 'touches');
             e.preventDefault();
             e.stopPropagation();
             this.mobile.joystick.active = true;
@@ -154,7 +136,6 @@ class Controls {
 
         joystick.addEventListener('touchmove', (e) => {
             if (this.mobile.joystick.active) {
-                console.log('Joystick touchmove active');
                 e.preventDefault();
                 e.stopPropagation();
                 this.handleJoystickMove(e.touches[0]);
@@ -162,7 +143,6 @@ class Controls {
         }, { passive: false });
 
         joystick.addEventListener('touchend', (e) => {
-            console.log('Joystick touchend detected');
             e.preventDefault();
             e.stopPropagation();
             this.mobile.joystick.active = false;
@@ -174,7 +154,6 @@ class Controls {
         // Fallback pointer events for iPad compatibility
         joystick.addEventListener('pointerdown', (e) => {
             if (e.pointerType === 'touch') {
-                console.log('Joystick pointerdown fallback activated');
                 e.preventDefault();
                 this.mobile.joystick.active = true;
                 this.handleJoystickMove(e);
@@ -190,7 +169,6 @@ class Controls {
 
         joystick.addEventListener('pointerup', (e) => {
             if (e.pointerType === 'touch') {
-                console.log('Joystick pointerup fallback activated');
                 e.preventDefault();
                 this.mobile.joystick.active = false;
                 this.mobile.joystick.x = 0;
@@ -202,13 +180,11 @@ class Controls {
         // Action button events with iPad-specific fixes
         if (jumpBtn) {
             jumpBtn.addEventListener('touchstart', (e) => {
-                console.log('Jump button touchstart');
                 e.preventDefault();
                 e.stopPropagation();
                 this.mobile.buttons.jump = true;
             }, { passive: false });
             jumpBtn.addEventListener('touchend', (e) => {
-                console.log('Jump button touchend');
                 e.preventDefault();
                 e.stopPropagation();
                 this.mobile.buttons.jump = false;
@@ -217,14 +193,12 @@ class Controls {
             // Pointer event fallbacks
             jumpBtn.addEventListener('pointerdown', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Jump button pointerdown fallback');
                     e.preventDefault();
                     this.mobile.buttons.jump = true;
                 }
             });
             jumpBtn.addEventListener('pointerup', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Jump button pointerup fallback');
                     e.preventDefault();
                     this.mobile.buttons.jump = false;
                 }
@@ -233,13 +207,11 @@ class Controls {
 
         if (kickBtn) {
             kickBtn.addEventListener('touchstart', (e) => {
-                console.log('Kick button touchstart');
                 e.preventDefault();
                 e.stopPropagation();
                 this.mobile.buttons.kick = true;
             }, { passive: false });
             kickBtn.addEventListener('touchend', (e) => {
-                console.log('Kick button touchend');
                 e.preventDefault();
                 e.stopPropagation();
                 this.mobile.buttons.kick = false;
@@ -248,14 +220,12 @@ class Controls {
             // Pointer event fallbacks
             kickBtn.addEventListener('pointerdown', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Kick button pointerdown fallback');
                     e.preventDefault();
                     this.mobile.buttons.kick = true;
                 }
             });
             kickBtn.addEventListener('pointerup', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Kick button pointerup fallback');
                     e.preventDefault();
                     this.mobile.buttons.kick = false;
                 }
@@ -264,7 +234,6 @@ class Controls {
 
         if (punchBtn) {
             punchBtn.addEventListener('touchstart', (e) => {
-                console.log('Punch button touchstart');
                 e.preventDefault();
                 e.stopPropagation();
                 this.mobile.buttons.punch = true;
@@ -278,14 +247,12 @@ class Controls {
             // Pointer event fallbacks
             punchBtn.addEventListener('pointerdown', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Punch button pointerdown fallback');
                     e.preventDefault();
                     this.mobile.buttons.punch = true;
                 }
             });
             punchBtn.addEventListener('pointerup', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Punch button pointerup fallback');
                     e.preventDefault();
                     this.mobile.buttons.punch = false;
                 }
@@ -294,13 +261,11 @@ class Controls {
 
         if (activateBtn) {
             activateBtn.addEventListener('touchstart', (e) => {
-                console.log('Activate button touchstart');
                 e.preventDefault();
                 e.stopPropagation();
                 this.mobile.buttons.activate = true;
             }, { passive: false });
             activateBtn.addEventListener('touchend', (e) => {
-                console.log('Activate button touchend');
                 e.preventDefault();
                 e.stopPropagation();
                 this.mobile.buttons.activate = false;
@@ -309,14 +274,12 @@ class Controls {
             // Pointer event fallbacks
             activateBtn.addEventListener('pointerdown', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Activate button pointerdown fallback');
                     e.preventDefault();
                     this.mobile.buttons.activate = true;
                 }
             });
             activateBtn.addEventListener('pointerup', (e) => {
                 if (e.pointerType === 'touch') {
-                    console.log('Activate button pointerup fallback');
                     e.preventDefault();
                     this.mobile.buttons.activate = false;
                 }
@@ -335,7 +298,6 @@ class Controls {
         const deltaX = clientX - this.mobile.joystick.centerX;
         const deltaY = clientY - this.mobile.joystick.centerY;
         
-        console.log('Joystick move:', { clientX, clientY, centerX: this.mobile.joystick.centerX, centerY: this.mobile.joystick.centerY, deltaX, deltaY });
         
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         const maxDistance = this.mobile.joystick.radius;
@@ -355,7 +317,6 @@ class Controls {
             joystickKnob.style.transform = `translate(${constrainedX - 20}px, ${constrainedY - 20}px)`;
         }
         
-        console.log('Joystick result:', { x: this.mobile.joystick.x, y: this.mobile.joystick.y, distance });
     }
 
     // Input query methods

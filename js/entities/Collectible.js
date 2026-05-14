@@ -33,7 +33,6 @@ class Collectible {
         // Re-enable animations but ONLY safe ones (no position changes)
         this.startAnimations();
         
-        console.log(`Collectible created: ${type} (${rarity}) at`, x, y);
     }
 
     createSprite(x, y) {
@@ -242,7 +241,6 @@ class Collectible {
         // Increment the GameScene counter
         if (this.scene && this.scene.robotPartsCollected !== undefined) {
             this.scene.robotPartsCollected++;
-            console.log(`Robot parts collected: ${this.scene.robotPartsCollected}/${this.scene.totalRobotParts}`);
             
             // Update progress (no longer auto-completes level)
             this.scene.checkLevelComplete();
@@ -251,7 +249,6 @@ class Collectible {
         // Create special "stowing" animation for robot parts
         this.createInventoryStowAnimation();
         
-        console.log(`Collected ${this.rarity} ${partType} part!`);
     }
 
     collectCoin() {
@@ -262,10 +259,8 @@ class Collectible {
         // Increment the GameScene counter
         if (this.scene && this.scene.coinsCollected !== undefined) {
             this.scene.coinsCollected++;
-            console.log(`Coins collected: ${this.scene.coinsCollected}/${this.scene.totalCoins}`);
         }
         
-        console.log(`Collected coin! +${coinValue} points`);
     }
 
     collectPowerUp(player) {
@@ -278,7 +273,6 @@ class Collectible {
         // Award score for collecting power-up
         window.gameInstance.addScore(25);
         
-        console.log(`Power-up collected and queued: ${powerUpType}`);
     }
 
     createCollectionEffect() {
@@ -368,7 +362,6 @@ class Collectible {
         // Placeholder for sound effects
         if (window.gameInstance.gameData.settings.soundEnabled) {
             // Different sounds for different types could be implemented here
-            console.log(`Playing ${this.type} collection sound`);
         }
     }
 

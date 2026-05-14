@@ -1,7 +1,6 @@
 // 🍌 Banana Survival Mode - Endless dodging challenge
 // Dodge bananas thrown by Monkey Titans, survive as long as possible!
 
-console.log('🍌 BananaSurvivalScene.js loading...');
 
 class BananaSurvivalScene extends Phaser.Scene {
     constructor() {
@@ -37,7 +36,6 @@ class BananaSurvivalScene extends Phaser.Scene {
 
     // Reset all game state for a fresh start
     resetGameState() {
-        console.log('🍌 Resetting Banana Survival state...');
         
         // Reset game flags
         this.gameStarted = false;
@@ -72,12 +70,10 @@ class BananaSurvivalScene extends Phaser.Scene {
         this.platforms = null;
         this.enemies = null;
         
-        console.log('🍌 State reset complete');
     }
 
     create() {
         try {
-            console.log('🍌 BananaSurvivalScene create() started');
             
             // Reset all stats and state for fresh start
             this.resetGameState();
@@ -120,7 +116,6 @@ class BananaSurvivalScene extends Phaser.Scene {
             // Keyboard shortcuts
             this.setupKeyboardShortcuts();
             
-            console.log('🍌 BananaSurvivalScene created successfully!');
             
         } catch (error) {
             console.error('💥 ERROR in BananaSurvivalScene.create():', error.message);
@@ -229,7 +224,6 @@ class BananaSurvivalScene extends Phaser.Scene {
             originalPerformPunch();
         };
         
-        console.log('🍌 Player spawned for banana survival');
     }
 
     createMonkeyTitans() {
@@ -251,7 +245,6 @@ class BananaSurvivalScene extends Phaser.Scene {
         monkey.sprite.setData('enemy', monkey);
         this.enemies.add(monkey.sprite);
         
-        console.log(`🐒 Monkey Titan spawned at ${x}, ${y}`);
     }
 
     scheduleMonkeySpawn() {
@@ -408,7 +401,6 @@ class BananaSurvivalScene extends Phaser.Scene {
         this.survivalTime = 0;
         this.gameOver = false;
         
-        console.log('🍌 Banana Survival started!');
     }
 
     // Called when player slips on banana
@@ -430,7 +422,6 @@ class BananaSurvivalScene extends Phaser.Scene {
 
     // Called when food type changes (power-up collected)
     onFoodTypeChange(newFoodType) {
-        console.log(`🍽️ Food type changed to: ${newFoodType}`);
         
         // The BananaManager handles the UI indicator
         // We can add additional effects here if needed
@@ -646,4 +637,3 @@ class BananaSurvivalScene extends Phaser.Scene {
     }
 }
 
-console.log('✅ BananaSurvivalScene class defined:', typeof BananaSurvivalScene);

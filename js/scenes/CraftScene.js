@@ -24,12 +24,10 @@ class CraftScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('CraftScene created');
         
         // Check for new dragon costume unlocks when entering CraftScene
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
         if (newUnlocks.length > 0) {
-            console.log('🐉 New costumes unlocked on CraftScene entry:', newUnlocks);
         }
         
         // Set up responsive layout now that cameras are available
@@ -62,7 +60,6 @@ class CraftScene extends Phaser.Scene {
     
     handleResize(gameSize) {
         // When entering fullscreen or resizing, ensure input hit areas are updated
-        console.log('CraftScene resize detected:', gameSize.width, 'x', gameSize.height);
         
         // Force input plugin to recalculate hit areas
         if (this.input && this.input.updateBounds) {
@@ -174,14 +171,12 @@ class CraftScene extends Phaser.Scene {
             height: screenHeight - 200 
         };
         
-        console.log(`📐 Layout setup: Screen ${screenWidth}x${screenHeight}, Inventory ${this.inventoryArea.width}x${this.inventoryArea.height}`);
     }
 
     createInventory() {
         let yOffset = 0;
         const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];
         
-        console.log(`📦 Creating inventory with area: ${this.inventoryArea.width}x${this.inventoryArea.height}`);
         
         partTypes.forEach(partType => {
             const parts = this.robotParts[partType] || [];
@@ -239,7 +234,6 @@ class CraftScene extends Phaser.Scene {
                 }
             ).setOrigin(0.5);
         } else {
-            console.log(`✅ Created inventory with ${this.partsInventory.length} parts`);
         }
         
         // Add scroll hint if inventory is tall
@@ -319,7 +313,6 @@ class CraftScene extends Phaser.Scene {
         // Add part to selected robot build
         this.selectedParts[partType] = part;
         
-        console.log(`Selected ${part.rarity} ${partType} part`);
         
         // Update robot preview
         this.updateRobotPreview();
@@ -470,11 +463,9 @@ class CraftScene extends Phaser.Scene {
         const allPartsSelected = Object.values(this.selectedParts).every(part => part !== null);
         
         if (!allPartsSelected) {
-            console.log('Cannot build robot - missing parts');
             return;
         }
         
-        console.log('Building super robot!');
         
         // Create completion effect
         this.createCompletionEffect();
@@ -641,7 +632,6 @@ class CraftScene extends Phaser.Scene {
 
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
         const dragonCostumes = ['default', 'bmwBouncer', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
-        console.log('🐉 Loading dragon costumes:', dragonCostumes);
 
         // Calculate responsive overlay height and items per page
         const screenHeight = this.cameras.main.height;
@@ -1388,7 +1378,6 @@ class CraftScene extends Phaser.Scene {
     }
 
     startPacManMode() {
-        console.log('🟡 Starting Pac-Man Mode...');
 
         if (window.gameInstance && window.gameInstance.requestFullscreen) {
             window.gameInstance.requestFullscreen();
@@ -1406,7 +1395,6 @@ class CraftScene extends Phaser.Scene {
     }
 
     startBananaSurvival() {
-        console.log('🍌 Starting Banana Survival Mode...');
         
         // Request fullscreen
         if (window.gameInstance && window.gameInstance.requestFullscreen) {

@@ -95,7 +95,6 @@ class Banana {
         // Visual effects
         this.createTrailEffect();
         
-        console.log('🍌 Banana spawned at:', x, y);
     }
 
     createFoodSprite(x, y) {
@@ -281,7 +280,6 @@ class Banana {
     onPlayerContact(player) {
         if (this.destroyed || this.isDeflected) return;
         
-        console.log('🍌 Player slipped on banana!');
         
         // Make player slip
         this.applySlipEffect(player);
@@ -321,7 +319,6 @@ class Banana {
             if (player && !player.destroyed) {
                 player.isSlipping = false;
                 player.canJump = true;
-                console.log('🍌 Player recovered from slip');
             }
         });
     }
@@ -396,7 +393,6 @@ class Banana {
         
         this.isDeflected = true;
         
-        console.log(`🍌 Banana deflected by ${attackType}!`);
         
         // Reverse direction with power
         const deflectPower = attackType === 'kick' ? 400 : 300;
@@ -556,7 +552,6 @@ class Banana {
                                 window.gameInstance.addScore(50);
                             }
                             
-                            console.log('🍌 Banana hit enemy!');
                         }
                     }
                 }
@@ -578,7 +573,6 @@ class Banana {
             this.sprite.destroy();
         }
         
-        console.log('🍌 Banana destroyed');
     }
 }
 
@@ -760,7 +754,6 @@ class BananaManager {
         this.scheduleNextSpawn();
         this.scheduleNextPowerUp();
         
-        console.log('🍌 Banana Manager started!');
     }
 
     // Schedule next power-up spawn
@@ -802,7 +795,6 @@ class BananaManager {
             );
         }
         
-        console.log(`🎁 Power-up spawned: ${foodType}`);
     }
 
     // Player collected a power-up
@@ -823,7 +815,6 @@ class BananaManager {
 
     // Change the current food type
     changeFoodType(newType) {
-        console.log(`🍌➡️${FOOD_TYPES[newType].emoji} Food type changed to: ${newType}`);
         
         // Clear existing timer
         if (this.foodTypeTimer) {
@@ -897,7 +888,6 @@ class BananaManager {
 
     // Revert to banana after power-up expires
     revertTobanana() {
-        console.log('🍌 Reverted to banana mode');
         this.currentFoodType = 'banana';
         
         if (this.foodIndicator) {
@@ -935,7 +925,6 @@ class BananaManager {
 
     // Reset all manager stats
     reset() {
-        console.log('🍌 Resetting Banana Manager stats...');
         
         // Reset spawn settings
         this.currentSpawnRate = this.baseSpawnRate;
@@ -1031,7 +1020,6 @@ class BananaManager {
         // Reset food type
         this.currentFoodType = 'banana';
         
-        console.log('🍌 Banana Manager stopped');
     }
 
     scheduleNextSpawn() {
@@ -1070,7 +1058,6 @@ class BananaManager {
         );
         
         const foodConfig = FOOD_TYPES[this.currentFoodType];
-        console.log(`${foodConfig.emoji} Spawned ${foodConfig.name} #${this.bananasSpawned} (next in ${this.currentSpawnRate}ms)`);
     }
 
     // Spawn banana from a specific position (for Monkey Titan throws)

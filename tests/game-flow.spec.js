@@ -430,7 +430,7 @@ test.describe('Taekwondo Robot Builder Game', () => {
     const performanceMetrics = await page.evaluate(() => {
       return new Promise((resolve) => {
         let frameCount = 0;
-        let startTime = performance.now();
+        const startTime = performance.now();
         
         function countFrames() {
           frameCount++;

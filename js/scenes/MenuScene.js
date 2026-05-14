@@ -14,8 +14,6 @@ class MenuScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('MenuScene created');
-        console.log('window.gameInstance exists:', !!window.gameInstance);
         
         // Create animated background
         this.createBackground();
@@ -35,7 +33,6 @@ class MenuScene extends Phaser.Scene {
         // Start background animations
         this.startAnimations();
         
-        console.log('MenuScene setup complete');
     }
 
     createBackground() {
@@ -131,13 +128,11 @@ class MenuScene extends Phaser.Scene {
         
         // Check if save data exists
         const hasSaveData = window.gameInstance ? window.gameInstance.saveSystem.exists() : false;
-        console.log('Save data exists:', hasSaveData);
         
         let displayIndex = 0;
         this.menuOptions.forEach((option, index) => {
             // Skip continue option if no save data
             if (option === 'Continue' && !hasSaveData) {
-                console.log('Skipping Continue option - no save data');
                 return;
             }
             
@@ -264,12 +259,9 @@ class MenuScene extends Phaser.Scene {
     }
 
     selectMenuItem(option) {
-        console.log('Selected menu option:', option);
-        console.log('window.gameInstance available:', !!window.gameInstance);
         
         switch (option) {
             case 'Start Game':
-                console.log('Starting new game...');
                 this.startNewGame();
                 break;
                 
@@ -423,7 +415,6 @@ class MenuScene extends Phaser.Scene {
     }
 
     startBananaSurvival() {
-        console.log('🍌 Starting Banana Survival Mode...');
         
         // Request fullscreen
         if (window.gameInstance && window.gameInstance.requestFullscreen) {
@@ -440,7 +431,6 @@ class MenuScene extends Phaser.Scene {
 
     startNewGame() {
         try {
-            console.log('startNewGame() called');
             
             // Check if game instance exists
             if (!window.gameInstance) {
@@ -449,7 +439,6 @@ class MenuScene extends Phaser.Scene {
             }
             
             // Reset game data for new game
-            console.log('Resetting game data...');
             window.gameInstance.resetGame();
             
             // Request fullscreen
@@ -458,20 +447,16 @@ class MenuScene extends Phaser.Scene {
             }
             
             // Add transition effect
-            console.log('Starting camera fade out...');
             this.cameras.main.fadeOut(500, 0, 0, 0);
             
             this.cameras.main.once('camerafadeoutcomplete', () => {
-                console.log('Camera fade complete, starting GameScene...');
                 try {
                     this.scene.start('GameScene');
-                    console.log('GameScene started successfully');
                 } catch (error) {
                     console.error('Failed to start GameScene:', error);
                 }
             });
             
-            console.log('New game initialization complete');
         } catch (error) {
             console.error('Error in startNewGame():', error);
             console.error('Stack trace:', error.stack);
@@ -500,7 +485,6 @@ class MenuScene extends Phaser.Scene {
             }
         });
         
-        console.log('Continuing game...');
     }
 
     showSettings() {
@@ -646,16 +630,13 @@ Made with ❤️ in 2025`,
         
         // iOS needs special handling for touch events
         const handleFullscreenToggle = () => {
-            console.log('Fullscreen button clicked/tapped');
             if (window.gameInstance) {
-                console.log('Toggling fullscreen...');
                 window.gameInstance.toggleFullscreen();
                 
                 // Visual feedback on iOS
                 if (isIOS) {
                     this.cameras.main.flash(200, 255, 255, 255, false, (camera, progress) => {
                         if (progress === 1) {
-                            console.log('iOS fullscreen mode toggled');
                         }
                     });
                 }
@@ -666,7 +647,6 @@ Made with ❤️ in 2025`,
         
         // Add visual press effect
         this.fullscreenButton.on('pointerdown', function() {
-            console.log('Fullscreen button pointerdown detected');
             this.setScale(0.9);
             this.setTint(0xaaaaaa);
         });
