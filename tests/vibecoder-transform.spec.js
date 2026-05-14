@@ -258,8 +258,6 @@ test.describe('VibeCoder costume + robot<->computer transform', () => {
     // Capture any text objects added to the scene after toggle.
     const result = await page.evaluate(async () => {
       const gs = window.gameInstance.game.scene.getScene('GameScene');
-      // Collect existing text object count.
-      const before = gs.children.list.filter((obj) => obj.type === 'Text').length;
 
       // Toggle: robot -> computer.
       gs.player.transformer.tryToggle();
