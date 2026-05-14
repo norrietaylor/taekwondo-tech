@@ -908,7 +908,7 @@ class Player {
         
         // Set up collision with enemies for initial laser damage
         if (this.scene.enemies) {
-            const laserOverlap = this.scene.physics.add.overlap(
+            const _laserOverlap = this.scene.physics.add.overlap(
                 laser,
                 this.scene.enemies,
                 (laserSprite, enemySprite) => {
@@ -1268,8 +1268,6 @@ class Player {
     }
 
     createTeleportDisappearEffect(x, y) {
-        const costume = this.getDragonCostume();
-        
         // Create earth/rock particles bursting outward
         for (let i = 0; i < 12; i++) {
             const angle = (Math.PI * 2 * i) / 12;
@@ -1315,183 +1313,6 @@ class Player {
     }
 
     createTeleportAppearEffect(x, y) {
-        const costume = this.getDragonCostume();
-        
-        // Create earth/rock particles converging inward
-        for (let i = 0; i < 12; i++) {
-            const angle = (Math.PI * 2 * i) / 12;
-            const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
-            const startRadius = 60;
-            const particle = this.scene.add.circle(
-                x + Math.cos(angle) * startRadius,
-                y + Math.sin(angle) * startRadius,
-                6 + Math.random() * 4,
-                colors[Math.floor(Math.random() * colors.length)],
-                0.9
-            );
-            particle.setDepth(100);
-            
-            this.scene.tweens.add({
-                targets: particle,
-                x: x,
-                y: y,
-                alpha: 0,
-                scale: 0.5,
-                duration: 300,
-                ease: 'Power2',
-                onComplete: () => particle.destroy()
-            });
-        }
-        
-        // Create ground burst effect
-        const groundBurst = this.scene.add.circle(x, y + 30, 10, 0x654321, 0.8);
-        groundBurst.setDepth(98);
-        
-        this.scene.tweens.add({
-            targets: groundBurst,
-            scaleX: 4,
-            scaleY: 1,
-            alpha: 0,
-            duration: 400,
-            onComplete: () => groundBurst.destroy()
-        });
-        
-        // Create rising dust particles
-        for (let i = 0; i < 6; i++) {
-            const dust = this.scene.add.circle(
-                x + (Math.random() - 0.5) * 40,
-                y + 20,
-                4 + Math.random() * 4,
-                0xa0522d,
-                0.6
-            );
-            dust.setDepth(97);
-            
-            this.scene.tweens.add({
-                targets: dust,
-                y: y - 40 - Math.random() * 30,
-                alpha: 0,
-                duration: 500 + Math.random() * 200,
-                delay: i * 30,
-                onComplete: () => dust.destroy()
-            });
-        }
-        
-        // Flash effect
-        const flash = this.scene.add.circle(x, y, 40, 0x228b22, 0.5);
-        flash.setDepth(101);
-        
-        this.scene.tweens.add({
-            targets: flash,
-            scaleX: 1.5,
-            scaleY: 1.5,
-            alpha: 0,
-            duration: 200,
-            onComplete: () => flash.destroy()
-        });
-    }
-
-    handleTeleport() {
-        // Safety check for controls
-        if (!this.controls) {
-            return;
-        }
-        
-        // Check if player is wearing Earth Dragon costume
-        const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-        if (currentOutfit !== 'earth') {
-            return; // Only Earth Dragon can teleport
-        }
-        
-        // Check for teleport key press (edge detection - only on press, not hold)
-        if (this.controls.isTeleport() && !this.previousInputs.teleport) {
-            this.performTeleport();
-        }
-    }
-
-    performTeleport() {
-        // Check cooldown
-        if (this.teleportCooldown > 0) {
-            return;
-        }
-        
-        // Set cooldown
-        this.teleportCooldown = this.teleportCooldownTime;
-        
-        // Calculate teleport destination
-        const startX = this.sprite.x;
-        const startY = this.sprite.y;
-        const direction = this.facingRight ? 1 : -1;
-        let targetX = startX + (this.teleportDistance * direction);
-        
-        // Clamp to world bounds
-        const worldWidth = this.scene.levelWidth || 3000;
-        targetX = Math.max(40, Math.min(worldWidth - 40, targetX));
-        
-        // Create disappear effect at start position
-        this.createTeleportDisappearEffect(startX, startY);
-        
-        // Teleport the player
-        this.sprite.x = targetX;
-        
-        // Reset velocity on teleport for clean landing
-        this.body.setVelocityX(0);
-        
-        // Create appear effect at destination
-        this.createTeleportAppearEffect(targetX, startY);
-        
-    }
-
-    createTeleportDisappearEffect(x, y) {
-        const costume = this.getDragonCostume();
-        
-        // Create earth/rock particles bursting outward
-        for (let i = 0; i < 12; i++) {
-            const angle = (Math.PI * 2 * i) / 12;
-            const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
-            const particle = this.scene.add.circle(
-                x + Math.cos(angle) * 10,
-                y + Math.sin(angle) * 10,
-                6 + Math.random() * 4,
-                colors[Math.floor(Math.random() * colors.length)],
-                0.9
-            );
-            particle.setDepth(100);
-            
-            this.scene.tweens.add({
-                targets: particle,
-                x: x + Math.cos(angle) * 60,
-                y: y + Math.sin(angle) * 60,
-                alpha: 0,
-                scale: 0,
-                duration: 400,
-                ease: 'Power2',
-                onComplete: () => particle.destroy()
-            });
-        }
-        
-        // Create dust cloud at origin
-        const dustCloud = this.scene.add.circle(x, y, 30, 0xa0522d, 0.6);
-        dustCloud.setDepth(99);
-        
-        this.scene.tweens.add({
-            targets: dustCloud,
-            scaleX: 2,
-            scaleY: 2,
-            alpha: 0,
-            duration: 300,
-            onComplete: () => dustCloud.destroy()
-        });
-        
-        // Screen shake for dramatic effect
-        if (this.scene.cameras && this.scene.cameras.main) {
-            this.scene.cameras.main.shake(100, 0.01);
-        }
-    }
-
-    createTeleportAppearEffect(x, y) {
-        const costume = this.getDragonCostume();
-        
         // Create earth/rock particles converging inward
         for (let i = 0; i < 12; i++) {
             const angle = (Math.PI * 2 * i) / 12;
@@ -3650,7 +3471,7 @@ class Player {
         });
     }
 
-    updateDuckedEnemies(delta) {
+    updateDuckedEnemies(_delta) {
         const now = Date.now();
         
         // Check each ducked enemy for restoration
@@ -3872,7 +3693,7 @@ class Player {
         });
     }
 
-    updateDoggedEnemies(delta) {
+    updateDoggedEnemies(_delta) {
         const now = Date.now();
         for (let i = this.doggedEnemies.length - 1; i >= 0; i--) {
             const dogged = this.doggedEnemies[i];
@@ -4072,7 +3893,6 @@ class Player {
 
         // Create projectile based on dragon type
         let projectile;
-        let glow;
 
         switch (projectileType) {
             case 'fireball':
@@ -4144,7 +3964,7 @@ class Player {
         }
 
         // Create glow effect
-        glow = this.scene.add.circle(startX, startY, costume.projectileSize * 1.5, projectileColor, 0.3);
+        const glow = this.scene.add.circle(startX, startY, costume.projectileSize * 1.5, projectileColor, 0.3);
         glow.setDepth(99);
         this.scene.physics.add.existing(glow);
         glow.body.setVelocityX(velocityX);
@@ -5099,7 +4919,7 @@ class Player {
         }
     }
 
-    checkProjectileBananaCollision(projectile, projectileIndex) {
+    checkProjectileBananaCollision(projectile, _projectileIndex) {
         if (!projectile || !projectile.sprite || projectile.sprite.destroyed) return;
         if (!projectile.sprite.body) return; // Body might be destroyed
         
@@ -5334,7 +5154,7 @@ class Player {
         });
     }
 
-    applyCaptureNetAoE(projectile, hitEnemySprite, hitEnemyObj) {
+    applyCaptureNetAoE(projectile, hitEnemySprite, _hitEnemyObj) {
         const radius = projectile.netRadius || 70;
         const aoeDamage = Math.round(projectile.damage * 0.7);
         // Expanding net visual
@@ -5713,8 +5533,7 @@ class Player {
 
     checkAttackHit(attackType) {
         const range = attackType === 'kick' ? this.kickRange : this.punchRange;
-        const damage = attackType === 'kick' ? 30 : 20;
-        
+
         // Get attack position
         const attackX = this.sprite.x + (this.facingRight ? range : -range);
         const attackY = this.sprite.y;
@@ -6322,7 +6141,7 @@ class Player {
         
         // Also trigger bomb if it hits an enemy directly
         if (this.scene.enemies) {
-            this.scene.physics.add.overlap(presentContainer, this.scene.enemies, (present, enemy) => {
+            this.scene.physics.add.overlap(presentContainer, this.scene.enemies, (_present, _enemy) => {
                 if (!presentData.hasLanded && presentData.isPresent) {
                     presentData.hasLanded = true;
                     this.transformPresentToBomb(presentData, true); // Immediate explosion
@@ -6954,7 +6773,6 @@ class Player {
         });
         
         // Dragon attack animation - quick lunge
-        const originalX = dragon.x;
         this.scene.tweens.add({
             targets: dragon,
             x: dragon.x + (allyData.facingRight ? 15 : -15),
@@ -7249,7 +7067,6 @@ class Player {
             this.isLegendaryMode = isLegendary;
             // Restart the current scene to recreate player with new sprite type
             if (this.scene && this.scene.scene) {
-                const currentScene = this.scene.scene.key;
                 this.scene.scene.restart();
             }
             return;
