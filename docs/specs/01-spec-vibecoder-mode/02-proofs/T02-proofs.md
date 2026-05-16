@@ -32,39 +32,39 @@ velocity that movement input may have applied.
 
 ## Requirements coverage
 
-| Req   | Status | Evidence |
-|-------|--------|----------|
-| R2.1  | PASS   | `window.gameInstance.dragonCostumes.vibeCoder` has `name:"VibeCoder"`, `canTransform:true`, `transformKey:"V"`, `currentForm:"robot"`, plus all required cosmetic fields. |
-| R2.2  | PASS   | `checkDragonUnlocks()` with `currentLevel=2` → `outfits.unlocked.includes('vibeCoder')` = true. |
-| R2.2b | PASS   | `saveGameData()` then reading `taekwondo-robot-builder-save` → `data.outfits.unlocked` contains `vibeCoder`. |
-| R2.3  | PASS   | `player.transformer.config.cooldownMs` = 1000, `forms.primary` = "robot", `forms.secondary` = "computer". |
-| R2.4  | PASS   | After toggle to computer, two manual `transformer.update(16)` ticks with `setVelocityX(300)` injected both resolve to `velocity.x === 0`. |
+| Req   | Status | Evidence                                                                                                                                                                            |
+| ----- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R2.1  | PASS   | `window.gameInstance.dragonCostumes.vibeCoder` has `name:"VibeCoder"`, `canTransform:true`, `transformKey:"V"`, `currentForm:"robot"`, plus all required cosmetic fields.           |
+| R2.2  | PASS   | `checkDragonUnlocks()` with `currentLevel=2` → `outfits.unlocked.includes('vibeCoder')` = true.                                                                                     |
+| R2.2b | PASS   | `saveGameData()` then reading `taekwondo-robot-builder-save` → `data.outfits.unlocked` contains `vibeCoder`.                                                                        |
+| R2.3  | PASS   | `player.transformer.config.cooldownMs` = 1000, `forms.primary` = "robot", `forms.secondary` = "computer".                                                                           |
+| R2.4  | PASS   | After toggle to computer, two manual `transformer.update(16)` ticks with `setVelocityX(300)` injected both resolve to `velocity.x === 0`.                                           |
 | R2.5  | PASS   | After `tryToggle()` robot→computer, a `Text` game object with text containing "Challenge accepted" is present in the scene's children list, with an alpha tween to 0 within 1500ms. |
-| R2.6  | PASS   | `transformer.visuals` array contains only procedural shape types (Rectangle, Ellipse, Arc) — no Image, Sprite, or Audio objects. |
-| R2.7  | PASS   | `Object.keys(window.gameInstance.dragonCostumes)` contains `vibeCoder` without any modification to `CraftScene.js`. |
+| R2.6  | PASS   | `transformer.visuals` array contains only procedural shape types (Rectangle, Ellipse, Arc) — no Image, Sprite, or Audio objects.                                                    |
+| R2.7  | PASS   | `Object.keys(window.gameInstance.dragonCostumes)` contains `vibeCoder` without any modification to `CraftScene.js`.                                                                 |
 
 ## Proof artifacts
 
-| File                          | Type | Status |
-|-------------------------------|------|--------|
-| `T02-01-test.txt`             | test | PASS (8/8) |
-| `T02-02-file.txt`             | file | PASS |
-| `T02-proofs.md`               | summary | — |
+| File              | Type    | Status     |
+| ----------------- | ------- | ---------- |
+| `T02-01-test.txt` | test    | PASS (8/8) |
+| `T02-02-file.txt` | file    | PASS       |
+| `T02-proofs.md`   | summary | —          |
 
 ## Test results
 
 All 8 tests in `tests/vibecoder-transform.spec.js` pass on Chromium.
 
-| Test                                                         | Result |
-|--------------------------------------------------------------|--------|
-| R2.1: vibeCoder entry in dragonCostumes with required fields | PASS   |
-| R2.2: checkDragonUnlocks() unlocks vibeCoder at level >= 2  | PASS   |
-| R2.2b: unlock persists after saveGameData()                  | PASS   |
-| R2.3: VibeCoderTransformer cooldownMs=1000, forms robot/computer | PASS |
-| R2.4: computer form zeroes velocity.x every frame            | PASS   |
-| R2.5: "Challenge accepted" bubble on robot->computer         | PASS   |
-| R2.6: computer visuals are procedural shapes only            | PASS   |
-| R2.7: vibeCoder in dragonCostumes (no CraftScene change)     | PASS   |
+| Test                                                             | Result |
+| ---------------------------------------------------------------- | ------ |
+| R2.1: vibeCoder entry in dragonCostumes with required fields     | PASS   |
+| R2.2: checkDragonUnlocks() unlocks vibeCoder at level >= 2       | PASS   |
+| R2.2b: unlock persists after saveGameData()                      | PASS   |
+| R2.3: VibeCoderTransformer cooldownMs=1000, forms robot/computer | PASS   |
+| R2.4: computer form zeroes velocity.x every frame                | PASS   |
+| R2.5: "Challenge accepted" bubble on robot->computer             | PASS   |
+| R2.6: computer visuals are procedural shapes only                | PASS   |
+| R2.7: vibeCoder in dragonCostumes (no CraftScene change)         | PASS   |
 
 ## Files touched
 

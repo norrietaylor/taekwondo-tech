@@ -43,8 +43,6 @@ class Enemy {
     this.walkTimer = 0;
     this.flashTimer = 0;
     this.isFlashing = false;
-
-    console.log(`${enemyType} enemy created at:`, x, y);
   }
 
   createVisualElements() {
@@ -165,7 +163,7 @@ class Enemy {
    * or attack it. If no target is found, idle.
    * @param {number} delta
    */
-  _updateCharmBehavior(delta) {
+  _updateCharmBehavior(_delta) {
     if (!this.scene || !this.scene.enemies) {
       this.body.setVelocityX(0);
       return;
@@ -204,7 +202,7 @@ class Enemy {
     }
   }
 
-  updateAI(time, delta) {
+  updateAI(time, _delta) {
     const player = this.scene.player;
     if (!player) return;
 
@@ -290,8 +288,6 @@ class Enemy {
   }
 
   performAttack(player) {
-    console.log('Titan enemy attacks!');
-
     // Create attack effect
     this.createAttackEffect();
 
@@ -334,7 +330,6 @@ class Enemy {
       this.stunEndTime = this.scene.time.now + duration;
       this.pendingStunDuration = undefined;
     }
-    console.log(`Enemy state changed to: ${newState}`);
   }
 
   applySonicStun(durationMs) {
@@ -357,10 +352,6 @@ class Enemy {
     // Stun briefly when hit (less for stomps since they usually kill)
     this.pendingStunDuration = damageType === 'stomp' ? 100 : 500;
     this.changeState('stunned');
-
-    console.log(
-      `Enemy took ${amount} ${damageType} damage. Health: ${this.health}/${this.maxHealth}`
-    );
 
     // Create damage effect
     this.createDamageEffect(damageType);
@@ -468,8 +459,6 @@ class Enemy {
   }
 
   die(deathType = 'combat') {
-    console.log(`Enemy defeated by ${deathType}!`);
-
     // Award points to player (stomp points are handled in GameScene)
     if (deathType !== 'stomp') {
       window.gameInstance.addScore(100);
@@ -770,10 +759,7 @@ window.EnemyFactory = {
     };
 
     // Override attack to create ground shake effect
-    const originalPerformAttack = enemy.performAttack;
     enemy.performAttack = function (player) {
-      console.log('🌍 Earth Titan ground pound!');
-
       // Create ground pound effect
       this.createGroundPoundEffect();
 
@@ -969,7 +955,6 @@ window.EnemyFactory = {
     };
 
     // Override attack behavior to throw bananas
-    const originalAttackBehavior = enemy.attackBehavior;
     enemy.attackBehavior = function (player) {
       // Stop moving while throwing
       this.body.setVelocityX(0);
@@ -986,8 +971,6 @@ window.EnemyFactory = {
 
     // Banana throwing method
     enemy.throwBanana = function (player) {
-      console.log('🐒 Monkey Titan throws a banana!');
-
       // Check if BananaManager exists (banana mode active)
       if (scene.bananaManager) {
         scene.bananaManager.spawnBananaFrom(
@@ -1097,8 +1080,6 @@ window.EnemyFactory = {
     if (enemy.redLineIndicator) {
       enemy.redLineIndicator.setFillStyle(0xffe135);
     }
-
-    console.log('🐒 Monkey Titan created at:', x, y);
 
     return enemy;
   },

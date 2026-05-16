@@ -38,10 +38,6 @@
     };
   }
 
-  function toHex(n) {
-    return '#' + n.toString(16).padStart(6, '0');
-  }
-
   // Resize the shared physics body to match the active form. The legendary
   // robot body is tall (helmet→boots); the serpent is a low, thin creature,
   // so snake form uses a much shorter, narrower body that slips through gaps
@@ -662,7 +658,7 @@
       applyBodyForForm(player, 'robot');
     },
 
-    onToggle(newForm, previousForm, player, transformer) {
+    onToggle(newForm, previousForm, player, _transformer) {
       const costume =
         typeof player.getDragonCostume === 'function' ? player.getDragonCostume() : null;
       if (newForm === 'snake') {

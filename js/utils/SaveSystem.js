@@ -36,10 +36,8 @@ class SaveSystem {
 
       if (this.isAvailable) {
         localStorage.setItem(this.storageKey, serializedData);
-        console.log('Game saved to localStorage');
       } else {
         this.memoryStorage[this.storageKey] = serializedData;
-        console.log('Game saved to memory storage');
       }
 
       return true;
@@ -60,7 +58,6 @@ class SaveSystem {
       }
 
       if (!serializedData) {
-        console.log('No save data found');
         return null;
       }
 
@@ -72,7 +69,6 @@ class SaveSystem {
         // Could implement migration logic here
       }
 
-      console.log('Game loaded from storage');
       return saveData.data;
     } catch (error) {
       console.error('Failed to load game data:', error);
@@ -87,7 +83,6 @@ class SaveSystem {
       } else {
         delete this.memoryStorage[this.storageKey];
       }
-      console.log('Save data deleted');
       return true;
     } catch (error) {
       console.error('Failed to delete save data:', error);
@@ -152,18 +147,14 @@ class SaveSystem {
     this.autoSaveInterval = setInterval(() => {
       if (gameInstance && gameInstance.gameData) {
         this.save(gameInstance.gameData);
-        console.log('Auto-save completed');
       }
     }, interval);
-
-    console.log(`Auto-save enabled with ${interval}ms interval`);
   }
 
   disableAutoSave() {
     if (this.autoSaveInterval) {
       clearInterval(this.autoSaveInterval);
       this.autoSaveInterval = null;
-      console.log('Auto-save disabled');
     }
   }
 
@@ -194,7 +185,6 @@ class SaveSystem {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      console.log('Save data exported');
       return true;
     } catch (error) {
       console.error('Failed to export save data:', error);
@@ -227,7 +217,6 @@ class SaveSystem {
             this.memoryStorage[this.storageKey] = e.target.result;
           }
 
-          console.log('Save data imported successfully');
           resolve(saveData.data);
         } catch (error) {
           console.error('Failed to import save data:', error);
@@ -260,7 +249,6 @@ class SaveSystem {
         this.memoryStorage = {};
       }
 
-      console.log('All game data cleared');
       return true;
     } catch (error) {
       console.error('Failed to clear all data:', error);
@@ -280,7 +268,7 @@ class SaveSystem {
 
     try {
       let used = 0;
-      for (let key in localStorage) {
+      for (const key in localStorage) {
         if (localStorage.hasOwnProperty(key)) {
           used += localStorage[key].length + key.length;
         }

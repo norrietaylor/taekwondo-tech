@@ -33,23 +33,23 @@ Implemented the `VibeSpawn` entity class and wired it into `Player.js`:
 
 ## Requirements coverage
 
-| Req   | Status | Evidence |
-|-------|--------|----------|
-| R3.1  | PASS   | `window.VibeSpawn` is a function; verified by R3.1 test. |
-| R3.2  | PASS   | Chicken velocity X sign matches enemy direction after manual update ticks. |
-| R3.3  | PASS   | Doghouse emits a dog after 3001ms update; despawns after 12001ms. |
-| R3.4  | PASS   | Keys 1/2/3 guarded by `transformer.currentForm() !== 'computer'` early return. |
-| R3.5  | PASS   | 7 spawn calls produce exactly 6 live spawns (cap at 6, 7th returns null). |
-| R3.6  | PASS   | All four types use Rectangle/Triangle/Arc objects; no Sprite/Image types. |
-| R3.7  | PASS   | `cleanupVibeSpawns()` empties array; also called on robot toggle and scene shutdown. |
+| Req  | Status | Evidence                                                                             |
+| ---- | ------ | ------------------------------------------------------------------------------------ |
+| R3.1 | PASS   | `window.VibeSpawn` is a function; verified by R3.1 test.                             |
+| R3.2 | PASS   | Chicken velocity X sign matches enemy direction after manual update ticks.           |
+| R3.3 | PASS   | Doghouse emits a dog after 3001ms update; despawns after 12001ms.                    |
+| R3.4 | PASS   | Keys 1/2/3 guarded by `transformer.currentForm() !== 'computer'` early return.       |
+| R3.5 | PASS   | 7 spawn calls produce exactly 6 live spawns (cap at 6, 7th returns null).            |
+| R3.6 | PASS   | All four types use Rectangle/Triangle/Arc objects; no Sprite/Image types.            |
+| R3.7 | PASS   | `cleanupVibeSpawns()` empties array; also called on robot toggle and scene shutdown. |
 
 ## Proof artifacts
 
-| File                                          | Type | Status |
-|-----------------------------------------------|------|--------|
-| `T03-01-test-vibecoder-spawns.txt`            | test | PASS   |
-| `T03-02-test-vibecoder-transform-regression.txt` | test | PASS |
-| `T03-03-file-vibe-spawn-globals.txt`          | file | PASS   |
+| File                                             | Type | Status |
+| ------------------------------------------------ | ---- | ------ |
+| `T03-01-test-vibecoder-spawns.txt`               | test | PASS   |
+| `T03-02-test-vibecoder-transform-regression.txt` | test | PASS   |
+| `T03-03-file-vibe-spawn-globals.txt`             | file | PASS   |
 
 ## Regression check
 
@@ -61,7 +61,7 @@ Pre-existing dragon-costume.spec.js failures (8 tests) remain unchanged — thes
 - New: `js/entities/VibeSpawn.js`
 - New: `tests/vibecoder-spawns.spec.js`
 - New: `docs/specs/01-spec-vibecoder-mode/03-proofs/` (this directory)
-- Modified: `js/entities/Player.js` (vibeSpawns init, handleVibeCoderSpawns, spawnVibeAlly, cleanupVibeSpawns, _updateVibeSpawns, scene shutdown hook, previousInputs)
+- Modified: `js/entities/Player.js` (vibeSpawns init, handleVibeCoderSpawns, spawnVibeAlly, cleanupVibeSpawns, \_updateVibeSpawns, scene shutdown hook, previousInputs)
 - Modified: `js/entities/transformers/VibeCoderTransformer.js` (onToggle cleanup hook)
 - Modified: `index.html` (script tag)
 - Modified: `nocache.html` (script list)

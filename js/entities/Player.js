@@ -2,7 +2,6 @@
 class Player {
   constructor(scene, x, y) {
     try {
-      console.log('Player constructor started at:', x, y);
       this.scene = scene;
 
       // Check if controls exist - wait a moment for them to initialize if needed
@@ -14,7 +13,6 @@ class Player {
         this.controlsRetryAttempts = 0;
       } else {
         this.controls = window.gameInstance.controls;
-        console.log('✅ Controls assigned');
       }
 
       // Create player sprite with outfit colors
@@ -22,7 +20,7 @@ class Player {
       const costume = window.gameInstance?.getDragonCostume(currentOutfit);
       const isLegendary = costume?.isLegendary || false;
       // Base 32x48; legendary scales by costume.size (default 2.5x → 80x120,
-      // Omega Prime 3.0x → 96x144, biggest sprite in the game).
+      // Omega Prime 4.0x → 128x192, biggest sprite in the game).
       const baseW = 32;
       const baseH = 48;
       const sizeMult = isLegendary ? costume.size || 2.5 : 1;
@@ -31,26 +29,17 @@ class Player {
         height: Math.round(baseH * sizeMult),
       };
 
-      console.log('🎨 Creating player sprite:', {
-        currentOutfit,
-        isLegendary,
-        costumeName: costume?.name,
-        spriteSize,
-      });
-
       // Create main sprite container if legendary, otherwise simple rectangle
       if (isLegendary) {
-        console.log('🌟 Creating LEGENDARY MODE sprite (5x size with all dragon colors)!');
         this.sprite = scene.add.container(x, y);
         this.createLegendarySprite();
         scene.physics.add.existing(this.sprite);
         this.body = this.sprite.body;
 
-        // Configure physics body for container. Body matches the visual
-        // size so feet/head don't clip through level geometry.
+        // Configure physics body for container
         this.body.setCollideWorldBounds(true);
-        const bodyWidth = spriteSize.width * 0.65;
-        const bodyHeight = spriteSize.height * 0.85;
+        const bodyWidth = spriteSize.width * 0.65; // 52 pixels
+        const bodyHeight = spriteSize.height * 0.85; // 102 pixels
 
         // For containers, the body offset needs to account for the fact that
         // the body's top-left corner is positioned relative to the container's position
@@ -69,20 +58,6 @@ class Player {
 
         // Set player depth higher than wings (wings will be at 49)
         this.sprite.setDepth(50);
-
-        console.log('✅ Legendary sprite created! Size:', spriteSize.width, 'x', spriteSize.height);
-        console.log(
-          '   Body size:',
-          bodyWidth,
-          'x',
-          bodyHeight,
-          'offset:',
-          -bodyWidth / 2,
-          -bodyHeight / 2
-        );
-        console.log('   Body enabled:', this.body.enable);
-        console.log('   Body type:', this.sprite.body ? this.sprite.body.type : 'NO BODY');
-        console.log('   Gravity enabled:', this.body.allowGravity);
       } else {
         const outfitColor = this.getOutfitColor();
         this.sprite = scene.add.rectangle(x, y, spriteSize.width, spriteSize.height, outfitColor);
@@ -96,8 +71,6 @@ class Player {
 
         // Set player depth higher than wings (wings will be at 49)
         this.sprite.setDepth(50);
-
-        console.log('✅ Normal sprite created for costume:', costume?.name);
       }
 
       // Player properties — costume can override these (legendary forms
@@ -264,8 +237,6 @@ class Player {
           this.cleanupVibeSpawns();
         });
       }
-
-      console.log('✅ Player created successfully at:', x, y);
     } catch (error) {
       console.error('💥 ERROR in Player constructor:', error.message);
       console.error('Stack trace:', error.stack);
@@ -347,17 +318,22 @@ class Player {
       rightLegColor = fireCostume.primaryColor;
     }
 
+    // Head
     this.legendaryHead = this.scene.add.rectangle(0, -height / 2 + 30, width * 0.5, 60, headColor);
     this.legendaryHead.setStrokeStyle(3, 0x000000);
 
+    // Eyes
     this.legendaryEye1 = this.scene.add.circle(-15, -height / 2 + 20, 5, 0xffffff);
     this.legendaryEye2 = this.scene.add.circle(15, -height / 2 + 20, 5, 0xffffff);
 
+    // Body/Torso
     this.legendaryBody = this.scene.add.rectangle(0, 0, width * 0.6, height * 0.35, bodyColor);
     this.legendaryBody.setStrokeStyle(3, 0x000000);
 
+    // Belt
     this.legendaryBelt = this.scene.add.rectangle(0, height * 0.1, width * 0.6, 10, beltColor);
 
+    // Left Arm
     this.legendaryLeftArm = this.scene.add.rectangle(
       -width * 0.35,
       -10,
@@ -367,6 +343,7 @@ class Player {
     );
     this.legendaryLeftArm.setStrokeStyle(3, 0x000000);
 
+    // Right Arm
     this.legendaryRightArm = this.scene.add.rectangle(
       width * 0.35,
       -10,
@@ -376,6 +353,7 @@ class Player {
     );
     this.legendaryRightArm.setStrokeStyle(3, 0x000000);
 
+    // Left Leg
     this.legendaryLeftLeg = this.scene.add.rectangle(
       -width * 0.15,
       height * 0.25,
@@ -385,6 +363,7 @@ class Player {
     );
     this.legendaryLeftLeg.setStrokeStyle(3, 0x000000);
 
+    // Right Leg
     this.legendaryRightLeg = this.scene.add.rectangle(
       width * 0.15,
       height * 0.25,
@@ -413,22 +392,11 @@ class Player {
     this.eye1 = this.legendaryEye1;
     this.eye2 = this.legendaryEye2;
     this.belt = this.legendaryBelt;
-
-    console.log('🌟 Legendary sprite created with all 5 dragon colors!');
   }
 
   createDragonWings() {
     const costume = this.getDragonCostume();
     const isLegendary = costume.isLegendary;
-
-    console.log(
-      '🦅 Creating wings for costume:',
-      costume.name,
-      'hasWings:',
-      costume.hasWings,
-      'isLegendary:',
-      isLegendary
-    );
 
     // Wing size multiplier for legendary mode
     const sizeMultiplier = isLegendary ? 5 : 1;
@@ -444,12 +412,6 @@ class Player {
 
     // Only create wing graphics if costume has wings
     if (costume.hasWings) {
-      console.log(
-        '🦅 Adding wing segments with colors:',
-        costume.wingColor.toString(16),
-        costume.wingTipColor.toString(16)
-      );
-
       // Left wing segments
       const leftWingSegments = [];
       for (let i = 0; i < segmentCount; i++) {
@@ -506,11 +468,9 @@ class Player {
 
       this.leftWing.setVisible(true);
       this.rightWing.setVisible(true);
-      console.log('✅ Wings created and visible!' + (isLegendary ? ' (LEGENDARY SIZE)' : ''));
     } else {
       this.leftWing.setVisible(false);
       this.rightWing.setVisible(false);
-      console.log('❌ No wings for this costume');
     }
   }
 
@@ -640,7 +600,6 @@ class Player {
         this.controlsRetryAttempts++;
         if (window.gameInstance && window.gameInstance.controls) {
           this.controls = window.gameInstance.controls;
-          console.log('✅ Controls assigned on retry', this.controlsRetryAttempts);
         }
       }
     }
@@ -1045,11 +1004,10 @@ class Player {
       return;
     }
 
-    // Stone Dragon only. Omega Prime's equivalent is the O-MEGA BLAST
-    // (see handleOmegaBlast) — a dual-direction laser/vortex bound to O.
+    // Check if player is wearing Stone Dragon costume
     const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
     if (currentOutfit !== 'stone') {
-      return;
+      return; // Only Stone Dragon can use this move
     }
 
     // Check for T+S key combo (edge detection - only on press)
@@ -1061,15 +1019,8 @@ class Player {
   performStoneBlast() {
     // Check cooldown
     if (this.stoneBlastCooldown > 0) {
-      console.log(
-        '🪨 Stone Blast on cooldown!',
-        Math.ceil(this.stoneBlastCooldown / 1000),
-        's remaining'
-      );
       return;
     }
-
-    console.log('🪨💥 STONE DRAGON LASER-TO-BOULDER BLAST!');
 
     // Set cooldown
     this.stoneBlastCooldown = this.stoneBlastCooldownTime;
@@ -1147,17 +1098,13 @@ class Player {
 
     // Set up collision with enemies for initial laser damage
     if (this.scene.enemies) {
-      const laserOverlap = this.scene.physics.add.overlap(
-        laser,
-        this.scene.enemies,
-        (laserSprite, enemySprite) => {
-          const enemy = enemySprite.getData('enemy');
-          if (enemy && enemy.health > 0) {
-            enemy.takeDamage(costume.laserDamage || 15, 'stoneLaser');
-            this.createStoneLaserHitEffect(laserSprite.x, laserSprite.y);
-          }
+      this.scene.physics.add.overlap(laser, this.scene.enemies, (laserSprite, enemySprite) => {
+        const enemy = enemySprite.getData('enemy');
+        if (enemy && enemy.health > 0) {
+          enemy.takeDamage(costume.laserDamage || 15, 'stoneLaser');
+          this.createStoneLaserHitEffect(laserSprite.x, laserSprite.y);
         }
-      );
+      });
     }
 
     // After traveling a distance, transform into boulder
@@ -1211,8 +1158,6 @@ class Player {
     const x = laser.x;
     const y = laser.y;
     const costume = this.getDragonCostume();
-
-    console.log('🪨➡️💥 Laser transforming into BOULDER at', x, y);
 
     // Destroy the laser
     laser.destroy();
@@ -1300,8 +1245,6 @@ class Player {
   }
 
   createBoulderExplosion(x, y, costume) {
-    console.log('💥🪨 BOULDER EXPLOSION at', x, y);
-
     const explosionRadius = costume?.boulderRadius || 80;
     const explosionDamage = costume?.boulderDamage || 50;
 
@@ -1459,7 +1402,7 @@ class Player {
 
   // ============================================
   // OMEGA PRIME — O-MEGA BLAST
-  // Press O: fires a laser in BOTH directions; each laser collapses into a
+  // Press O: fires a laser in all 8 directions; each laser collapses into a
   // spinning vortex that then detonates in the robot's current theme
   // colours (Cyberpunk Neon, or Solar Forge after a K-key swap).
   // ============================================
@@ -1489,14 +1432,8 @@ class Player {
 
   performOmegaBlast() {
     if (this.omegaBlastCooldown > 0) {
-      console.log(
-        '🌀 O-MEGA BLAST on cooldown!',
-        Math.ceil(this.omegaBlastCooldown / 1000),
-        's remaining'
-      );
       return;
     }
-    console.log('🌀💥 O-MEGA BLAST!');
     this.omegaBlastCooldown = this.omegaBlastCooldownTime;
 
     const theme = this.getOmegaThemeColors();
@@ -1873,7 +1810,6 @@ class Player {
   performTeleport() {
     // Check cooldown
     if (this.teleportCooldown > 0) {
-      console.log('🌍 Teleport on cooldown!');
       return;
     }
 
@@ -1901,13 +1837,9 @@ class Player {
 
     // Create appear effect at destination
     this.createTeleportAppearEffect(targetX, startY);
-
-    console.log(`🌍 Earth Dragon teleported from ${startX} to ${targetX}!`);
   }
 
   createTeleportDisappearEffect(x, y) {
-    const costume = this.getDragonCostume();
-
     // Create earth/rock particles bursting outward
     for (let i = 0; i < 12; i++) {
       const angle = (Math.PI * 2 * i) / 12;
@@ -1953,185 +1885,6 @@ class Player {
   }
 
   createTeleportAppearEffect(x, y) {
-    const costume = this.getDragonCostume();
-
-    // Create earth/rock particles converging inward
-    for (let i = 0; i < 12; i++) {
-      const angle = (Math.PI * 2 * i) / 12;
-      const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
-      const startRadius = 60;
-      const particle = this.scene.add.circle(
-        x + Math.cos(angle) * startRadius,
-        y + Math.sin(angle) * startRadius,
-        6 + Math.random() * 4,
-        colors[Math.floor(Math.random() * colors.length)],
-        0.9
-      );
-      particle.setDepth(100);
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: x,
-        y: y,
-        alpha: 0,
-        scale: 0.5,
-        duration: 300,
-        ease: 'Power2',
-        onComplete: () => particle.destroy(),
-      });
-    }
-
-    // Create ground burst effect
-    const groundBurst = this.scene.add.circle(x, y + 30, 10, 0x654321, 0.8);
-    groundBurst.setDepth(98);
-
-    this.scene.tweens.add({
-      targets: groundBurst,
-      scaleX: 4,
-      scaleY: 1,
-      alpha: 0,
-      duration: 400,
-      onComplete: () => groundBurst.destroy(),
-    });
-
-    // Create rising dust particles
-    for (let i = 0; i < 6; i++) {
-      const dust = this.scene.add.circle(
-        x + (Math.random() - 0.5) * 40,
-        y + 20,
-        4 + Math.random() * 4,
-        0xa0522d,
-        0.6
-      );
-      dust.setDepth(97);
-
-      this.scene.tweens.add({
-        targets: dust,
-        y: y - 40 - Math.random() * 30,
-        alpha: 0,
-        duration: 500 + Math.random() * 200,
-        delay: i * 30,
-        onComplete: () => dust.destroy(),
-      });
-    }
-
-    // Flash effect
-    const flash = this.scene.add.circle(x, y, 40, 0x228b22, 0.5);
-    flash.setDepth(101);
-
-    this.scene.tweens.add({
-      targets: flash,
-      scaleX: 1.5,
-      scaleY: 1.5,
-      alpha: 0,
-      duration: 200,
-      onComplete: () => flash.destroy(),
-    });
-  }
-
-  handleTeleport() {
-    // Safety check for controls
-    if (!this.controls) {
-      return;
-    }
-
-    // Check if player is wearing Earth Dragon costume
-    const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-    if (currentOutfit !== 'earth' && currentOutfit !== 'omegaPrime') {
-      return; // Earth Dragon + Omega Prime can teleport
-    }
-
-    // Check for teleport key press (edge detection - only on press, not hold)
-    if (this.controls.isTeleport() && !this.previousInputs.teleport) {
-      this.performTeleport();
-    }
-  }
-
-  performTeleport() {
-    // Check cooldown
-    if (this.teleportCooldown > 0) {
-      console.log('🌍 Teleport on cooldown!');
-      return;
-    }
-
-    // Set cooldown
-    this.teleportCooldown = this.teleportCooldownTime;
-
-    // Calculate teleport destination
-    const startX = this.sprite.x;
-    const startY = this.sprite.y;
-    const direction = this.facingRight ? 1 : -1;
-    let targetX = startX + this.teleportDistance * direction;
-
-    // Clamp to world bounds
-    const worldWidth = this.scene.levelWidth || 3000;
-    targetX = Math.max(40, Math.min(worldWidth - 40, targetX));
-
-    // Create disappear effect at start position
-    this.createTeleportDisappearEffect(startX, startY);
-
-    // Teleport the player
-    this.sprite.x = targetX;
-
-    // Reset velocity on teleport for clean landing
-    this.body.setVelocityX(0);
-
-    // Create appear effect at destination
-    this.createTeleportAppearEffect(targetX, startY);
-
-    console.log(`🌍 Earth Dragon teleported from ${startX} to ${targetX}!`);
-  }
-
-  createTeleportDisappearEffect(x, y) {
-    const costume = this.getDragonCostume();
-
-    // Create earth/rock particles bursting outward
-    for (let i = 0; i < 12; i++) {
-      const angle = (Math.PI * 2 * i) / 12;
-      const colors = [0x8b4513, 0x654321, 0x228b22]; // Earth colors
-      const particle = this.scene.add.circle(
-        x + Math.cos(angle) * 10,
-        y + Math.sin(angle) * 10,
-        6 + Math.random() * 4,
-        colors[Math.floor(Math.random() * colors.length)],
-        0.9
-      );
-      particle.setDepth(100);
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: x + Math.cos(angle) * 60,
-        y: y + Math.sin(angle) * 60,
-        alpha: 0,
-        scale: 0,
-        duration: 400,
-        ease: 'Power2',
-        onComplete: () => particle.destroy(),
-      });
-    }
-
-    // Create dust cloud at origin
-    const dustCloud = this.scene.add.circle(x, y, 30, 0xa0522d, 0.6);
-    dustCloud.setDepth(99);
-
-    this.scene.tweens.add({
-      targets: dustCloud,
-      scaleX: 2,
-      scaleY: 2,
-      alpha: 0,
-      duration: 300,
-      onComplete: () => dustCloud.destroy(),
-    });
-
-    // Screen shake for dramatic effect
-    if (this.scene.cameras && this.scene.cameras.main) {
-      this.scene.cameras.main.shake(100, 0.01);
-    }
-  }
-
-  createTeleportAppearEffect(x, y) {
-    const costume = this.getDragonCostume();
-
     // Create earth/rock particles converging inward
     for (let i = 0; i < 12; i++) {
       const angle = (Math.PI * 2 * i) / 12;
@@ -2231,11 +1984,6 @@ class Player {
   performGrimlockTransform() {
     // Check cooldown
     if (this.grimlockTransformCooldown > 0) {
-      console.log(
-        '🦖🤖 Transform on cooldown!',
-        Math.ceil(this.grimlockTransformCooldown / 1000),
-        's remaining'
-      );
       return;
     }
 
@@ -2247,8 +1995,6 @@ class Player {
 
     // Toggle form
     this.grimlockForm = wasRobot ? 'dinosaur' : 'robot';
-
-    console.log(`🦖🤖 GRIMLOCK ${wasRobot ? 'TRANSFORM TO DINOSAUR!' : 'RETURN TO ROBOT!'}`);
 
     // Create transformation effect
     this.createGrimlockTransformEffect(wasRobot);
@@ -2353,8 +2099,6 @@ class Player {
     if (this.sprite && this.sprite.setAlpha) {
       this.sprite.setAlpha(0);
     }
-
-    console.log('🤖 Robot visuals created!');
   }
 
   createDinosaurVisuals() {
@@ -2471,8 +2215,6 @@ class Player {
     if (this.sprite && this.sprite.setAlpha) {
       this.sprite.setAlpha(0);
     }
-
-    console.log('🦖 Dinosaur visuals created!');
   }
 
   updateGrimlockVisualsPosition() {
@@ -3648,14 +3390,22 @@ class Player {
     const k2 = !!(this.controls.keys && this.controls.keys['Digit2']);
     const k3 = !!(this.controls.keys && this.controls.keys['Digit3']);
 
+    // Offset spawn position to the side of the player so the new ally
+    // sprite is not stuck inside the player physics body (which would
+    // hide it visually and cause weird collision resolution).
+    const facing = this.facingRight ? 1 : -1;
+    const offsetX = 36 * facing;
+    const sx = this.sprite.x + offsetX;
+    const sy = this.sprite.y - 6;
+
     if (k1 && !this.previousInputs.vibeSpawn1) {
-      this.spawnVibeAlly('chicken', this.sprite.x, this.sprite.y);
+      this.spawnVibeAlly('chicken', sx, sy);
     }
     if (k2 && !this.previousInputs.vibeSpawn2) {
-      this.spawnVibeAlly('duck', this.sprite.x, this.sprite.y);
+      this.spawnVibeAlly('duck', sx, sy);
     }
     if (k3 && !this.previousInputs.vibeSpawn3) {
-      this.spawnVibeAlly('doghouse', this.sprite.x, this.sprite.y);
+      this.spawnVibeAlly('doghouse', sx, sy);
     }
   }
 
@@ -4200,7 +3950,7 @@ class Player {
     const costume = this.getDragonCostume();
     if (!costume.bounceSlamEnabled) return;
     // Only in robot form - car mode uses nets. Form lives on the
-    // Transformer instance now. Omega Prime can slam in its robot form too.
+    // Transformer instance now.
     const form =
       this.transformer && typeof this.transformer.currentForm === 'function'
         ? this.transformer.currentForm()
@@ -4328,15 +4078,8 @@ class Player {
   performDuckLaser() {
     // Check cooldown
     if (this.duckLaserCooldown > 0) {
-      console.log(
-        '🦆 Duck Laser on cooldown!',
-        Math.ceil(this.duckLaserCooldown / 1000),
-        's remaining'
-      );
       return;
     }
-
-    console.log('🦆⚡ GRIMLOCK DUCK LASER! Transforming bad titans into ducks!');
 
     // Set cooldown
     this.duckLaserCooldown = this.duckLaserCooldownTime;
@@ -4459,8 +4202,6 @@ class Player {
   }
 
   transformToDuck(enemy, enemySprite) {
-    console.log('🦆 Enemy transformed into a duck!');
-
     // Store original state
     const originalData = {
       enemy: enemy,
@@ -4549,7 +4290,7 @@ class Player {
     });
   }
 
-  updateDuckedEnemies(delta) {
+  updateDuckedEnemies(_delta) {
     const now = Date.now();
 
     // Check each ducked enemy for restoration
@@ -4575,8 +4316,6 @@ class Player {
   }
 
   restoreFromDuck(ducked) {
-    console.log('🦆➡️👹 Duck transforming back to titan!');
-
     const { enemy, sprite, duckSprite, originalSpeed, originalDamage } = ducked;
 
     if (!enemy || !sprite || !sprite.active) {
@@ -4788,7 +4527,7 @@ class Player {
     });
   }
 
-  updateDoggedEnemies(delta) {
+  updateDoggedEnemies(_delta) {
     const now = Date.now();
     for (let i = this.doggedEnemies.length - 1; i >= 0; i--) {
       const dogged = this.doggedEnemies[i];
@@ -4845,8 +4584,6 @@ class Player {
       this.jumpCooldown = 100; // Prevent multi-jumping
       this.hasDoubleJumped = false; // Reset double jump when doing regular jump
       this.createJumpEffect();
-
-      console.log('Player jumped!' + (costume.isLegendary ? ' (LEGENDARY BOOST)' : ''));
     }
     // Double jump (when in air and haven't used double jump yet)
     else if (
@@ -4859,8 +4596,6 @@ class Player {
       this.hasDoubleJumped = true;
       this.jumpCooldown = 100; // Prevent multi-jumping
       this.createDoubleJumpEffect();
-
-      console.log('Player double jumped!' + (costume.isLegendary ? ' (LEGENDARY BOOST)' : ''));
     }
   }
 
@@ -4875,8 +4610,6 @@ class Player {
 
     // Check for enemies in kick range
     this.checkAttackHit('kick');
-
-    console.log(`Kick attack! Combo: ${this.comboCount}`);
   }
 
   performPunch() {
@@ -4890,8 +4623,6 @@ class Player {
 
     // Check for enemies in punch range
     this.checkAttackHit('punch');
-
-    console.log(`Punch attack! Combo: ${this.comboCount}`);
   }
 
   // Snake form (Omega Prime) primary attack — a dramatic fire-laser beam
@@ -5051,8 +4782,6 @@ class Player {
 
     // Create shooting effect at player
     this.createFireballShootEffect();
-
-    console.log(`🔥 Fireball shot! (${this.fireballShotCount}/${this.fireballMaxShots})`);
   }
 
   shootDragonProjectile() {
@@ -5090,7 +4819,7 @@ class Player {
 
     // Create projectile based on dragon type
     let projectile;
-    let glow;
+    let glow = null;
 
     switch (projectileType) {
       case 'fireball':
@@ -5228,8 +4957,6 @@ class Player {
 
     // Create shooting effect at player
     this.createDragonShootEffect(costume);
-
-    console.log(`🐉 ${costume.name} projectile shot!`);
   }
 
   shootLaserEyes() {
@@ -5322,8 +5049,6 @@ class Player {
 
     // Create eye glow effect at player
     this.createLaserEyeEffect(startX, startY, colors);
-
-    console.log(`👁️ ${costume.name} laser eyes!`);
   }
 
   createLaserEyeEffect(x, y, colors) {
@@ -5560,8 +5285,6 @@ class Player {
     // Add banana trail particles
     this.createBananaTrail(container);
 
-    console.log('🍌 Banana projectile created!');
-
     return container;
   }
 
@@ -5642,8 +5365,6 @@ class Player {
 
     // Add stone trail particles
     this.createStoneTrail(projectile);
-
-    console.log('🪨 Stone projectile created!');
 
     return projectile;
   }
@@ -5746,8 +5467,6 @@ class Player {
 
     // Create trailing fire and lightning effect
     this.createGrimlockBreathTrail(container);
-
-    console.log('🦖🔥⚡ GRIMLOCK BREATH! Fire AND Lightning!');
 
     return container;
   }
@@ -5864,7 +5583,6 @@ class Player {
     // Mark this projectile as a portal type so updateFireballs can handle placement
     container.isPortalProjectile = true;
 
-    console.log('🌀 Portal orb launched!');
     return container;
   }
 
@@ -5961,10 +5679,6 @@ class Player {
     this.scene.time.delayedCall(this.portalLifetime, () => {
       this.destroyPortal(portalData);
     });
-
-    console.log(
-      `🌀 Portal placed at (${Math.round(x)}, ${Math.round(y)})! Active portals: ${this.activePortals.length}`
-    );
   }
 
   destroyPortal(portalData) {
@@ -6033,7 +5747,6 @@ class Player {
           this.scene.cameras.main.flash(200, 0, 229, 255, false); // cyan flash
         }
 
-        console.log(`🌀 TELEPORTED from portal ${i} to portal ${destIndex}!`);
         break;
       }
     }
@@ -6246,7 +5959,7 @@ class Player {
     }
   }
 
-  checkProjectileBananaCollision(projectile, projectileIndex) {
+  checkProjectileBananaCollision(projectile, _projectileIndex) {
     if (!projectile || !projectile.sprite || projectile.sprite.destroyed) return;
     if (!projectile.sprite.body) return; // Body might be destroyed
 
@@ -6283,7 +5996,6 @@ class Player {
 
       if (distance < 35) {
         // Deflect the banana!
-        console.log(`🍌💥 Banana deflected by ${projectile.type} projectile!`);
 
         // Apply strong knockback to banana - check body exists
         const velocityX = projectile.sprite.body
@@ -6407,8 +6119,6 @@ class Player {
     const kb = knockbackStrength[projectile.type] || { x: 200, y: -100 };
 
     target.body.setVelocity(knockbackDirection * kb.x, kb.y);
-
-    console.log(`💥 Knockback applied: ${projectile.type} -> ${kb.x}x, ${kb.y}y`);
   }
 
   applyProjectileEffect(projectile, enemySprite, enemyObj) {
@@ -6500,7 +6210,7 @@ class Player {
     });
   }
 
-  applyCaptureNetAoE(projectile, hitEnemySprite, hitEnemyObj) {
+  applyCaptureNetAoE(projectile, hitEnemySprite, _hitEnemyObj) {
     const radius = projectile.netRadius || 70;
     const aoeDamage = Math.round(projectile.damage * 0.7);
     // Expanding net visual
@@ -6852,8 +6562,6 @@ class Player {
         onComplete: () => particle.destroy(),
       });
     }
-
-    console.log('💥 Fireball explosion at', x, y);
   }
 
   createFireballShootEffect() {
@@ -6881,7 +6589,6 @@ class Player {
 
   checkAttackHit(attackType) {
     const range = attackType === 'kick' ? this.kickRange : this.punchRange;
-    const damage = attackType === 'kick' ? 30 : 20;
 
     // Get attack position
     const attackX = this.sprite.x + (this.facingRight ? range : -range);
@@ -7160,7 +6867,6 @@ class Player {
     // If queue is full, remove oldest (first) item without activation
     if (this.powerUpQueue.length >= this.maxQueueSize) {
       const removed = this.powerUpQueue.shift();
-      console.log(`Power-up queue full! Removed ${removed} without activation`);
 
       // Show feedback to player
       if (this.scene && this.scene.showPowerUpMessage) {
@@ -7170,7 +6876,6 @@ class Player {
 
     // Add new power-up to queue
     this.powerUpQueue.push(powerType);
-    console.log(`Power-up ${powerType} added to queue. Queue:`, this.powerUpQueue);
 
     // Update UI to show queue
     if (this.scene && this.scene.updatePowerUpQueueUI) {
@@ -7193,18 +6898,15 @@ class Player {
   activateNextPowerUp() {
     // Can't activate if already active
     if (this.activePowerUp) {
-      console.log('Power-up already active!');
       return;
     }
 
     // Get next power-up from queue
     if (this.powerUpQueue.length === 0) {
-      console.log('No power-ups in queue!');
       return;
     }
 
     const powerType = this.powerUpQueue.shift();
-    console.log(`Activating power-up: ${powerType}`);
 
     // Activate the power-up
     this.activatePowerUp(powerType, 10000); // 10 seconds duration
@@ -7233,7 +6935,6 @@ class Player {
       this.applyPowerUpEffects(powerType, false);
       this.activePowerUp = null;
       this.activePowerUpTimer = null;
-      console.log(`Power-up ${powerType} expired`);
 
       // Update UI
       if (this.scene && this.scene.updateActivePowerUpUI) {
@@ -7245,8 +6946,6 @@ class Player {
     if (this.scene && this.scene.updateActivePowerUpUI) {
       this.scene.updateActivePowerUpUI(powerType);
     }
-
-    console.log(`Power-up activated: ${powerType} for ${duration}ms`);
   }
 
   applyPowerUpEffects(powerType, activate) {
@@ -7332,8 +7031,6 @@ class Player {
   performFireBreath() {
     if (this.specialAbilityCooldowns.fireBreath > 0) return;
 
-    console.log('🔥 Fire Breath Attack!');
-
     // Set cooldown
     this.specialAbilityCooldowns.fireBreath = 3000; // 3 seconds
 
@@ -7398,8 +7095,6 @@ class Player {
   performUltraBlast() {
     if (this.specialAbilityCooldowns.ultraBlast > 0) return;
 
-    console.log('💥 Ultra Blast Attack!');
-
     // Set cooldown
     this.specialAbilityCooldowns.ultraBlast = 5000; // 5 seconds
 
@@ -7454,8 +7149,6 @@ class Player {
   // Present Bomb power-up attack
   shootPresentBomb() {
     if (this.specialAbilityCooldowns.presentBomb > 0) return;
-
-    console.log('🎁 Present Bomb launched!');
 
     // Set cooldown (faster than other special abilities)
     this.specialAbilityCooldowns.presentBomb = 800; // 0.8 seconds between presents
@@ -7527,7 +7220,7 @@ class Player {
 
     // Also trigger bomb if it hits an enemy directly
     if (this.scene.enemies) {
-      this.scene.physics.add.overlap(presentContainer, this.scene.enemies, (present, enemy) => {
+      this.scene.physics.add.overlap(presentContainer, this.scene.enemies, (_present, _enemy) => {
         if (!presentData.hasLanded && presentData.isPresent) {
           presentData.hasLanded = true;
           this.transformPresentToBomb(presentData, true); // Immediate explosion
@@ -7549,8 +7242,6 @@ class Player {
 
   transformPresentToBomb(presentData, immediate = false) {
     if (!presentData.container || !presentData.container.active) return;
-
-    console.log('🎁➡️💣 Present opening into bomb!');
 
     const container = presentData.container;
     const x = container.x;
@@ -7660,8 +7351,6 @@ class Player {
 
   explodeBomb(presentData) {
     if (!presentData.bombSprite || !presentData.bombSprite.active) return;
-
-    console.log('💥 BOOM! Present bomb explodes!');
 
     const x = presentData.bombSprite.x;
     const y = presentData.bombSprite.y;
@@ -7809,8 +7498,6 @@ class Player {
   }
 
   spawnDragonAlly(x, y) {
-    console.log('🐉 Friendly Dragon Ally spawned!');
-
     // Create dragon ally container
     const dragonAlly = this.scene.add.container(x, y - 20);
     dragonAlly.setDepth(80);
@@ -8092,8 +7779,6 @@ class Player {
   dragonAllyAttack(allyData, enemy) {
     if (!allyData.container || !allyData.container.active) return;
 
-    console.log('🐉🔥 Dragon ally attacks!');
-
     // Set cooldown
     allyData.attackCooldown = 1200; // 1.2 seconds between attacks
 
@@ -8181,7 +7866,6 @@ class Player {
     });
 
     // Dragon attack animation - quick lunge
-    const originalX = dragon.x;
     this.scene.tweens.add({
       targets: dragon,
       x: dragon.x + (allyData.facingRight ? 15 : -15),
@@ -8224,8 +7908,6 @@ class Player {
 
   despawnDragonAlly(allyData) {
     if (!allyData.container || !allyData.container.active) return;
-
-    console.log('🐉✨ Dragon ally departing!');
 
     const dragon = allyData.container;
 
@@ -8335,7 +8017,6 @@ class Player {
   takeDamage(amount) {
     // Check invincibility
     if (this.powerUps.invincibility) {
-      console.log('Damage blocked by invincibility!');
       return;
     }
 
@@ -8367,8 +8048,6 @@ class Player {
         }
       }
     }, 100);
-
-    console.log(`Player took ${amount} damage. Health: ${this.health}/${this.maxHealth}`);
 
     if (this.health <= 0) {
       this.die();
@@ -8403,12 +8082,9 @@ class Player {
         this.updateOutfitColor(); // Reset to original outfit color
       }
     }, 100);
-
-    console.log(`Player healed ${amount}. Health: ${this.health}/${this.maxHealth}`);
   }
 
   die() {
-    console.log('Player died!');
     // Reset player health and position instead of restarting entire scene
     this.health = this.maxHealth;
     this.sprite.setPosition(100, this.scene.levelHeight - 200); // Reset to start position
@@ -8441,8 +8117,6 @@ class Player {
     if (this.scene.damageTaken !== undefined) {
       this.scene.damageTaken += 50; // Death penalty
     }
-
-    console.log('Player respawned at start position');
   }
 
   // Utility methods
@@ -8517,12 +8191,10 @@ class Player {
 
     // If switching between legendary and normal, need to recreate entire sprite
     if (wasLegendary !== isLegendary) {
-      console.log('🔄 Switching sprite mode, scene restart required');
       // Store the current outfit change was made
       this.isLegendaryMode = isLegendary;
       // Restart the current scene to recreate player with new sprite type
       if (this.scene && this.scene.scene) {
-        const currentScene = this.scene.scene.key;
         this.scene.scene.restart();
       }
       return;

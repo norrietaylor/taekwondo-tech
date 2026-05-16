@@ -533,6 +533,36 @@ class TaekwondoRobotBuilder {
         projectileSize: 14,
         projectileEffect: 'chomp',
       },
+      vibeCoder: {
+        name: 'VibeCoder',
+        icon: '💻🤖',
+        primaryColor: 0x00ff88, // Terminal green
+        secondaryColor: 0x003311, // Dark green background
+        beltColor: 0x00cc66,
+        description:
+          'VibeCoder! Press V to transform into a stationary computer! Challenge accepted!',
+        unlockCondition: 'Complete Level 1',
+        effectColor: 0x00ff88,
+        unlocked: false,
+        hasWings: false,
+        wingColor: null,
+        wingStyle: 'none',
+        // Transformer traits
+        isVibeCoder: true,
+        canTransform: true,
+        transformKey: 'V',
+        currentForm: 'robot',
+        // Robot form stats
+        robotSpeed: 200,
+        robotJump: 420,
+        robotDamage: 1.0,
+        // Computer form: stationary, zero velocity X each frame
+        computerSpeed: 0,
+        computerJump: 0,
+        computerDamage: 0.5,
+        robotColors: { primary: 0x00ff88, secondary: 0x003311, accent: 0x00cc66 },
+        computerColors: { primary: 0x111111, secondary: 0x00ff88, accent: 0x003311 },
+      },
       omegaPrime: {
         name: 'Omega Prime',
         icon: '🐍✨💜',
@@ -641,36 +671,6 @@ class TaekwondoRobotBuilder {
         allyDuration: 12000,
         allyDamage: 40,
       },
-      vibeCoder: {
-        name: 'VibeCoder',
-        icon: '💻🤖',
-        primaryColor: 0x00ff88, // Terminal green
-        secondaryColor: 0x003311, // Dark green background
-        beltColor: 0x00cc66,
-        description:
-          'VibeCoder! Press V to transform into a stationary computer! Challenge accepted!',
-        unlockCondition: 'Complete Level 1',
-        effectColor: 0x00ff88,
-        unlocked: false,
-        hasWings: false,
-        wingColor: null,
-        wingStyle: 'none',
-        // Transformer traits
-        isVibeCoder: true,
-        canTransform: true,
-        transformKey: 'V',
-        currentForm: 'robot',
-        // Robot form stats
-        robotSpeed: 200,
-        robotJump: 420,
-        robotDamage: 1.0,
-        // Computer form: stationary, zero velocity X each frame
-        computerSpeed: 0,
-        computerJump: 0,
-        computerDamage: 0.5,
-        robotColors: { primary: 0x00ff88, secondary: 0x003311, accent: 0x00cc66 },
-        computerColors: { primary: 0x111111, secondary: 0x00ff88, accent: 0x003311 },
-      },
     };
 
     this.config = {
@@ -707,22 +707,13 @@ class TaekwondoRobotBuilder {
         antialias: true,
       },
       scene: (() => {
-        console.log('🔍 Checking scene classes...');
-        console.log('MenuScene:', typeof MenuScene);
-        console.log('GameScene:', typeof GameScene);
-        console.log('CraftScene:', typeof CraftScene);
-        console.log('BananaSurvivalScene:', typeof BananaSurvivalScene);
-        console.log('PacManScene:', typeof PacManScene);
-
         // Build scenes array, only include optional scenes if they exist
         const scenes = [MenuScene, GameScene, CraftScene];
         if (typeof BananaSurvivalScene !== 'undefined') {
           scenes.push(BananaSurvivalScene);
-          console.log('🍌 BananaSurvivalScene added');
         }
         if (typeof PacManScene !== 'undefined') {
           scenes.push(PacManScene);
-          console.log('🟡 PacManScene added');
         }
         return scenes;
       })(),
@@ -781,21 +772,19 @@ class TaekwondoRobotBuilder {
 
     // Set up fullscreen event listeners for debugging
     this.setupFullscreenListeners();
-
-    console.log('🥋 Taekwondo Robot Builder initialized!');
   }
 
   setupFullscreenListeners() {
     // Listen for fullscreen errors (silently handle - they're expected due to browser security)
-    document.addEventListener('fullscreenerror', (e) => {
+    document.addEventListener('fullscreenerror', (_e) => {
       // Fullscreen errors are expected when not triggered by user gesture
     });
 
-    document.addEventListener('webkitfullscreenerror', (e) => {
+    document.addEventListener('webkitfullscreenerror', (_e) => {
       // Fullscreen errors are expected when not triggered by user gesture
     });
 
-    document.addEventListener('mozfullscreenerror', (e) => {
+    document.addEventListener('mozfullscreenerror', (_e) => {
       // Fullscreen errors are expected when not triggered by user gesture
     });
 
@@ -804,7 +793,6 @@ class TaekwondoRobotBuilder {
       if (this.game && this.game.scale) {
         setTimeout(() => {
           this.game.scale.refresh();
-          console.log('Fullscreen changed, scale refreshed');
         }, 100);
       }
     });
@@ -813,7 +801,6 @@ class TaekwondoRobotBuilder {
       if (this.game && this.game.scale) {
         setTimeout(() => {
           this.game.scale.refresh();
-          console.log('Webkit fullscreen changed, scale refreshed');
         }, 100);
       }
     });
@@ -825,7 +812,6 @@ class TaekwondoRobotBuilder {
       resizeTimeout = setTimeout(() => {
         if (this.game && this.game.scale) {
           this.game.scale.refresh();
-          console.log('Window resized, scale refreshed');
         }
       }, 250);
     });
@@ -835,7 +821,6 @@ class TaekwondoRobotBuilder {
       setTimeout(() => {
         if (this.game && this.game.scale) {
           this.game.scale.refresh();
-          console.log('Orientation changed, scale refreshed');
         }
       }, 300);
     });
@@ -845,7 +830,6 @@ class TaekwondoRobotBuilder {
     const savedData = this.saveSystem.load();
     if (savedData) {
       this.gameData = { ...this.gameData, ...savedData };
-      console.log('Game data loaded:', this.gameData);
     }
     // Ensure BMW Bouncer (from-start costume) is always in unlocked list
     if (
@@ -859,7 +843,6 @@ class TaekwondoRobotBuilder {
 
   saveGameData() {
     this.saveSystem.save(this.gameData);
-    console.log('Game data saved');
   }
 
   // Game state management
@@ -886,14 +869,12 @@ class TaekwondoRobotBuilder {
     };
 
     this.addScore(points[rarity] || 50);
-    console.log(`Collected ${rarity} ${type} part! +${points[rarity]} points`);
   }
 
   unlockOutfit(outfitName) {
     if (!this.gameData.outfits.unlocked.includes(outfitName)) {
       this.gameData.outfits.unlocked.push(outfitName);
       this.saveGameData();
-      console.log(`🐉 Unlocked outfit: ${outfitName}`);
       return true; // Return true if newly unlocked
     }
     return false;
@@ -943,7 +924,6 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('banana')) {
       if (this.unlockOutfit('banana')) {
         newUnlocks.push('banana');
-        console.log('🍌🐉 BANANA DRAGON UNLOCKED! Time to throw some bananas!');
       }
     }
 
@@ -951,7 +931,6 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('stone')) {
       if (this.unlockOutfit('stone')) {
         newUnlocks.push('stone');
-        console.log('🪨🐉 STONE DRAGON UNLOCKED! Press T+S for laser-to-boulder blast!');
       }
     }
 
@@ -959,40 +938,21 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('present')) {
       if (this.unlockOutfit('present')) {
         newUnlocks.push('present');
-        console.log('🎁🐉 PRESENT DRAGON UNLOCKED! Throw presents that summon dragon allies!');
       }
     }
 
     // Dino Grimlock - Complete Level 2
-    console.log(
-      '🦖 Checking Grimlock unlock - currentLevel:',
-      this.gameData.currentLevel,
-      'need >= 3, already unlocked:',
-      this.gameData.outfits.unlocked.includes('grimlock')
-    );
-    console.log('🦖 Current unlocked outfits:', this.gameData.outfits.unlocked);
     if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('grimlock')) {
-      console.log('🦖 Condition passed! Calling unlockOutfit...');
       const result = this.unlockOutfit('grimlock');
-      console.log('🦖 unlockOutfit result:', result);
       if (result) {
         newUnlocks.push('grimlock');
-        console.log('🦖🤖 DINO GRIMLOCK UNLOCKED! Press 2 to transform! L for duck laser!');
       }
-    } else {
-      console.log(
-        '🦖 Condition FAILED - level check:',
-        this.gameData.currentLevel >= 3,
-        'not already unlocked:',
-        !this.gameData.outfits.unlocked.includes('grimlock')
-      );
     }
 
     // Bumblebee - Complete Level 3
     if (this.gameData.currentLevel >= 4 && !this.gameData.outfits.unlocked.includes('bumblebee')) {
       if (this.unlockOutfit('bumblebee')) {
         newUnlocks.push('bumblebee');
-        console.log('🐝🚗 BUMBLEBEE UNLOCKED! Press 2 to transform! L for dog laser!');
       }
     }
 
@@ -1000,7 +960,6 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('hotrod')) {
       if (this.unlockOutfit('hotrod')) {
         newUnlocks.push('hotrod');
-        console.log('🏎️🤖 HOT ROD UNLOCKED! Press 2 to transform between sports car and robot!');
       }
     }
 
@@ -1008,7 +967,6 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 5 && !this.gameData.outfits.unlocked.includes('elita')) {
       if (this.unlockOutfit('elita')) {
         newUnlocks.push('elita');
-        console.log('🏍️🤖 ELITA UNLOCKED! Press 2 to transform! Guns shoot dog bullets!');
       }
     }
 
@@ -1016,7 +974,6 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 3 && !this.gameData.outfits.unlocked.includes('portalbot')) {
       if (this.unlockOutfit('portalbot')) {
         newUnlocks.push('portalbot');
-        console.log('🌀🤖 PORTAL BOT UNLOCKED! Press 2 to transform! Shoot portals to teleport!');
       }
     }
 
@@ -1024,9 +981,6 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('vibeCoder')) {
       if (this.unlockOutfit('vibeCoder')) {
         newUnlocks.push('vibeCoder');
-        console.log(
-          '💻🤖 VIBECODER UNLOCKED! Press V to transform into a computer! Challenge accepted!'
-        );
       }
     }
 
@@ -1039,7 +993,6 @@ class TaekwondoRobotBuilder {
     if (allPartsCollected && !this.gameData.outfits.unlocked.includes('legendary')) {
       if (this.unlockOutfit('legendary')) {
         newUnlocks.push('legendary');
-        console.log('🌟 LEGENDARY MODE UNLOCKED! All robot parts collected - assembled!');
       }
     }
 
@@ -1048,9 +1001,6 @@ class TaekwondoRobotBuilder {
     if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('omegaPrime')) {
       if (this.unlockOutfit('omegaPrime')) {
         newUnlocks.push('omegaPrime');
-        console.log(
-          '🐍🐉🤖 OMEGA PRIME UNLOCKED! The ultimate fusion. Press 2 for RED SNAKE form!'
-        );
       }
     }
 
@@ -1077,15 +1027,12 @@ class TaekwondoRobotBuilder {
 
       this.gameData.outfits.current = outfitName;
       this.saveGameData();
-      console.log(`Outfit changed to: ${outfitName}`);
 
       // If switching to/from legendary mode, restart any active game scenes
       if (wasLegendary !== isLegendary) {
-        console.log('🔄 Switching sprite mode - restarting active scenes');
         const activeScenes = this.game.scene.getScenes(true);
         activeScenes.forEach((scene) => {
           if (scene.scene.key === 'GameScene') {
-            console.log('🔄 Restarting GameScene for sprite recreation');
             scene.scene.restart();
           }
         });
@@ -1099,34 +1046,22 @@ class TaekwondoRobotBuilder {
     // Auto-deactivate after duration
     setTimeout(() => {
       this.gameData.powerUps[powerType] = false;
-      console.log(`Power-up ${powerType} expired`);
     }, duration);
-
-    console.log(`Power-up activated: ${powerType}`);
   }
 
   nextLevel() {
-    console.log('🚀 nextLevel() called!');
-    console.log('Current level before increment:', this.gameData.currentLevel);
-
-    const previousLevel = this.gameData.currentLevel;
     this.gameData.currentLevel++;
-    console.log('Current level after increment:', this.gameData.currentLevel);
 
     this.saveGameData();
-    console.log('Game data saved');
 
     if (this.gameData.currentLevel > 6) {
-      console.log('🎊 Game completed! All levels finished');
       this.completeGame();
     } else {
-      console.log('🎨 Starting CraftScene for level', this.gameData.currentLevel);
       this.game.scene.start('CraftScene');
     }
   }
 
   completeGame() {
-    console.log('🎉 Game completed! Super robot built!');
     // Could show victory screen or credits
     this.game.scene.start('MenuScene');
   }
@@ -1157,7 +1092,6 @@ class TaekwondoRobotBuilder {
       },
     };
     this.saveGameData();
-    console.log('Game reset');
   }
 
   // Utility functions
@@ -1212,7 +1146,7 @@ class TaekwondoRobotBuilder {
 
     if (requestFS) {
       try {
-        requestFS.call(canvas).catch((err) => {
+        requestFS.call(canvas).catch((_err) => {
           // Silently fallback to iOS method - fullscreen API restrictions are expected
           this.enterIOSFullscreen();
         });
@@ -1228,7 +1162,6 @@ class TaekwondoRobotBuilder {
 
   enterIOSFullscreen() {
     // iOS fullscreen-like experience using viewport and CSS
-    console.log('Entering iOS fullscreen mode');
 
     // Hide address bar by scrolling
     window.scrollTo(0, 1);
@@ -1250,7 +1183,6 @@ class TaekwondoRobotBuilder {
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       if (isTouchDevice) {
         mobileControls.style.display = 'block';
-        console.log('Mobile controls forced visible for touch device');
       }
       mobileControls.style.position = 'fixed';
       mobileControls.style.bottom = '20px';
@@ -1258,7 +1190,6 @@ class TaekwondoRobotBuilder {
       mobileControls.style.right = '20px';
       mobileControls.style.zIndex = '10000';
       mobileControls.style.pointerEvents = 'auto';
-      console.log('Mobile controls visibility ensured');
     } else {
       console.warn('Mobile controls element not found!');
     }
@@ -1275,24 +1206,20 @@ class TaekwondoRobotBuilder {
       // Small delay to ensure resize is complete
       setTimeout(() => {
         this.game.scale.refresh();
-        console.log('Phaser scale refreshed for iOS fullscreen');
       }, 100);
     }
 
     // Request orientation lock if available
     if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch((err) => {
+      screen.orientation.lock('landscape').catch((_err) => {
         // Orientation lock not supported on this device - this is normal
       });
     }
 
     // Notify user
-    console.log('iOS fullscreen mode activated. Rotate to landscape for best experience.');
   }
 
   exitIOSFullscreen() {
-    console.log('Exiting iOS fullscreen mode');
-
     // Reset body styles
     document.body.style.margin = '';
     document.body.style.padding = '';
@@ -1311,7 +1238,6 @@ class TaekwondoRobotBuilder {
 
       setTimeout(() => {
         this.game.scale.refresh();
-        console.log('Phaser scale refreshed after exiting iOS fullscreen');
       }, 100);
     }
 
@@ -1367,15 +1293,8 @@ window.addEventListener('load', () => {
   // Add a small delay to ensure all scripts are fully loaded
   setTimeout(() => {
     try {
-      console.log('Initializing TaekwondoRobotBuilder...');
-      console.log('MenuScene available:', typeof MenuScene);
-      console.log('GameScene available:', typeof GameScene);
-      console.log('CraftScene available:', typeof CraftScene);
-
       const game = new TaekwondoRobotBuilder();
       game.init();
-
-      console.log('Game initialized successfully');
     } catch (error) {
       console.error('Failed to initialize game:', error);
       console.error('Stack trace:', error.stack);
@@ -1441,8 +1360,6 @@ window.GameUtils = {
 
   generateRobotPart: function () {
     const types = ['head', 'body', 'arms', 'legs', 'powerCore'];
-    const rarities = ['common', 'rare', 'epic'];
-    const rarityWeights = [70, 25, 5]; // Percentages
 
     const randomType = types[Math.floor(Math.random() * types.length)];
 

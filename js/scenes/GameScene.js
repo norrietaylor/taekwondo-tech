@@ -1,5 +1,4 @@
 // Main gameplay scene
-console.log('🎮 GameScene.js loading...');
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
@@ -45,82 +44,47 @@ class GameScene extends Phaser.Scene {
 
   create() {
     try {
-      console.log('GameScene create() started');
-
-      // Show the in-game key bindings DOM panel (hidden on menu/craft).
-      const bindings = document.getElementById('keyBindingsPanel');
-      if (bindings) bindings.style.display = 'block';
-      // Hide it again when this scene shuts down (returning to menu etc.).
-      this.events.once('shutdown', () => {
-        const p = document.getElementById('keyBindingsPanel');
-        if (p) p.style.display = 'none';
-      });
-
       // Reset level completion state for new level
       this.levelComplete = false;
 
       // Get current level from game instance
-      console.log('Getting current level...');
       this.currentLevel = window.gameInstance ? window.gameInstance.gameData.currentLevel : 1;
-      console.log('Current level:', this.currentLevel);
 
       // Create world bounds
-      console.log('Setting world bounds...');
       this.physics.world.setBounds(0, 0, this.levelWidth, this.levelHeight);
-      console.log('✅ World bounds set');
 
       // Create background
-      console.log('Creating background...');
       this.createBackground();
-      console.log('✅ Background created');
 
       // Create platforms and level geometry
-      console.log('Creating level geometry...');
       this.createLevel();
-      console.log('✅ Level created');
 
       // Create player
-      console.log('Creating player...');
       this.createPlayer();
-      console.log('✅ Player created');
 
       // Create collectibles
-      console.log('Creating collectibles...');
       this.createCollectibles();
-      console.log('✅ Collectibles created');
 
       // Create enemies
-      console.log('Creating enemies...');
       this.createEnemies();
-      console.log('✅ Enemies created');
 
       // Set up camera
-      console.log('Setting up camera...');
       this.setupCamera();
-      console.log('✅ Camera setup complete');
 
       // Create UI
-      console.log('Creating UI...');
       this.createUI();
-      console.log('✅ UI created');
 
       // Create finish line
-      console.log('Creating finish line...');
       this.createFinishLine();
-      console.log('✅ Finish line created');
 
       // Set up collision detection
-      console.log('Setting up collisions...');
       this.setupCollisions();
-      console.log('✅ Collisions setup complete');
 
       // Start the game
-      console.log('Starting game...');
       this.startGame();
 
       // Set up keyboard shortcuts (like fullscreen)
       this.setupKeyboardShortcuts();
-      console.log('🎮 GameScene created successfully!');
     } catch (error) {
       console.error('💥 ERROR in GameScene.create():', error.message);
       console.error('Stack trace:', error.stack);
@@ -505,7 +469,6 @@ class GameScene extends Phaser.Scene {
     const spawnY = this.levelHeight - 150;
 
     this.player = new Player(this, spawnX, spawnY);
-    console.log('Player spawned at:', spawnX, spawnY);
   }
 
   createCollectibles() {
@@ -519,29 +482,19 @@ class GameScene extends Phaser.Scene {
 
   createRobotParts() {
     try {
-      console.log('🔧 Creating robot parts...');
       // Generate robot parts based on level
       const partLocations = this.getRobotPartLocations();
-      console.log('Part locations:', partLocations);
 
       if (!Array.isArray(partLocations)) {
         console.error('❌ partLocations is not an array:', partLocations);
         return;
       }
 
-      partLocations.forEach((location, index) => {
-        console.log(`Creating part ${index}:`, location);
-        const collectible = this.createRobotPart(
-          location.x,
-          location.y,
-          location.type,
-          location.rarity
-        );
+      partLocations.forEach((location, _index) => {
+        this.createRobotPart(location.x, location.y, location.type, location.rarity);
         // Note: Don't add to physics group again - collectible constructor already handles physics
         this.totalRobotParts++;
-        console.log(`✅ Created robot part: ${location.type} at (${location.x}, ${location.y})`);
       });
-      console.log(`🎯 Total robot parts created: ${this.totalRobotParts}`);
     } catch (error) {
       console.error('❌ Error in createRobotParts:', error);
     }
@@ -574,7 +527,6 @@ class GameScene extends Phaser.Scene {
 
     // Force physics body creation if it doesn't exist
     if (!collectible.sprite.body) {
-      console.log('🔧 No physics body found, creating manually...');
       this.physics.add.existing(collectible.sprite);
     }
 
@@ -592,12 +544,6 @@ class GameScene extends Phaser.Scene {
       // Force disable all physics movement
       collectible.sprite.body.setMaxVelocity(0, 0);
       collectible.sprite.body.setDrag(1000, 1000); // High drag to stop movement
-
-      console.log(
-        `⚙️ Configured physics for robot part at (${collectible.sprite.x}, ${collectible.sprite.y})`
-      );
-      console.log(`   - Gravity Y: ${collectible.sprite.body.gravity.y}`);
-      console.log(`   - Immovable: ${collectible.sprite.body.immovable}`);
     } else {
       console.error('❌ Still no physics body found for robot part!');
     }
@@ -607,24 +553,19 @@ class GameScene extends Phaser.Scene {
 
   createCoins() {
     try {
-      console.log('🪙 Creating coins...');
       // Create coins throughout the level
       const coinLocations = this.getCoinLocations();
-      console.log('Coin locations:', coinLocations);
 
       if (!Array.isArray(coinLocations)) {
         console.error('❌ coinLocations is not an array:', coinLocations);
         return;
       }
 
-      coinLocations.forEach((location, index) => {
-        console.log(`Creating coin ${index}:`, location);
-        const collectible = this.createCoin(location.x, location.y);
+      coinLocations.forEach((location, _index) => {
+        this.createCoin(location.x, location.y);
         // Note: Don't add to physics group again - collectible constructor already handles physics
         this.totalCoins++;
-        console.log(`✅ Created coin at (${location.x}, ${location.y})`);
       });
-      console.log(`🎯 Total coins created: ${this.totalCoins}`);
     } catch (error) {
       console.error('❌ Error in createCoins:', error);
     }
@@ -654,7 +595,6 @@ class GameScene extends Phaser.Scene {
 
     // Force physics body creation if it doesn't exist
     if (!collectible.sprite.body) {
-      console.log('🔧 No physics body found, creating manually...');
       this.physics.add.existing(collectible.sprite);
     }
 
@@ -672,10 +612,6 @@ class GameScene extends Phaser.Scene {
       // Force disable all physics movement
       collectible.sprite.body.setMaxVelocity(0, 0);
       collectible.sprite.body.setDrag(1000, 1000); // High drag to stop movement
-
-      console.log(
-        `⚙️ Configured physics for coin at (${collectible.sprite.x}, ${collectible.sprite.y})`
-      );
     } else {
       console.error('❌ Still no physics body found for coin!');
     }
@@ -685,21 +621,17 @@ class GameScene extends Phaser.Scene {
 
   createPowerUps() {
     try {
-      console.log('⚡ Creating power-ups...');
       // Create power-ups based on level
       const powerUpLocations = this.getPowerUpLocations();
-      console.log('Power-up locations:', powerUpLocations);
 
       if (!Array.isArray(powerUpLocations)) {
         console.error('❌ powerUpLocations is not an array:', powerUpLocations);
         return;
       }
 
-      powerUpLocations.forEach((location, index) => {
-        console.log(`Creating power-up ${index}:`, location);
-        const collectible = this.createPowerUp(location.x, location.y, location.type);
+      powerUpLocations.forEach((location, _index) => {
+        this.createPowerUp(location.x, location.y, location.type);
         // Note: Don't add to physics group again - collectible constructor already handles physics
-        console.log(`✅ Created power-up: ${location.type} at (${location.x}, ${location.y})`);
       });
     } catch (error) {
       console.error('❌ Error in createPowerUps:', error);
@@ -758,7 +690,6 @@ class GameScene extends Phaser.Scene {
 
     // Force physics body creation if it doesn't exist
     if (!collectible.sprite.body) {
-      console.log('🔧 No physics body found, creating manually...');
       this.physics.add.existing(collectible.sprite);
     }
 
@@ -776,10 +707,6 @@ class GameScene extends Phaser.Scene {
       // Force disable all physics movement
       collectible.sprite.body.setMaxVelocity(0, 0);
       collectible.sprite.body.setDrag(1000, 1000); // High drag to stop movement
-
-      console.log(
-        `⚙️ Configured physics for power-up at (${collectible.sprite.x}, ${collectible.sprite.y})`
-      );
     } else {
       console.error('❌ Still no physics body found for power-up!');
     }
@@ -822,8 +749,6 @@ class GameScene extends Phaser.Scene {
       enemy.sprite.setData('enemy', enemy);
       this.enemies.add(enemy.sprite);
     });
-
-    console.log(`Created ${this.totalEnemies} enemies for level ${this.currentLevel}`);
   }
 
   getEnemyPositions() {
@@ -946,8 +871,6 @@ class GameScene extends Phaser.Scene {
 
     // Power-up queue UI
     this.createPowerUpQueueUI();
-    // (Key-bindings panel lives in index.html as a DOM overlay — see
-    // #keyBindingsPanel — so it's visible across all scenes.)
   }
 
   createHealthBar() {
@@ -979,17 +902,87 @@ class GameScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(102)
       .setOrigin(0.5);
+
+    // Keybinding hint HUD — bottom-left. Two stacked lines:
+    //  - line 1 (white): universal controls (move/jump/attack/activate)
+    //  - line 2 (cyan): costume-specific controls, refreshed each frame
+    const hudY = this.cameras.main.height - 56;
+    this.keybindingHudBase = this.add
+      .text(20, hudY, '←/→ Move  •  Space/↑ Jump  •  Z Punch  •  X Kick  •  E Activate', {
+        fontSize: '13px',
+        fill: '#ffffff',
+        backgroundColor: '#000000',
+        padding: { x: 8, y: 3 },
+      })
+      .setScrollFactor(0)
+      .setDepth(110);
+
+    this.keybindingHudCostume = this.add
+      .text(20, hudY + 24, '', {
+        fontSize: '13px',
+        fill: '#00ffff',
+        backgroundColor: '#000000',
+        padding: { x: 8, y: 3 },
+      })
+      .setScrollFactor(0)
+      .setDepth(110)
+      .setVisible(false);
+  }
+
+  // Map active costume + current form to a one-line costume-specific
+  // keybinding hint. Returns '' to hide the costume hint line.
+  _costumeKeybindingHint() {
+    const outfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+    const costume = window.gameInstance?.getDragonCostume?.(outfit);
+    if (!costume || outfit === 'default') return '';
+
+    if (outfit === 'vibeCoder' && this.player?.transformer) {
+      const form = this.player.transformer.currentForm();
+      return form === 'computer'
+        ? 'V Robot  •  1 Chicken  •  2 Duck  •  3 Dog House  •  X Charm (4s CD)'
+        : 'V Computer Mode';
+    }
+    if (outfit === 'bmwBouncer') {
+      return '2 Transform  •  L Bounce Slam (robot form)';
+    }
+    if (outfit === 'portalbot') {
+      return '2 Transform  •  T Teleport (between portals)';
+    }
+    if (outfit === 'grimlock') {
+      return '2 Transform Dino  •  L Duck Laser';
+    }
+    if (outfit === 'bumblebee' || outfit === 'hotrod' || outfit === 'elita') {
+      return '2 Transform';
+    }
+    if (outfit === 'stone') {
+      return 'Z/X Stone Projectile  •  T+S Stone Blast';
+    }
+    if (outfit === 'earth') {
+      return 'Z/X Earth Projectile  •  T Teleport';
+    }
+    if (costume.isLegendary) {
+      return 'Z/X Mega Fireball (rotates colors)';
+    }
+    if (costume.projectileEnabled) {
+      return 'Z/X Fire Projectile';
+    }
+    return '';
+  }
+
+  updateVibeCoderHud() {
+    if (!this.keybindingHudCostume) return;
+    const hint = this._costumeKeybindingHint();
+    if (!hint) {
+      this.keybindingHudCostume.setVisible(false);
+      return;
+    }
+    this.keybindingHudCostume.setText(hint);
+    this.keybindingHudCostume.setVisible(true);
   }
 
   setupCollisions() {
-    console.log('🔧 Setting up collisions...');
-    console.log('   Player sprite type:', this.player.sprite.type);
-    console.log('   Player has body:', !!this.player.sprite.body);
-    console.log('   Platforms group size:', this.platforms.children.size);
-
     // Player vs platforms
-    const collider = this.physics.add.collider(this.player.sprite, this.platforms);
-    console.log('   Player-platform collider created:', !!collider);
+    this.physics.add.collider(this.player.sprite, this.platforms);
 
     // Enemies vs platforms
     this.physics.add.collider(this.enemies, this.platforms);
@@ -1008,8 +1001,6 @@ class GameScene extends Phaser.Scene {
       null,
       this
     );
-
-    console.log('✅ All collisions set up');
   }
 
   hitEnemy(playerSprite, enemySprite) {
@@ -1034,8 +1025,6 @@ class GameScene extends Phaser.Scene {
   }
 
   executeHeadStomp(player, enemy) {
-    console.log('🦶 Head stomp executed!');
-
     // Player bounce effect (Mario-style)
     player.body.setVelocityY(-350); // Strong upward bounce
 
@@ -1170,11 +1159,8 @@ class GameScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => {
       if (this.stompCombo > 0) {
         this.stompCombo = 0;
-        console.log('Stomp combo reset');
       }
     });
-
-    console.log(`Stomp! +${totalPoints} points (${this.stompCombo}x combo)`);
   }
 
   createScorePopup(x, y, text) {
@@ -1200,14 +1186,11 @@ class GameScene extends Phaser.Scene {
   }
 
   collectItem(playerSprite, itemSprite) {
-    console.log('💫 Collection triggered!', itemSprite);
     // Get the collectible object
     const collectible = itemSprite.getData('collectible');
     if (collectible) {
-      console.log('✅ Found collectible object, calling collect...');
       collectible.collect(this.player);
     } else {
-      console.log('⚠️ No collectible object found, using fallback...');
       // Fallback for old collectibles
       if (itemSprite.getData('isRobotPart')) {
         this.collectRobotPart(itemSprite);
@@ -1230,8 +1213,6 @@ class GameScene extends Phaser.Scene {
     // Create collection effect
     this.createCollectionEffect(part.x, part.y, 0x9932cc);
 
-    console.log(`Collected ${rarity} ${type} part!`);
-
     // Check if level complete
     this.checkLevelComplete();
   }
@@ -1244,8 +1225,6 @@ class GameScene extends Phaser.Scene {
 
     // Create collection effect
     this.createCollectionEffect(coin.x, coin.y, 0xffd700);
-
-    console.log('Collected coin! +10 points');
   }
 
   createCollectionEffect(x, y, color) {
@@ -1282,7 +1261,6 @@ class GameScene extends Phaser.Scene {
     this.levelStartTime = Date.now();
     this.damageTaken = 0;
     this.enemiesDefeated = 0;
-    console.log(`Level ${this.currentLevel} started!`);
   }
 
   createFinishLine() {
@@ -1371,13 +1349,10 @@ class GameScene extends Phaser.Scene {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
-
-    console.log(`🏁 Finish line created at x: ${finishX}`);
   }
 
-  reachFinishLine(playerSprite, finishZone) {
+  reachFinishLine(_playerSprite, _finishZone) {
     if (!this.levelComplete) {
-      console.log('🏁 Player reached finish line!');
       this.levelComplete = true;
       this.calculateStarRating();
       this.completeLevel();
@@ -1387,9 +1362,6 @@ class GameScene extends Phaser.Scene {
   checkLevelComplete() {
     // Level completion is now handled by reaching the finish line
     // This method can be used for other completion checks if needed
-    console.log(
-      `📊 Progress: Parts ${this.robotPartsCollected}/${this.totalRobotParts}, Coins ${this.coinsCollected}/${this.totalCoins}`
-    );
   }
 
   showCompletionChoice() {
@@ -1517,11 +1489,6 @@ class GameScene extends Phaser.Scene {
 
     // Save star rating to game data
     this.saveLevelStars(stars);
-
-    console.log(`Level ${this.currentLevel} completed with ${stars} stars!`);
-    console.log(
-      `Stats - Parts: ${Math.round(partsPercent * 100)}%, Coins: ${Math.round(coinsPercent * 100)}%, Enemies: ${Math.round(enemiesPercent * 100)}%, Time: ${Math.round(levelDuration)}s, Damage: ${this.damageTaken}`
-    );
   }
 
   saveLevelStars(stars) {
@@ -1538,8 +1505,6 @@ class GameScene extends Phaser.Scene {
   }
 
   completeLevel() {
-    console.log(`Level ${this.currentLevel} completed with ${this.starsEarned} stars!`);
-
     // Create star display
     this.createStarDisplay();
 
@@ -1551,14 +1516,14 @@ class GameScene extends Phaser.Scene {
 
   createStarDisplay() {
     // Create completion overlay
-    const overlay = this.add
+    this.add
       .rectangle(this.cameras.main.centerX, this.cameras.main.centerY, 400, 300, 0x000000, 0.8)
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(200);
 
     // Level completed text
-    const titleText = this.add
+    this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY - 80, 'Level Complete!', {
         fontSize: '32px',
         fill: '#ffffff',
@@ -1594,7 +1559,7 @@ class GameScene extends Phaser.Scene {
     }
 
     // Performance stats
-    const statsText = this.add
+    this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY + 40, this.getPerformanceText(), {
         fontSize: '14px',
         fill: '#cccccc',
@@ -1605,7 +1570,7 @@ class GameScene extends Phaser.Scene {
       .setDepth(201);
 
     // Continue text
-    const continueText = this.add
+    this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY + 100, 'Going to Craft Mode...', {
         fontSize: '18px',
         fill: '#ffffff',
@@ -1643,7 +1608,6 @@ class GameScene extends Phaser.Scene {
   // Called by Player when taking damage (for star rating tracking)
   onPlayerDamage(amount) {
     this.damageTaken += amount;
-    console.log(`Player took ${amount} damage. Total damage: ${this.damageTaken}`);
   }
 
   update(time, delta) {
@@ -1653,6 +1617,9 @@ class GameScene extends Phaser.Scene {
     if (this.player) {
       this.player.update(time, delta);
     }
+
+    // Refresh VibeCoder keybinding hint HUD (cheap; hidden unless equipped).
+    this.updateVibeCoderHud();
 
     // Update enemies
     if (this.enemies) {
@@ -1789,7 +1756,7 @@ class GameScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     // Activation hint
-    const activationHint = this.add
+    this.add
       .text(uiX, uiY + 130, 'Press E/Q to Activate', {
         fontSize: '10px',
         fill: '#888888',
@@ -1923,7 +1890,6 @@ class GameScene extends Phaser.Scene {
   }
 
   gameOver() {
-    console.log('Game Over!');
     this.scene.restart();
   }
 
@@ -1948,4 +1914,3 @@ class GameScene extends Phaser.Scene {
     this.physics.resume();
   }
 }
-console.log('✅ GameScene class defined:', typeof GameScene);

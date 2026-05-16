@@ -265,7 +265,7 @@
    * Build a spiral graphic above an enemy to show it is charmed.
    * Returns the Graphics object so the caller can store and destroy it.
    */
-  function buildCharmSpiral(scene, enemy) {
+  function buildCharmSpiral(scene, _enemy) {
     const g = scene.add.graphics();
     g.setDepth(200);
     // Draw a simple 3-loop spiral polyline in magenta.
@@ -377,7 +377,7 @@
       }
     },
 
-    onToggle(newForm, previousForm, player, transformer) {
+    onToggle(newForm, previousForm, player, _transformer) {
       const costume =
         typeof player.getDragonCostume === 'function' ? player.getDragonCostume() : null;
       if (newForm === 'computer') {

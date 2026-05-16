@@ -48,6 +48,7 @@ All 24 tests PASS (vibecoder-transform, vibecoder-spawns, vibecoder-charm suites
 ## Spec Compliance
 
 R2.4 (Category C - Spec Compliance):
+
 - Computer form now blocks BOTH horizontal input AND jump input
 - Player remains stationary on the ground in computer form
 - No vertical jumping possible

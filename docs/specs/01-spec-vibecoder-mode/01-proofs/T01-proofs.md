@@ -12,7 +12,7 @@ Extracted the duplicated transformer pipeline from `js/entities/Player.js`
 into:
 
 - `js/entities/Transformer.js` — shared base class (`window.Transformer`)
-  + plain registry (`window.TransformerRegistry`)
+  - plain registry (`window.TransformerRegistry`)
 - `js/entities/transformers/BMWBouncerTransformer.js` — config + factory
   registered under the `bmwBouncer` costume key
 
@@ -28,23 +28,23 @@ load Transformer.js and BMWBouncerTransformer.js BEFORE Player.js.
 
 ## Requirements coverage
 
-| Req   | Status | Evidence |
-|-------|--------|----------|
-| R1.1  | PASS   | `js/entities/Transformer.js` exposes `class Transformer` on `window`. |
-| R1.2  | PASS   | `update`, `tryToggle`, `currentForm`, `rebuildVisualsIfNeeded` defined; rebuild guards on form/facing change mirror legacy `update*VisualsIfNeeded` pattern. |
-| R1.3  | PASS   | `Player.syncTransformerForOutfit()` reads `window.TransformerRegistry[currentOutfit]`, builds on outfit change + on construction. |
-| R1.4  | PASS   | `BMWBouncerTransformer.js` registers `TransformerRegistry.bmwBouncer`; visual rebuild + cooldown delegated to base. |
-| R1.5  | PASS   | `bounceSlam` retained on `Player` (key, 6000ms cooldown, damage, trampoline visual unchanged); now reads form via `this.transformer.currentForm()`. |
-| R1.6  | PASS   | All five legacy fields removed from `Player` direct ownership; verified via `grep "this\\.bmwBouncer" js/entities/Player.js` -> no matches. |
-| R1.7  | PASS   | `npm test` shows zero new failures: 128 passed / 217 failed on both HEAD baseline AND post-migration. No `tests/*.spec.js` file modified. |
+| Req  | Status | Evidence                                                                                                                                                     |
+| ---- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1.1 | PASS   | `js/entities/Transformer.js` exposes `class Transformer` on `window`.                                                                                        |
+| R1.2 | PASS   | `update`, `tryToggle`, `currentForm`, `rebuildVisualsIfNeeded` defined; rebuild guards on form/facing change mirror legacy `update*VisualsIfNeeded` pattern. |
+| R1.3 | PASS   | `Player.syncTransformerForOutfit()` reads `window.TransformerRegistry[currentOutfit]`, builds on outfit change + on construction.                            |
+| R1.4 | PASS   | `BMWBouncerTransformer.js` registers `TransformerRegistry.bmwBouncer`; visual rebuild + cooldown delegated to base.                                          |
+| R1.5 | PASS   | `bounceSlam` retained on `Player` (key, 6000ms cooldown, damage, trampoline visual unchanged); now reads form via `this.transformer.currentForm()`.          |
+| R1.6 | PASS   | All five legacy fields removed from `Player` direct ownership; verified via `grep "this\\.bmwBouncer" js/entities/Player.js` -> no matches.                  |
+| R1.7 | PASS   | `npm test` shows zero new failures: 128 passed / 217 failed on both HEAD baseline AND post-migration. No `tests/*.spec.js` file modified.                    |
 
 ## Proof artifacts
 
-| File                                       | Type | Status |
-|--------------------------------------------|------|--------|
-| `T01-01-test-dragon-costume.txt`           | test | PASS   |
-| `T01-02-test-class-instantiation.txt`      | test | PASS   |
-| `T01-03-file-transformer-globals.txt`      | file | PASS   |
+| File                                  | Type | Status |
+| ------------------------------------- | ---- | ------ |
+| `T01-01-test-dragon-costume.txt`      | test | PASS   |
+| `T01-02-test-class-instantiation.txt` | test | PASS   |
+| `T01-03-file-transformer-globals.txt` | file | PASS   |
 
 ## Test parity (R1.7)
 
@@ -53,9 +53,9 @@ with the OrbStack/distillery container temporarily stopped so Playwright
 could spawn its own `python3 -m http.server 8000`.
 
 | Run                                          | Passed | Failed |
-|----------------------------------------------|-------:|-------:|
-| HEAD (no Transformer base, legacy code path) |   128  |   217  |
-| With Transformer base + BMW migration        |   128  |   217  |
+| -------------------------------------------- | -----: | -----: |
+| HEAD (no Transformer base, legacy code path) |    128 |    217 |
+| With Transformer base + BMW migration        |    128 |    217 |
 
 Delta: 0. No new failures, no spec modified.
 

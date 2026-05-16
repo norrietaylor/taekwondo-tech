@@ -265,7 +265,7 @@
 
     // Apply the stat changes + transform-effect particles on each toggle.
     // Mirrors performBmwBouncerTransform in the legacy code.
-    onToggle(newForm, previousForm, player, transformer) {
+    onToggle(newForm, previousForm, player, _transformer) {
       const costume =
         typeof player.getDragonCostume === 'function' ? player.getDragonCostume() : null;
       if (newForm === 'car') {
