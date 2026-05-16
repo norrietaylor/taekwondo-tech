@@ -65,3 +65,10 @@ docker-compose.override.yml
 
 .worktrees/
 .claude/
+
+# Playwright MCP session captures + ad-hoc debug screenshots
+.playwright-mcp/
+/omega-blast-*.png
+/omega-prime-*.png
+/snake-stuck.png
+/costume-picker-fullscreen.png
