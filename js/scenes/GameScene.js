@@ -960,6 +960,12 @@ class GameScene extends Phaser.Scene {
     if (outfit === 'earth') {
       return 'Z/X Earth Projectile  •  T Teleport';
     }
+    if (outfit === 'omegaPrime') {
+      const form = this.player?.transformer?.currentForm?.() || 'robot';
+      return form === 'snake'
+        ? '2 Robot Mode  •  Z/X Fire Laser  •  O O-MEGA BLAST'
+        : '2 Serpent Mode  •  O O-MEGA BLAST  •  K Theme Swap';
+    }
     if (costume.isLegendary) {
       return 'Z/X Mega Fireball (rotates colors)';
     }
