@@ -5,14 +5,42 @@
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8000",
+    "lint": "eslint \"js/**/*.js\" \"tests/**/*.js\"",
+    "lint:fix": "eslint \"js/**/*.js\" \"tests/**/*.js\" --fix",
+    "format": "prettier --write \"js/**/*.js\" \"tests/**/*.js\" \"*.{json,md}\" \"docs/**/*.md\"",
+    "format:check": "prettier --check \"js/**/*.js\" \"tests/**/*.js\" \"*.{json,md}\" \"docs/**/*.md\"",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "check": "npm run lint && npm run format:check && npm test",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0"
+    "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.60.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.1",
+    "prettier": "^3.4.2"
   },
-  "keywords": ["game", "javascript", "phaser", "taekwondo", "robot"],
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "game",
+    "javascript",
+    "phaser",
+    "taekwondo",
+    "robot"
+  ],
   "author": "Your Name",
   "license": "MIT"
 }

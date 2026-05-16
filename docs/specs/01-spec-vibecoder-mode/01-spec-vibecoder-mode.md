@@ -151,10 +151,10 @@ This spec also pioneers the `Transformer` strategy refactor recommended in `docs
 
 **Available commands:**
 
-| Check | Command |
-|-------|---------|
-| Lint  | none |
-| Build | none (no build step — vanilla JS served as-is) |
+| Check | Command                                                                                   |
+| ----- | ----------------------------------------------------------------------------------------- |
+| Lint  | none                                                                                      |
+| Build | none (no build step — vanilla JS served as-is)                                            |
 | Test  | `npm test` (runs `playwright test` against an auto-spawned `python3 -m http.server 8000`) |
 
 **Greenfield bootstrapping:** N/A — `npm test` is available and is the verification gate for every unit. Lint and build do not exist in the repo and are explicitly out of scope per Repository Standards.
@@ -182,9 +182,10 @@ class Transformer {
   tryToggle() {
     if (this.cooldownMs > 0) return false;
     this.cooldownMs = this.config.cooldownMs;
-    this.form = (this.form === this.config.forms.primary)
-      ? this.config.forms.secondary
-      : this.config.forms.primary;
+    this.form =
+      this.form === this.config.forms.primary
+        ? this.config.forms.secondary
+        : this.config.forms.primary;
     this.rebuildVisualsIfNeeded(true);
     if (this.config.onToggle) this.config.onToggle(this.form, this.player);
     return true;
@@ -192,13 +193,15 @@ class Transformer {
   rebuildVisualsIfNeeded(force = false) {
     const facing = this.player.facingRight;
     if (!force && facing === this.lastFacingRight && this.visuals.length > 0) return;
-    this.visuals.forEach(v => v.destroy());
+    this.visuals.forEach((v) => v.destroy());
     this.visuals = this.config.buildVisuals(this.form, facing, this.player);
     this.lastFacingRight = facing;
   }
-  currentForm() { return this.form; }
+  currentForm() {
+    return this.form;
+  }
   destroy() {
-    this.visuals.forEach(v => v.destroy());
+    this.visuals.forEach((v) => v.destroy());
     this.visuals = [];
   }
 }
@@ -217,7 +220,8 @@ BMW Bouncer's `bounceSlam` (its special move, separate from the transform) lives
 `Player.update()` already branches on the active costume in many places. For the stationary lock, the cleanest hook is a single conditional at the start of the movement section:
 
 ```js
-const lockedStationary = this.transformer?.config.stationaryInForm === this.transformer?.currentForm();
+const lockedStationary =
+  this.transformer?.config.stationaryInForm === this.transformer?.currentForm();
 if (lockedStationary) {
   this.body.setVelocityX(0);
   // skip movement input

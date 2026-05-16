@@ -1,0 +1,6 @@
+node_modules
+playwright-report
+test-results
+.worktrees
+package-lock.json
+docs/work-log.md
