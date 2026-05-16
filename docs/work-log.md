@@ -978,4 +978,37 @@ The dragon costume system adds meaningful customization and progression goals wh
 
 ---
 
+## **Session 9 - Omega Prime Costume**
+
+**Date**: May 16, 2026
+
+Added **Omega Prime**, the ultimate fusion costume — a transformer built on the
+Legendary fusion sprite that swaps between an armored robot and a long red
+serpent. Unlocks on completing Level 1.
+
+### Delivered
+
+- **OmegaPrimeTransformer** — robot ↔ red serpent via the shared `Transformer`
+  strategy; theme-aware palette (Cyberpunk Neon ↔ Solar Forge), serpent always red.
+- **O-MEGA BLAST** (`O`) — fires a laser in all 8 directions; each collapses
+  into a vortex that detonates in the active theme colour.
+- **Theme swap** (`K`) and **punch animal lasers** — punch cycles duck → dog →
+  cow lasers that turn enemies into farm animals; kick keeps the fire laser/fireball.
+- **Fixes**: snake body resized so it no longer wedges on geometry; snake
+  dropped to ground level; robot armor anti-jitter deadzone; snake death
+  desync; snake-form lasers now emit from the serpent's body, not the sprite
+  centre; canvas click misalignment (`outline` instead of `border`, and
+  fullscreen routed through Phaser's `scale.startFullscreen()`).
+- **HUD**: replaced the DOM keybinding panel with the in-canvas HUD, made
+  costume/form-aware.
+- **Tooling**: lint + test CI pipeline; rotted legacy specs quarantined (#39).
+
+### Tests
+
+`tests/omega-prime.spec.js` and `tests/costume-picker.spec.js` — costume
+catalog, Level 1 unlock gating, transform, body resize, anti-jitter,
+theme swap, O-MEGA BLAST, and canvas input alignment.
+
+---
+
 *Work log will be updated continuously as development progresses*

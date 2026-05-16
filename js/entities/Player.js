@@ -1447,6 +1447,18 @@ class Player {
     };
   }
 
+  // World point that Omega Prime lasers/blasts should emit from. In serpent
+  // form the legendary sprite centre sits well above the grounded snake, so
+  // emit from the snake's drawn body (the transformer's parts) instead.
+  getOmegaEmitPoint() {
+    const t = this.transformer;
+    if (t && typeof t.currentForm === 'function' && t.currentForm() === 'snake' && t._parts) {
+      const ref = t._parts.hood || t._parts.snout || (t._parts.segments && t._parts.segments[0]);
+      if (ref) return { x: ref.x, y: ref.y };
+    }
+    return { x: this.sprite.x, y: this.sprite.y };
+  }
+
   performOmegaBlast() {
     if (this.omegaBlastCooldown > 0) {
       return;
@@ -1454,8 +1466,9 @@ class Player {
     this.omegaBlastCooldown = this.omegaBlastCooldownTime;
 
     const theme = this.getOmegaThemeColors();
-    const cx = this.sprite.x;
-    const cy = this.sprite.y - 5;
+    const emit = this.getOmegaEmitPoint();
+    const cx = emit.x;
+    const cy = emit.y - 5;
 
     this.createOmegaBlastChargeEffect(cx, cy, theme);
 
@@ -1472,7 +1485,7 @@ class Player {
     }
 
     const label = this.scene.add
-      .text(this.sprite.x, this.sprite.y - 70, 'O-MEGA BLAST!', {
+      .text(cx, cy - 65, 'O-MEGA BLAST!', {
         fontSize: '22px',
         fill: '#' + theme.secondary.toString(16).padStart(6, '0'),
         stroke: '#' + theme.accent.toString(16).padStart(6, '0'),
@@ -1483,7 +1496,7 @@ class Player {
       .setDepth(120);
     this.scene.tweens.add({
       targets: label,
-      y: this.sprite.y - 110,
+      y: cy - 105,
       alpha: 0,
       duration: 900,
       onComplete: () => label.destroy(),
@@ -4594,9 +4607,11 @@ class Player {
   fireOmegaPunchLaser() {
     if (this.omegaPunchLaserCooldown > 0) return;
     this.omegaPunchLaserCooldown = this.omegaPunchLaserCooldownTime;
-    const startX = this.sprite.x + (this.facingRight ? 30 : -30);
-    const startY = this.sprite.y;
     const direction = this.facingRight ? 1 : -1;
+    // Emit from the active form's body (serpent sits below the sprite centre).
+    const emit = this.getOmegaEmitPoint();
+    const startX = emit.x + direction * 30;
+    const startY = emit.y;
     const types = ['duck', 'dog', 'cow'];
     const type = types[this.omegaPunchLaserIndex % types.length];
     this.omegaPunchLaserIndex++;
@@ -4852,10 +4867,12 @@ class Player {
     if (this.attackCooldown > 0) return;
     this.attackCooldown = 250;
     const dir = this.facingRight ? 1 : -1;
-    // Mouth-emitter position matches the snake's snout location (see
-    // OmegaPrimeTransformer.positionSnake — snout sits at ~ +dir*22, +py+6).
-    const startX = this.sprite.x + dir * 26;
-    const startY = this.sprite.y + 6;
+    // Emit from the serpent's actual mouth. The transformer keeps the snout
+    // part positioned each frame; the legendary sprite centre sits well above
+    // the grounded snake, so read the snout directly when it's available.
+    const snout = this.transformer && this.transformer._parts && this.transformer._parts.snout;
+    const startX = snout ? snout.x + dir * 14 : this.sprite.x + dir * 26;
+    const startY = snout ? snout.y : this.sprite.y + 6;
     const laserLength = 70;
     const laserHeight = 10;
     // Cyan-hot core (Portal Bot accent) with green outline (VibeCoder)

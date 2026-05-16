@@ -2,7 +2,7 @@
 
 ## **Project Overview**
 
-A side-scrolling platformer game where a taekwondo expert collects robot parts to build the ultimate robot. Features 3 themed levels, special abilities, and outfit customization.
+A side-scrolling platformer game where a taekwondo expert collects robot parts to build the ultimate robot. Features 6 themed levels, special abilities, and an extensive costume system (19 unlockable costumes, including elemental dragons, transformer costumes, Legendary Mode, and Omega Prime).
 
 ## **Technical Specifications**
 
@@ -15,7 +15,7 @@ A side-scrolling platformer game where a taekwondo expert collects robot parts t
 
 ### **Game Specifications**
 
-- **Levels**: 3 levels (Ice, Fire, Ultimate Power Bomb)
+- **Levels**: 6 levels (plus Banana Survival and Pac-Man bonus modes)
 - **Art Style**: Geometric/low-poly with muted teal/blue color palette
 - **Animation**: Detailed character movements
 - **World Themes**: Futuristic cities, natural landscapes, robot factories
@@ -58,12 +58,20 @@ A side-scrolling platformer game where a taekwondo expert collects robot parts t
 
 ### **Progression & Customization**
 
-- **Dragon Costume System**: 5 unique dragon-themed martial arts uniforms
+- **Costume System**: 19 unlockable costumes selected in the Craft Scene picker
   - **Default Gi**: Traditional blue uniform (always unlocked)
-  - **Fire Dragon**: Red/orange flames costume (unlock: complete Level 1)
-  - **Ice Dragon**: Light blue/white winter costume (unlock: collect 5 robot parts)
-  - **Lightning Dragon**: Gold/purple electric costume (unlock: complete Level 2)
-  - **Shadow Dragon**: Dark purple/black stealth costume (unlock: complete game)
+  - **Elemental dragons**: Fire (Level 1), Ice (5 parts), Lightning (Level 2),
+    Shadow (Level 4), Earth (Level 5) — each with a themed projectile
+  - **Specials**: Banana Dragon (Level 1), Stone Dragon (Level 1),
+    Present Dragon (Level 3), Pac-Man Dragon (clear the Pac-Man levels)
+  - **Legendary Mode**: 6-dragon fusion with rainbow fireballs (collect all robot parts)
+  - **Transformers**: BMW Bouncer (from start), Hot Rod (Level 2), Dino Grimlock
+    (Level 2), Portal Bot (Level 2), Bumblebee (Level 3), Elita (Level 4),
+    VibeCoder (Level 1) — each transforms on `2`/`V` with a signature ability
+  - **Omega Prime**: ultimate fusion, robot ↔ red serpent, O-MEGA BLAST,
+    theme swap, and punch animal lasers (unlock: complete Level 1)
+- **Transformer pipeline**: a shared `Transformer` strategy base with per-costume
+  configs drives robot ↔ alt-form swaps (see `js/entities/transformers/`)
 - **Outfit Changes**: Between levels only in Craft Scene
 - **Visual Effects**: Each dragon has unique particle effects and color schemes
 - **Save System**: Local browser storage with outfit persistence
@@ -123,28 +131,25 @@ A side-scrolling platformer game where a taekwondo expert collects robot parts t
 
 ```
 Project Structure:
-taekwando-tech/
-├── docs/
-│   └── project-plan.md
-├── index.html
+taekwondo-tech/
+├── docs/                       # project plan, testing guide, work log, features
+├── index.html                  # main entry point
+├── nocache.html                # cache-busted dev entry point
 ├── js/
-│   ├── game.js
-│   ├── scenes/
-│   │   ├── MenuScene.js
-│   │   ├── GameScene.js
-│   │   └── CraftScene.js
+│   ├── game.js                 # game manager, costume catalog, config
+│   ├── scenes/                 # MenuScene, GameScene, CraftScene,
+│   │                           #   BananaSurvivalScene, PacManScene
 │   ├── entities/
-│   │   ├── Player.js
-│   │   ├── Enemy.js
-│   │   └── Collectible.js
-│   └── utils/
-│       ├── Controls.js
-│       └── SaveSystem.js
-└── assets/
-    ├── sprites/
-    ├── levels/
-    └── audio/
+│   │   ├── Player.js           # player, costumes, abilities
+│   │   ├── Enemy.js, Collectible.js, Banana.js, VibeSpawn.js
+│   │   └── transformers/       # Transformer base + per-costume strategies
+│   └── utils/                  # Controls.js, SaveSystem.js
+├── tests/                      # Playwright specs + unit-tests.html
+└── .github/workflows/ci.yml    # lint + test pipeline
 ```
+
+All game art is procedurally drawn with Phaser shapes — there are no sprite
+or audio asset files.
 
 ## **🎯 Level Design**
 
@@ -168,6 +173,13 @@ taekwando-tech/
 - **Enemies**: Elite titans + boss
 - **Color Palette**: Purple/gold/electric blue
 - **Mechanics**: All previous mechanics + new challenges
+
+### **Levels 4–6: Advanced Challenge Levels**
+
+The run now spans 6 levels; levels 4–6 escalate enemy density, platforming
+difficulty, and gate the later costume unlocks (Shadow at Level 4, Earth at
+Level 5). Two bonus modes — **Banana Survival** and **Pac-Man** — are reachable
+from the Craft scene.
 
 ## **📱 Mobile Optimization**
 
@@ -234,8 +246,14 @@ taekwando-tech/
 ### **Automated Testing Framework**
 
 - **Tool**: Playwright for cross-browser automation
-- **Coverage**: 40+ test cases across 5 test files
 - **Browsers**: Chrome, Firefox, Safari, Mobile Chrome, Mobile Safari
+- **CI**: GitHub Actions runs `lint` (ESLint) and `test` (Playwright, Chromium)
+  on every pull request; a pre-commit hook runs lint-staged
+- **Active suites**: `vibecoder-*.spec.js`, `omega-prime.spec.js`,
+  `costume-picker.spec.js`, plus the passing `dragon-costume.spec.js` cases
+- **Quarantined**: the older `game-flow`, `level-completion`, `menu-operations`,
+  and `class-instantiation` specs predate later game changes and are skipped
+  pending repair (tracked in issue #39)
 
 ### **Test Categories**
 
@@ -267,18 +285,21 @@ taekwando-tech/
 ### **Running Tests**
 
 ```bash
-# Install test dependencies
+# Install dependencies
 npm install
 npx playwright install
 
 # Run all tests
 npm test
 
-# Run with browser visible
+# Run with browser visible / in debug mode
 npm run test:headed
-
-# Run in debug mode
 npm run test:debug
+
+# Lint + format + test
+npm run lint
+npm run format:check
+npm run check
 ```
 
 ### **Test Features**
