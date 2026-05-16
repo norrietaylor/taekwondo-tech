@@ -12,6 +12,11 @@
   // theme-swap (e.g. K-key Cyberpunk ↔ Solar Forge) is reflected the next
   // time visuals rebuild.
   const BLACK = 0x111111;
+  // The snake is drawn relative to the legendary sprite centre (player.sprite.y),
+  // but that centre sits ~80px above the ground. Drop the whole serpent by this
+  // many S-scaled px so its belly rests on the ground instead of floating at
+  // robot-torso height.
+  const SNAKE_GROUND_DROP = 38;
   // Robot form uses the costume's main palette (theme-swappable).
   function getPalette(player) {
     const costume =
@@ -228,7 +233,6 @@
 
   function buildSnakeVisuals(scene, player) {
     const px = player.sprite.x;
-    const py = player.sprite.y;
     const dir = player.facingRight ? 1 : -1;
     const pal = getSnakePalette(player); // always red regardless of robot theme
     const v = {};
@@ -238,6 +242,8 @@
     const costume =
       typeof player.getDragonCostume === 'function' ? player.getDragonCostume() : null;
     const S = (costume && costume.size ? costume.size : 2.5) / 2.5;
+    // Drop the serpent to ground level (see SNAKE_GROUND_DROP).
+    const py = player.sprite.y + SNAKE_GROUND_DROP * S;
     v._scale = S;
     const segmentCount = 14;
     v.segments = [];
@@ -493,10 +499,11 @@
     // reappears behind the serpent (the "comes back like this" bug).
     if (player.sprite && player.sprite.setAlpha) player.sprite.setAlpha(0);
     const px = player.sprite.x;
-    const py = player.sprite.y;
     const dir = player.facingRight ? 1 : -1;
     const now = Date.now();
     const S = parts._scale || 1;
+    // Drop the serpent to ground level (see SNAKE_GROUND_DROP).
+    const py = player.sprite.y + SNAKE_GROUND_DROP * S;
     if (parts.segments) {
       for (let i = 0; i < parts.segments.length; i++) {
         const seg = parts.segments[i];

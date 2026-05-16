@@ -1124,34 +1124,18 @@ class TaekwondoRobotBuilder {
       return;
     }
 
-    // Try to get the canvas - check multiple ways
-    let canvas = this.game ? this.game.canvas : null;
-
-    // If canvas not found via game object, try to find it in DOM
-    if (!canvas) {
-      canvas = document.querySelector('canvas');
-    }
-
-    if (!canvas) {
-      console.warn('Canvas not found, cannot enter fullscreen');
-      return;
-    }
-
-    // Try to request fullscreen on the canvas element
-    const requestFS =
-      canvas.requestFullscreen ||
-      canvas.webkitRequestFullscreen ||
-      canvas.mozRequestFullScreen ||
-      canvas.msRequestFullscreen;
-
-    if (requestFS) {
+    // Use Phaser's ScaleManager for fullscreen rather than a raw
+    // canvas.requestFullscreen(). When the canvas itself is the fullscreen
+    // element the browser stretches it to the screen, but Phaser still FIT-
+    // scales the game into a letterboxed area — so the rendered game and
+    // Phaser's input coordinate mapping disagree and on-screen buttons
+    // become hard to click. scale.startFullscreen() keeps the ScaleManager
+    // in control, so the display and click mapping stay aligned.
+    const scale = this.game && this.game.scale;
+    if (scale && scale.fullscreen && scale.fullscreen.available) {
       try {
-        requestFS.call(canvas).catch((_err) => {
-          // Silently fallback to iOS method - fullscreen API restrictions are expected
-          this.enterIOSFullscreen();
-        });
+        scale.startFullscreen();
       } catch (err) {
-        // Silently fallback to iOS method
         this.enterIOSFullscreen();
       }
     } else {
@@ -1251,6 +1235,13 @@ class TaekwondoRobotBuilder {
     // Check if we're in iOS fullscreen mode
     if (this._iosFullscreenActive) {
       this.exitIOSFullscreen();
+      return;
+    }
+
+    // Prefer Phaser's ScaleManager (mirrors startFullscreen in requestFullscreen).
+    const scale = this.game && this.game.scale;
+    if (scale && scale.isFullscreen) {
+      scale.stopFullscreen();
       return;
     }
 

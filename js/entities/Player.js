@@ -175,6 +175,11 @@ class Player {
       this.dogLaserCooldown = 0;
       this.dogLaserCooldownTime = 5000;
       this.doggedEnemies = [];
+      this.cowedEnemies = []; // Track enemies turned into cows
+      // Omega Prime punch — cycles duck → dog → cow animal lasers.
+      this.omegaPunchLaserIndex = 0;
+      this.omegaPunchLaserCooldown = 0;
+      this.omegaPunchLaserCooldownTime = 350; // ms between punch lasers
       // Hot Rod transformation (sports car / robot) - unlocks after level 2
       this.hotrodForm = 'robot';
       this.hotrodVisuals = [];
@@ -732,6 +737,13 @@ class Player {
     this.updateDuckedEnemies(delta);
     // Update dogged enemies (restore them after duration)
     this.updateDoggedEnemies(delta);
+    // Update cowed enemies (restore them after duration)
+    this.updateCowedEnemies(delta);
+
+    // Omega Prime punch-laser cooldown
+    if (this.omegaPunchLaserCooldown > 0) {
+      this.omegaPunchLaserCooldown -= delta;
+    }
   }
 
   handleMovement() {
@@ -805,19 +817,24 @@ class Player {
 
     const costume = this.getDragonCostume();
 
-    // Omega Prime in snake form: kick/punch fires a dramatic FIRE LASER
-    // from the snake's mouth. Replaces the fusion fireball while slithering.
+    // Omega Prime: KICK and PUNCH do different things.
+    //  - Kick: snake-mouth FIRE LASER (snake form) or fusion fireball (robot).
+    //  - Punch: cycles three "animal lasers" — duck → dog → cow.
     const omegaSnakeForm =
       costume.isOmegaPrime &&
       this.transformer &&
       typeof this.transformer.currentForm === 'function' &&
       this.transformer.currentForm() === 'snake';
-    if (omegaSnakeForm) {
-      if (
-        (this.controls.isKick() && !this.previousInputs.kick) ||
-        (this.controls.isPunch() && !this.previousInputs.punch)
-      ) {
-        this.shootSnakeFireLaser();
+    if (costume.isOmegaPrime) {
+      if (this.controls.isKick() && !this.previousInputs.kick) {
+        if (omegaSnakeForm) {
+          this.shootSnakeFireLaser();
+        } else {
+          this.shootFireball();
+        }
+      }
+      if (this.controls.isPunch() && !this.previousInputs.punch) {
+        this.fireOmegaPunchLaser();
       }
     }
     // In legendary mode (non-snake forms), kick and punch shoot fireballs
@@ -4171,7 +4188,7 @@ class Player {
     if (this.scene.enemies) {
       this.scene.physics.add.overlap(laser, this.scene.enemies, (laserSprite, enemySprite) => {
         const enemy = enemySprite.getData('enemy');
-        if (enemy && enemy.health > 0 && !enemy.isDucked && !enemy.isDogged) {
+        if (enemy && enemy.health > 0 && !enemy.isDucked && !enemy.isDogged && !enemy.isCowed) {
           this.transformToDuck(enemy, enemySprite);
         }
       });
@@ -4438,7 +4455,7 @@ class Player {
     if (this.scene.enemies) {
       this.scene.physics.add.overlap(laser, this.scene.enemies, (laserSprite, enemySprite) => {
         const enemy = enemySprite.getData('enemy');
-        if (enemy && enemy.health > 0 && !enemy.isDucked && !enemy.isDogged) {
+        if (enemy && enemy.health > 0 && !enemy.isDucked && !enemy.isDogged && !enemy.isCowed) {
           this.transformToDog(enemy, enemySprite);
         }
       });
@@ -4556,6 +4573,210 @@ class Player {
     sprite.setAlpha(1);
     if (dogSprite && dogSprite.active) dogSprite.destroy();
     enemy.dogSprite = null;
+    const poof = this.scene.add
+      .text(sprite.x, sprite.y, '💨', { fontSize: '32px' })
+      .setOrigin(0.5)
+      .setDepth(100);
+    this.scene.tweens.add({
+      targets: poof,
+      scaleX: 2,
+      scaleY: 2,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => poof.destroy(),
+    });
+  }
+
+  // Omega Prime PUNCH — fires an "animal laser" that cycles duck → dog → cow
+  // on each press. Each beam turns the enemies it hits into that harmless
+  // farm animal for a few seconds. Bypasses the L-key duck/dog cooldowns;
+  // gated by its own short cooldown so the cycle reads as distinct punches.
+  fireOmegaPunchLaser() {
+    if (this.omegaPunchLaserCooldown > 0) return;
+    this.omegaPunchLaserCooldown = this.omegaPunchLaserCooldownTime;
+    const startX = this.sprite.x + (this.facingRight ? 30 : -30);
+    const startY = this.sprite.y;
+    const direction = this.facingRight ? 1 : -1;
+    const types = ['duck', 'dog', 'cow'];
+    const type = types[this.omegaPunchLaserIndex % types.length];
+    this.omegaPunchLaserIndex++;
+    if (type === 'duck') {
+      this.createDuckLaserBeam(startX, startY, direction);
+    } else if (type === 'dog') {
+      this.createDogLaserBeam(startX, startY, direction);
+    } else {
+      this.createCowLaserBeam(startX, startY, direction);
+    }
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(120, 0.008);
+    }
+  }
+
+  createCowLaserBeam(startX, startY, direction) {
+    const laserSpeed = 700;
+    const laserDistance = 600;
+    const laserWidth = 100;
+    const laserHeight = 16;
+    const laser = this.scene.add.rectangle(startX, startY, laserWidth, laserHeight, 0xffffff, 0.9);
+    laser.setStrokeStyle(3, 0xff69b4); // pink stroke
+    laser.setDepth(100);
+    const cowEmoji = this.scene.add
+      .text(startX + direction * 50, startY, '🐄', { fontSize: '24px' })
+      .setOrigin(0.5)
+      .setDepth(101);
+    const splotch = this.scene.add.rectangle(
+      startX - direction * 20,
+      startY,
+      60,
+      laserHeight,
+      0xffc0cb,
+      0.6
+    );
+    splotch.setDepth(99);
+    this.scene.physics.add.existing(laser, false);
+    laser.body.setVelocityX(laserSpeed * direction);
+    laser.body.setAllowGravity(false);
+    laser.setData('startX', startX);
+    laser.setData('maxDistance', laserDistance);
+    laser.setData('direction', direction);
+    laser.setData('cowEmoji', cowEmoji);
+    laser.setData('splotch', splotch);
+    const updateEvent = this.scene.time.addEvent({
+      delay: 16,
+      callback: () => {
+        if (laser.active) {
+          cowEmoji.x = laser.x + direction * 50;
+          cowEmoji.y = laser.y;
+          splotch.x = laser.x - direction * 40;
+          splotch.y = laser.y;
+          const traveled = Math.abs(laser.x - startX);
+          if (traveled >= laserDistance) {
+            this.destroyCowLaser(laser);
+            updateEvent.destroy();
+          }
+        }
+      },
+      loop: true,
+    });
+    if (this.scene.enemies) {
+      this.scene.physics.add.overlap(laser, this.scene.enemies, (laserSprite, enemySprite) => {
+        const enemy = enemySprite.getData('enemy');
+        if (enemy && enemy.health > 0 && !enemy.isDucked && !enemy.isDogged && !enemy.isCowed) {
+          this.transformToCow(enemy, enemySprite);
+        }
+      });
+    }
+    this.scene.time.delayedCall(2000, () => {
+      if (laser.active) {
+        this.destroyCowLaser(laser);
+        updateEvent.destroy();
+      }
+    });
+  }
+
+  destroyCowLaser(laser) {
+    const cowEmoji = laser.getData('cowEmoji');
+    const splotch = laser.getData('splotch');
+    if (cowEmoji && cowEmoji.active) cowEmoji.destroy();
+    if (splotch && splotch.active) splotch.destroy();
+    if (laser.active) laser.destroy();
+  }
+
+  transformToCow(enemy, enemySprite) {
+    const originalData = {
+      enemy: enemy,
+      sprite: enemySprite,
+      originalSpeed: enemy.speed,
+      originalDamage: enemy.damage,
+      transformTime: Date.now(),
+    };
+    enemy.isCowed = true;
+    enemy.canAttack = false;
+    enemy.speed = 25; // cows amble
+    enemy.damage = 0;
+    const cowX = enemySprite.x;
+    const cowY = enemySprite.y;
+    enemySprite.setAlpha(0);
+    const cow = this.scene.add
+      .text(cowX, cowY, '🐄', { fontSize: '40px' })
+      .setOrigin(0.5)
+      .setDepth(enemySprite.depth);
+    this.scene.tweens.add({
+      targets: cow,
+      angle: { from: -6, to: 6 },
+      duration: 320,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+    enemy.cowSprite = cow;
+    for (let i = 0; i < 8; i++) {
+      const milk = this.scene.add
+        .text(cowX, cowY, '🥛', { fontSize: '14px' })
+        .setOrigin(0.5)
+        .setDepth(100);
+      const angle = (Math.PI * 2 * i) / 8;
+      this.scene.tweens.add({
+        targets: milk,
+        x: cowX + Math.cos(angle) * 45,
+        y: cowY + Math.sin(angle) * 45,
+        alpha: 0,
+        duration: 400,
+        onComplete: () => milk.destroy(),
+      });
+    }
+    const mooText = this.scene.add
+      .text(cowX, cowY - 40, 'MOO! 🐄', {
+        fontSize: '18px',
+        fill: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3,
+      })
+      .setOrigin(0.5)
+      .setDepth(102);
+    this.scene.tweens.add({
+      targets: mooText,
+      y: cowY - 70,
+      alpha: 0,
+      duration: 1000,
+      onComplete: () => mooText.destroy(),
+    });
+    this.cowedEnemies.push({
+      ...originalData,
+      cowSprite: cow,
+      restoreTime: Date.now() + 8000,
+    });
+  }
+
+  updateCowedEnemies(_delta) {
+    const now = Date.now();
+    for (let i = this.cowedEnemies.length - 1; i >= 0; i--) {
+      const cowed = this.cowedEnemies[i];
+      if (now >= cowed.restoreTime) {
+        this.restoreFromCow(cowed);
+        this.cowedEnemies.splice(i, 1);
+      } else {
+        if (cowed.cowSprite && cowed.cowSprite.active && cowed.sprite && cowed.sprite.active) {
+          cowed.cowSprite.x = cowed.sprite.x;
+          cowed.cowSprite.y = cowed.sprite.y;
+        }
+      }
+    }
+  }
+
+  restoreFromCow(cowed) {
+    const { enemy, sprite, cowSprite, originalSpeed, originalDamage } = cowed;
+    if (!enemy || !sprite || !sprite.active) {
+      if (cowSprite && cowSprite.active) cowSprite.destroy();
+      return;
+    }
+    enemy.isCowed = false;
+    enemy.canAttack = true;
+    enemy.speed = originalSpeed;
+    enemy.damage = originalDamage;
+    sprite.setAlpha(1);
+    if (cowSprite && cowSprite.active) cowSprite.destroy();
+    enemy.cowSprite = null;
     const poof = this.scene.add
       .text(sprite.x, sprite.y, '💨', { fontSize: '32px' })
       .setOrigin(0.5)
