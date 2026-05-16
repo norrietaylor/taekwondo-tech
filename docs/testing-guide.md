@@ -81,28 +81,28 @@ Your game is **already running** at: **http://localhost:8000**
   - Proper timing differences between death types
   - Visual differentiation between defeat methods
 
-### **🐉 Dragon Costume System**
+### **🐉 Costume System**
 
 - [ ] **Costume Selection**
-  - Open CraftScene and access Change Outfit button
-  - Verify all 5 dragon costumes display correctly
-  - Default Gi is unlocked and equipped
-  - Locked costumes show lock icon and requirements
+  - Open CraftScene and access the Change Outfit button
+  - The picker paginates through all 19 costumes
+  - Default Gi is unlocked and equipped at the start
+  - Locked costumes show a lock icon and their unlock requirement
 - [ ] **Unlock Conditions**
-  - Fire Dragon unlocks after completing Level 1
+  - Fire / Banana / Stone / VibeCoder / Omega Prime unlock after Level 1
   - Ice Dragon unlocks after collecting 5 robot parts
-  - Lightning Dragon unlocks after completing Level 2
-  - Shadow Dragon unlocks after completing the game
+  - Lightning / Hot Rod / Dino Grimlock / Portal Bot unlock after Level 2
+  - Legendary Mode unlocks after collecting all robot part types
   - Unlock notifications display with animation
+- [ ] **Transformers**
+  - `2` toggles transformer costumes between robot and alt form (`V` for VibeCoder)
+  - Omega Prime: `2` robot ↔ red serpent, `K` theme swap, `O` O-MEGA BLAST
+  - Omega Prime: punch cycles duck/dog/cow lasers, kick fires the fire laser/fireball
 - [ ] **Visual Effects**
-  - Player color changes when costume is equipped
-  - Jump effects match dragon costume colors
-  - Footstep particles use costume colors
-  - Belt color updates with costume
+  - Player visuals change when a costume is equipped
+  - Jump and footstep effects match the costume colors
 - [ ] **Persistence**
-  - Equipped costume persists after page reload
-  - Unlocked costumes remain unlocked
-  - Save/load maintains costume selection
+  - Equipped + unlocked costumes survive a page reload
 
 ### **📱 Mobile Testing**
 
@@ -176,76 +176,49 @@ Use browser dev tools to test:
 
 ### **Setup Instructions**
 
-1. **Run the setup script:**
-
-   ```bash
-   ./test-setup.sh
-   ```
-
-2. **Install dependencies manually (alternative):**
-   ```bash
-   npm install
-   npx playwright install
-   ```
+```bash
+npm install              # install dev dependencies
+npx playwright install   # install browsers (first run only)
+```
 
 ### **Running Automated Tests**
 
 ```bash
-# Run all tests (headless)
-npm test
-
-# Run tests with browser visible
-npm run test:headed
-
-# Run tests in debug mode (step-by-step)
-npm run test:debug
-
-# Start development server
-npm start
+npm start                # serve the game at http://localhost:8000
+npm test                 # run the Playwright suite
+npm run test:headed      # run with a visible browser
+npm run test:debug       # step-by-step debug mode
+npm run lint             # ESLint
+npm run format:check     # Prettier check  (npm run format to fix)
+npm run check            # lint + format + test
 ```
 
-### **Enhanced Test Coverage**
+### **Continuous Integration**
 
-Our comprehensive automated test suite covers:
+`.github/workflows/ci.yml` runs two jobs on every pull request:
 
-#### **Menu Operations Testing** (`menu-operations.spec.js`)
+- **lint** — ESLint + Prettier format check.
+- **test** — the Playwright suite on Chromium.
 
-- ✅ **Game Initialization**: Phaser.js loading and game instance creation
-- ✅ **Start Game Button**: Specific fix validation for reported issue
-- ✅ **Keyboard Navigation**: Arrow keys, Enter, Space key functionality
-- ✅ **Settings Dialog**: Sound toggle and state management
-- ✅ **Credits Display**: Content verification and dialog handling
-- ✅ **Save/Continue**: Game state persistence and reload testing
-- ✅ **Rapid Interactions**: Stress testing for UI responsiveness
-- ✅ **Memory Leak Detection**: Long-term stability monitoring
-- ✅ **Responsive Design**: Multi-screen size validation
-- ✅ **Error Monitoring**: Real-time JavaScript error detection
+A pre-commit hook runs lint-staged on staged files.
 
-#### **Game Flow Testing** (`game-flow.spec.js`)
+### **Test Coverage**
 
-- ✅ **Complete Gameplay**: Full game session from menu to gameplay
-- ✅ **Scene Transitions**: Menu → Game → Craft scene validation
-- ✅ **Player Controls**: Keyboard and touch input testing
-- ✅ **Combat System**: Attack animations and hit detection
-- ✅ **Mobile Touch Controls**: Virtual joystick and button testing
-- ✅ **Performance Metrics**: Frame rate and rendering efficiency
-- ✅ **Cross-Platform**: Desktop and mobile browser compatibility
-- ✅ **Visual Regression**: Screenshot comparison for UI consistency
-- ✅ **Error Handling**: Console error monitoring during gameplay
-- ✅ **Stress Testing**: Rapid key presses and user interactions
+Active Playwright specs:
 
-#### **Dragon Costume System Testing** (`dragon-costume.spec.js`)
+- **`vibecoder-transform.spec.js` / `vibecoder-spawns.spec.js` / `vibecoder-charm.spec.js`** —
+  VibeCoder costume: robot ↔ computer transform, ally spawning, charm ability.
+- **`omega-prime.spec.js`** — Omega Prime: costume catalog, Level 1 unlock gating,
+  robot ↔ snake transform, body resize, armor anti-jitter, theme swap,
+  O-MEGA BLAST 8-way fire + cooldown.
+- **`costume-picker.spec.js`** — canvas has no layout-affecting border,
+  screen→game input transform is exact (windowed + fullscreen), EQUIP click lands.
+- **`dragon-costume.spec.js`** — costume definitions, unlock conditions, selection,
+  persistence (the rotted legendary/craft-UI cases are `test.skip`).
 
-- ✅ **Costume Definitions**: Validates all 5 dragon costumes exist and data structure
-- ✅ **Unlock Conditions**: Tests Fire (Level 1), Ice (5 parts), Lightning (Level 2), Shadow (Complete)
-- ✅ **Costume Selection**: Verifies costume switching and locked costume prevention
-- ✅ **Save Persistence**: Confirms costume selection survives page reload
-- ✅ **UI Integration**: Tests CraftScene costume selection interface
-- ✅ **Progress Display**: Validates unlock progress text generation
-- ✅ **Multi-Unlock**: Tests multiple simultaneous unlocks
-- ✅ **Visual Effects**: Validates dragon effects are applied to player
-- ✅ **Data Validation**: Comprehensive costume data structure validation
-- ✅ **Duplicate Prevention**: Ensures costumes don't unlock multiple times
+**Quarantined** (skipped, pending repair — see issue #39): `game-flow.spec.js`,
+`level-completion.spec.js`, `menu-operations.spec.js`, `class-instantiation.spec.js`.
+These predate later scene-flow, costume-roster, and menu changes.
 
 ---
 
