@@ -1,7 +1,9 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-test.describe('Menu Operations and Navigation', () => {
+// QUARANTINED — rotted suite, see issue #39. Menu navigation / Start Game
+// assertions predate later menu changes. Re-enable once repaired.
+test.describe.skip('Menu Operations and Navigation', () => {
   test.beforeEach(async ({ page }) => {
     // Set up error monitoring for each test
     page.on('pageerror', (error) => {

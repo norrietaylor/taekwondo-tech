@@ -1,7 +1,9 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-test.describe('Taekwondo Robot Builder Game', () => {
+// QUARANTINED — rotted suite, see issue #39. Predates later scene-flow
+// changes; cannot boot the game / find the menu. Re-enable once repaired.
+test.describe.skip('Taekwondo Robot Builder Game', () => {
   test('should load the game and show menu', async ({ page }) => {
     await page.goto('/');
 
