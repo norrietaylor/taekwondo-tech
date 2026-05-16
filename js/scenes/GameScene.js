@@ -963,8 +963,8 @@ class GameScene extends Phaser.Scene {
     if (outfit === 'omegaPrime') {
       const form = this.player?.transformer?.currentForm?.() || 'robot';
       return form === 'snake'
-        ? '2 Robot Mode  •  Z/X Fire Laser  •  O O-MEGA BLAST'
-        : '2 Serpent Mode  •  O O-MEGA BLAST  •  K Theme Swap';
+        ? '2 Robot  •  Z Animal Laser  •  X Fire Laser  •  O O-MEGA BLAST'
+        : '2 Serpent  •  Z Animal Laser  •  X Fireball  •  O O-MEGA BLAST  •  K Theme';
     }
     if (costume.isLegendary) {
       return 'Z/X Mega Fireball (rotates colors)';
