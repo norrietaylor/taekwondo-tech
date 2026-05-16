@@ -443,6 +443,11 @@ class Controls {
     return this.keys['KeyT'] && this.keys['KeyS'];
   }
 
+  isOmegaBlast() {
+    // Omega Prime O-MEGA BLAST - press O
+    return this.keys['KeyO'];
+  }
+
   isGrimlockTransform() {
     // Dino Grimlock transformation - Press 2 to transform between Robot and Dinosaur
     return this.keys['Digit2'] || this.keys['Numpad2'];

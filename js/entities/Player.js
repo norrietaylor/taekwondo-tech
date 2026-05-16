@@ -19,7 +19,15 @@ class Player {
       const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
       const costume = window.gameInstance?.getDragonCostume(currentOutfit);
       const isLegendary = costume?.isLegendary || false;
-      const spriteSize = isLegendary ? { width: 80, height: 120 } : { width: 32, height: 48 }; // 2.5x instead of 5x
+      // Base 32x48; legendary scales by costume.size (default 2.5x → 80x120,
+      // Omega Prime 4.0x → 128x192, biggest sprite in the game).
+      const baseW = 32;
+      const baseH = 48;
+      const sizeMult = isLegendary ? costume.size || 2.5 : 1;
+      const spriteSize = {
+        width: Math.round(baseW * sizeMult),
+        height: Math.round(baseH * sizeMult),
+      };
 
       // Create main sprite container if legendary, otherwise simple rectangle
       if (isLegendary) {
@@ -65,9 +73,10 @@ class Player {
         this.sprite.setDepth(50);
       }
 
-      // Player properties
-      this.speed = 200;
-      this.jumpPower = 600;
+      // Player properties — costume can override these (legendary forms
+      // are larger and need higher base speed to feel responsive).
+      this.speed = (costume && costume.robotSpeed) || 200;
+      this.jumpPower = (costume && costume.robotJump) || 600;
       this.health = 100;
       this.maxHealth = 100;
 
@@ -140,6 +149,10 @@ class Player {
       this.stoneBlastCooldown = 0;
       this.stoneBlastCooldownTime = 3000; // 3 seconds between blasts
       this.stoneLasers = []; // Track active stone lasers
+
+      // Omega Prime O-MEGA BLAST — dual-direction laser → vortex → themed explosion.
+      this.omegaBlastCooldown = 0;
+      this.omegaBlastCooldownTime = 4000; // 4 seconds between blasts
 
       // Dino Grimlock transformation and duck laser
       this.grimlockForm = 'robot'; // 'robot' or 'dinosaur'
@@ -269,91 +282,94 @@ class Player {
   }
 
   createLegendarySprite() {
-    // Get costume data for all 5 dragons
     const costume = this.getDragonCostume();
-    const mapping = costume.bodyPartMapping;
+    const sizeMult = costume.size || 2.5;
+    const width = Math.round(32 * sizeMult);
+    const height = Math.round(48 * sizeMult);
 
-    // Get colors for each body part from their respective costumes
-    const defaultCostume = window.gameInstance.getDragonCostume(mapping.body);
-    const fireCostume = window.gameInstance.getDragonCostume(mapping.rightLeg);
-    const iceCostume = window.gameInstance.getDragonCostume(mapping.leftLeg);
-    const lightningSostume = window.gameInstance.getDragonCostume(mapping.leftArm);
-    const shadowCostume = window.gameInstance.getDragonCostume(mapping.rightArm);
+    // Omega Prime overrides the 6-dragon palette. The Power Ranger armor
+    // overlay covers the limbs/torso, so the underlying legendary sprite
+    // acts as a uniform "bodysuit" — all parts use the same dark accent
+    // color so leaks between armor pieces look like a continuous undersuit
+    // instead of two-tone limbs.
+    let headColor, bodyColor, beltColor, leftArmColor, rightArmColor, leftLegColor, rightLegColor;
+    if (costume.isOmegaPrime) {
+      const suit = costume.beltColor; // violet undersuit
+      headColor = suit;
+      bodyColor = suit;
+      beltColor = suit;
+      leftArmColor = suit;
+      rightArmColor = suit;
+      leftLegColor = suit;
+      rightLegColor = suit;
+    } else {
+      const mapping = costume.bodyPartMapping;
+      const defaultCostume = window.gameInstance.getDragonCostume(mapping.body);
+      const fireCostume = window.gameInstance.getDragonCostume(mapping.rightLeg);
+      const iceCostume = window.gameInstance.getDragonCostume(mapping.leftLeg);
+      const lightningSostume = window.gameInstance.getDragonCostume(mapping.leftArm);
+      const shadowCostume = window.gameInstance.getDragonCostume(mapping.rightArm);
+      headColor = defaultCostume.primaryColor;
+      bodyColor = defaultCostume.primaryColor;
+      beltColor = defaultCostume.beltColor;
+      leftArmColor = lightningSostume.primaryColor;
+      rightArmColor = shadowCostume.primaryColor;
+      leftLegColor = iceCostume.primaryColor;
+      rightLegColor = fireCostume.primaryColor;
+    }
 
-    // Legendary sprite is 2.5x size: 80x120 (vs 32x48)
-    const width = 80;
-    const height = 120;
-
-    // Head (body costume - default)
-    this.legendaryHead = this.scene.add.rectangle(
-      0,
-      -height / 2 + 30,
-      width * 0.5,
-      60,
-      defaultCostume.primaryColor
-    );
+    // Head
+    this.legendaryHead = this.scene.add.rectangle(0, -height / 2 + 30, width * 0.5, 60, headColor);
     this.legendaryHead.setStrokeStyle(3, 0x000000);
 
     // Eyes
     this.legendaryEye1 = this.scene.add.circle(-15, -height / 2 + 20, 5, 0xffffff);
     this.legendaryEye2 = this.scene.add.circle(15, -height / 2 + 20, 5, 0xffffff);
 
-    // Body/Torso (body costume - default)
-    this.legendaryBody = this.scene.add.rectangle(
-      0,
-      0,
-      width * 0.6,
-      height * 0.35,
-      defaultCostume.primaryColor
-    );
+    // Body/Torso
+    this.legendaryBody = this.scene.add.rectangle(0, 0, width * 0.6, height * 0.35, bodyColor);
     this.legendaryBody.setStrokeStyle(3, 0x000000);
 
     // Belt
-    this.legendaryBelt = this.scene.add.rectangle(
-      0,
-      height * 0.1,
-      width * 0.6,
-      10,
-      defaultCostume.beltColor
-    );
+    this.legendaryBelt = this.scene.add.rectangle(0, height * 0.1, width * 0.6, 10, beltColor);
 
-    // Left Arm (lightning costume)
+    // Left Arm
     this.legendaryLeftArm = this.scene.add.rectangle(
       -width * 0.35,
       -10,
       width * 0.15,
       height * 0.4,
-      lightningSostume.primaryColor
+      leftArmColor
     );
     this.legendaryLeftArm.setStrokeStyle(3, 0x000000);
 
-    // Right Arm (shadow costume)
+    // Right Arm
     this.legendaryRightArm = this.scene.add.rectangle(
       width * 0.35,
       -10,
       width * 0.15,
       height * 0.4,
-      shadowCostume.primaryColor
+      rightArmColor
     );
     this.legendaryRightArm.setStrokeStyle(3, 0x000000);
 
-    // Left Leg (ice costume)
+    // Left Leg
     this.legendaryLeftLeg = this.scene.add.rectangle(
       -width * 0.15,
       height * 0.25,
       width * 0.22,
       height * 0.35,
-      iceCostume.primaryColor
+      leftLegColor
     );
     this.legendaryLeftLeg.setStrokeStyle(3, 0x000000);
 
-    // Right Leg (fire costume)
+    // Right Leg
     this.legendaryRightLeg = this.scene.add.rectangle(
       width * 0.15,
       height * 0.25,
       width * 0.22,
       height * 0.35,
-      fireCostume.primaryColor
+      rightLegColor
     );
     this.legendaryRightLeg.setStrokeStyle(3, 0x000000);
 
@@ -475,6 +491,7 @@ class Player {
       currentOutfit === 'elita' ||
       currentOutfit === 'bmwBouncer' ||
       currentOutfit === 'portalbot' ||
+      currentOutfit === 'omegaPrime' ||
       !costume.hasWings
     ) {
       this.leftWing.setVisible(false);
@@ -561,6 +578,7 @@ class Player {
       activate: false,
       teleport: false,
       stoneBlast: false,
+      omegaBlast: false,
       grimlockTransform: false,
       duckLaser: false,
       dogLaser: false,
@@ -670,6 +688,11 @@ class Player {
     // Update stone blast cooldown
     if (this.stoneBlastCooldown > 0) {
       this.stoneBlastCooldown -= delta;
+    }
+
+    // Update Omega Prime O-MEGA BLAST cooldown
+    if (this.omegaBlastCooldown > 0) {
+      this.omegaBlastCooldown -= delta;
     }
 
     // Update Grimlock transform and duck laser cooldowns
@@ -782,8 +805,23 @@ class Player {
 
     const costume = this.getDragonCostume();
 
-    // In legendary mode, kick and punch shoot fireballs
-    if (costume.isLegendary && costume.fireballEnabled) {
+    // Omega Prime in snake form: kick/punch fires a dramatic FIRE LASER
+    // from the snake's mouth. Replaces the fusion fireball while slithering.
+    const omegaSnakeForm =
+      costume.isOmegaPrime &&
+      this.transformer &&
+      typeof this.transformer.currentForm === 'function' &&
+      this.transformer.currentForm() === 'snake';
+    if (omegaSnakeForm) {
+      if (
+        (this.controls.isKick() && !this.previousInputs.kick) ||
+        (this.controls.isPunch() && !this.previousInputs.punch)
+      ) {
+        this.shootSnakeFireLaser();
+      }
+    }
+    // In legendary mode (non-snake forms), kick and punch shoot fireballs
+    else if (costume.isLegendary && costume.fireballEnabled) {
       // Kick shoots fireball
       if (this.controls.isKick() && !this.previousInputs.kick) {
         this.shootFireball();
@@ -862,6 +900,8 @@ class Player {
 
     // Stone Dragon special move (T+S for laser-to-boulder blast)
     this.handleStoneBlast();
+    // Omega Prime O-MEGA BLAST (O = dual-direction laser → vortex → blast)
+    this.handleOmegaBlast();
 
     // Dino Grimlock special abilities
     this.handleGrimlockTransform();
@@ -885,6 +925,77 @@ class Player {
     this.handleVibeCoderSpawns();
     // VibeCoder charm ability (X = charm nearby enemies while in computer form)
     this.handleVibeCoderCharm();
+    // Omega Prime alt-theme K-key (Cyberpunk Neon <-> Solar Forge)
+    this.handleOmegaPrimeAltTheme();
+  }
+
+  handleOmegaPrimeAltTheme() {
+    if (!this.controls) return;
+    const game = window.gameInstance;
+    if (!game) return;
+    const currentOutfit = game.gameData?.outfits?.current;
+    if (currentOutfit !== 'omegaPrime') return;
+    const costume = game.dragonCostumes && game.dragonCostumes.omegaPrime;
+    if (!costume || !costume.altPalette) return;
+    const keyName = costume.altThemeKey || 'KeyK';
+    const pressed = !!(this.controls.keys && this.controls.keys[keyName]);
+    if (pressed && !this.previousInputs.omegaAltTheme) {
+      // Swap primary palette fields with the alt palette in-place,
+      // toggling between the two on every press. `snakeColors` is
+      // deliberately excluded — the serpent form stays RED regardless
+      // of the robot theme (see getSnakePalette in OmegaPrimeTransformer).
+      const alt = costume.altPalette;
+      const swapKeys = [
+        'primaryColor',
+        'secondaryColor',
+        'beltColor',
+        'effectColor',
+        'wingColor',
+        'wingTipColor',
+        'projectileColor',
+        'projectileSecondaryColor',
+        'fireballColors',
+        'robotColors',
+      ];
+      for (const k of swapKeys) {
+        if (alt[k] === undefined) continue;
+        const tmp = costume[k];
+        costume[k] = alt[k];
+        alt[k] = tmp;
+      }
+      // Toggle theme name label so the user knows which is active.
+      const tmpName = costume.altThemeName;
+      costume.altThemeName = costume._currentThemeName || 'Cyberpunk Neon';
+      costume._currentThemeName = tmpName || 'Solar Forge';
+      // Force the transformer to rebuild its visuals with the new palette.
+      if (this.transformer && typeof this.transformer.rebuildVisualsIfNeeded === 'function') {
+        this.transformer.rebuildVisualsIfNeeded(true);
+      }
+      // Pop a confirmation label in-world.
+      const label = this.scene.add
+        .text(
+          this.sprite.x,
+          this.sprite.y - 80,
+          '🎨 ' + (costume._currentThemeName || 'Theme swap'),
+          {
+            fontSize: '18px',
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4,
+            fontWeight: 'bold',
+          }
+        )
+        .setOrigin(0.5)
+        .setDepth(150);
+      this.scene.tweens.add({
+        targets: label,
+        y: this.sprite.y - 120,
+        alpha: 0,
+        duration: 1100,
+        onComplete: () => label.destroy(),
+      });
+    }
+    this.previousInputs.omegaAltTheme = pressed;
   }
 
   handleStoneBlast() {
@@ -1289,6 +1400,395 @@ class Player {
     }
   }
 
+  // ============================================
+  // OMEGA PRIME — O-MEGA BLAST
+  // Press O: fires a laser in all 8 directions; each laser collapses into a
+  // spinning vortex that then detonates in the robot's current theme
+  // colours (Cyberpunk Neon, or Solar Forge after a K-key swap).
+  // ============================================
+
+  handleOmegaBlast() {
+    if (!this.controls) return;
+    const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+    if (currentOutfit !== 'omegaPrime') return;
+    const pressed =
+      typeof this.controls.isOmegaBlast === 'function' ? this.controls.isOmegaBlast() : false;
+    if (pressed && !this.previousInputs.omegaBlast) {
+      this.performOmegaBlast();
+    }
+  }
+
+  // Resolve the active Omega Prime theme palette. primaryColor/secondaryColor/
+  // beltColor are swapped in place by the K-key theme toggle, so reading them
+  // here keeps the blast in sync with whichever theme is active.
+  getOmegaThemeColors() {
+    const c = this.getDragonCostume() || {};
+    return {
+      primary: typeof c.primaryColor === 'number' ? c.primaryColor : 0xff2db4,
+      secondary: typeof c.secondaryColor === 'number' ? c.secondaryColor : 0x00e5ff,
+      accent: typeof c.beltColor === 'number' ? c.beltColor : 0x6e27c5,
+    };
+  }
+
+  performOmegaBlast() {
+    if (this.omegaBlastCooldown > 0) {
+      return;
+    }
+    this.omegaBlastCooldown = this.omegaBlastCooldownTime;
+
+    const theme = this.getOmegaThemeColors();
+    const cx = this.sprite.x;
+    const cy = this.sprite.y - 5;
+
+    this.createOmegaBlastChargeEffect(cx, cy, theme);
+
+    // Fire a laser in 8 directions at once: left, right, up, down and
+    // the four diagonals — each collapses into its own vortex + blast.
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8;
+      this.createOmegaBlastLaser(
+        cx + Math.cos(angle) * 30,
+        cy + Math.sin(angle) * 30,
+        angle,
+        theme
+      );
+    }
+
+    const label = this.scene.add
+      .text(this.sprite.x, this.sprite.y - 70, 'O-MEGA BLAST!', {
+        fontSize: '22px',
+        fill: '#' + theme.secondary.toString(16).padStart(6, '0'),
+        stroke: '#' + theme.accent.toString(16).padStart(6, '0'),
+        strokeThickness: 5,
+        fontWeight: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(120);
+    this.scene.tweens.add({
+      targets: label,
+      y: this.sprite.y - 110,
+      alpha: 0,
+      duration: 900,
+      onComplete: () => label.destroy(),
+    });
+
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(200, 0.018);
+    }
+  }
+
+  createOmegaBlastLaser(startX, startY, angle, theme) {
+    const costume = this.getDragonCostume();
+    const laserSpeed = 700;
+    const laserDistance = 320; // travel distance before collapsing to a vortex
+    const laserWidth = 90;
+    const laserHeight = 14;
+    const vx = Math.cos(angle) * laserSpeed;
+    const vy = Math.sin(angle) * laserSpeed;
+
+    const laser = this.scene.add.rectangle(
+      startX,
+      startY,
+      laserWidth,
+      laserHeight,
+      theme.primary,
+      0.95
+    );
+    laser.setStrokeStyle(2, theme.secondary);
+    laser.setRotation(angle); // align the beam with its travel direction
+    laser.setDepth(100);
+
+    const glow = this.scene.add.rectangle(
+      startX,
+      startY,
+      laserWidth + 14,
+      laserHeight + 12,
+      theme.secondary,
+      0.35
+    );
+    glow.setRotation(angle);
+    glow.setDepth(99);
+
+    this.scene.physics.add.existing(laser);
+    laser.body.setVelocity(vx, vy);
+    laser.body.setAllowGravity(false);
+    this.scene.physics.add.existing(glow);
+    glow.body.setVelocity(vx, vy);
+    glow.body.setAllowGravity(false);
+
+    let transformed = false;
+
+    // Themed trailing particles, emitted behind the laser along its axis.
+    const trail = this.scene.time.addEvent({
+      delay: 45,
+      repeat: 14,
+      callback: () => {
+        if (!laser.active) {
+          trail.remove();
+          return;
+        }
+        const cols = [theme.primary, theme.secondary, theme.accent];
+        const p = this.scene.add.circle(
+          laser.x - Math.cos(angle) * 22 + (Math.random() - 0.5) * 12,
+          laser.y - Math.sin(angle) * 22 + (Math.random() - 0.5) * 12,
+          3 + Math.random() * 4,
+          cols[Math.floor(Math.random() * cols.length)],
+          0.7
+        );
+        p.setDepth(98);
+        this.scene.tweens.add({
+          targets: p,
+          alpha: 0,
+          scale: 0.3,
+          duration: 280,
+          onComplete: () => p.destroy(),
+        });
+      },
+    });
+
+    // The laser damages enemies it passes through.
+    if (this.scene.enemies) {
+      this.scene.physics.add.overlap(laser, this.scene.enemies, (laserSprite, enemySprite) => {
+        const enemy = enemySprite.getData('enemy');
+        if (enemy && enemy.health > 0) {
+          enemy.takeDamage((costume && costume.laserDamage) || 30, 'omegaLaser');
+        }
+      });
+    }
+
+    // After travelling its distance, the laser collapses into a vortex.
+    this.scene.time.delayedCall((laserDistance / laserSpeed) * 1000, () => {
+      if (!transformed && laser.active) {
+        transformed = true;
+        const endX = laser.x,
+          endY = laser.y;
+        laser.destroy();
+        glow.destroy();
+        this.createOmegaVortex(endX, endY, theme);
+      }
+    });
+
+    // Safety cleanup.
+    this.scene.time.delayedCall(2500, () => {
+      if (laser.active) laser.destroy();
+      if (glow.active) glow.destroy();
+    });
+  }
+
+  createOmegaVortex(x, y, theme) {
+    // A spinning vortex built from radial "arm" blades inside a container,
+    // so the whole swirl can be rotated and scaled with a single tween.
+    const vortex = this.scene.add.container(x, y);
+    vortex.setDepth(108);
+
+    const armCount = 7;
+    for (let i = 0; i < armCount; i++) {
+      const ang = (Math.PI * 2 * i) / armCount;
+      const arm = this.scene.add.triangle(
+        Math.cos(ang) * 14,
+        Math.sin(ang) * 14,
+        0,
+        -6,
+        46,
+        0,
+        0,
+        6,
+        i % 2 === 0 ? theme.primary : theme.secondary,
+        0.9
+      );
+      arm.setRotation(ang);
+      vortex.add(arm);
+    }
+    // Inner eye of the vortex (added last → renders on top of the arms).
+    const core = this.scene.add.circle(0, 0, 12, theme.accent, 0.95);
+    core.setStrokeStyle(2, theme.secondary);
+    vortex.add(core);
+
+    // Particles spiralling inward toward the vortex eye.
+    const spiral = this.scene.time.addEvent({
+      delay: 40,
+      repeat: 14,
+      callback: () => {
+        if (!vortex.active) {
+          spiral.remove();
+          return;
+        }
+        const a = Math.random() * Math.PI * 2;
+        const cols = [theme.primary, theme.secondary, theme.accent];
+        const p = this.scene.add.circle(
+          x + Math.cos(a) * 55,
+          y + Math.sin(a) * 55,
+          3 + Math.random() * 3,
+          cols[Math.floor(Math.random() * cols.length)],
+          0.85
+        );
+        p.setDepth(107);
+        this.scene.tweens.add({
+          targets: p,
+          x: x,
+          y: y,
+          alpha: 0,
+          scale: 0.2,
+          duration: 320,
+          ease: 'Quad.easeIn',
+          onComplete: () => p.destroy(),
+        });
+      },
+    });
+
+    // The vortex pulls nearby enemies toward its centre.
+    if (this.scene.enemies) {
+      this.scene.enemies.children.entries.forEach((es) => {
+        const enemy = es.getData('enemy');
+        if (enemy && enemy.health > 0 && es.body) {
+          const d = Phaser.Math.Distance.Between(x, y, es.x, es.y);
+          if (d <= 200 && d > 1) {
+            const pull = 260 * (1 - d / 200);
+            const ang = Math.atan2(y - es.y, x - es.x);
+            es.body.setVelocity(Math.cos(ang) * pull, Math.sin(ang) * pull - 60);
+          }
+        }
+      });
+    }
+
+    // Spin up, then detonate.
+    this.scene.tweens.add({
+      targets: vortex,
+      rotation: Math.PI * 5,
+      scaleX: { from: 0.3, to: 1.25 },
+      scaleY: { from: 0.3, to: 1.25 },
+      duration: 700,
+      ease: 'Cubic.easeIn',
+      onComplete: () => {
+        vortex.destroy();
+        this.createOmegaVortexExplosion(x, y, theme);
+      },
+    });
+  }
+
+  createOmegaVortexExplosion(x, y, theme) {
+    const costume = this.getDragonCostume();
+    const radius = (costume && costume.boulderRadius) || 120;
+    const damage = (costume && costume.boulderDamage) || 80;
+
+    // White core flash.
+    const flash = this.scene.add.circle(x, y, 16, 0xffffff, 0.95);
+    flash.setDepth(112);
+    this.scene.tweens.add({
+      targets: flash,
+      scale: radius / 16,
+      alpha: 0,
+      duration: 320,
+      ease: 'Power2',
+      onComplete: () => flash.destroy(),
+    });
+
+    // Expanding shockwave rings in the theme colours.
+    [theme.primary, theme.secondary, theme.accent].forEach((col, i) => {
+      const ring = this.scene.add.circle(x, y, 14, col, 0);
+      ring.setStrokeStyle(5, col);
+      ring.setDepth(111);
+      this.scene.tweens.add({
+        targets: ring,
+        scale: (radius / 14) * (1 + i * 0.15),
+        alpha: { from: 0.9, to: 0 },
+        duration: 420 + i * 80,
+        delay: i * 50,
+        ease: 'Power2',
+        onComplete: () => ring.destroy(),
+      });
+    });
+
+    // Energy shards flung outward in theme colours.
+    for (let i = 0; i < 18; i++) {
+      const ang = (Math.PI * 2 * i) / 18;
+      const dist = 40 + Math.random() * (radius - 40);
+      const cols = [theme.primary, theme.secondary, theme.accent];
+      const shard = this.scene.add.triangle(
+        x + Math.cos(ang) * 12,
+        y + Math.sin(ang) * 12,
+        0,
+        -8,
+        6,
+        6,
+        -6,
+        6,
+        cols[Math.floor(Math.random() * cols.length)],
+        0.95
+      );
+      shard.setRotation(ang);
+      shard.setDepth(110);
+      this.scene.tweens.add({
+        targets: shard,
+        x: x + Math.cos(ang) * dist,
+        y: y + Math.sin(ang) * dist,
+        rotation: shard.rotation + Math.PI * 2,
+        alpha: 0,
+        duration: 480 + Math.random() * 260,
+        ease: 'Power2',
+        onComplete: () => shard.destroy(),
+      });
+    }
+
+    // Damage + knockback enemies within the blast radius.
+    if (this.scene.enemies) {
+      this.scene.enemies.children.entries.forEach((es) => {
+        const enemy = es.getData('enemy');
+        if (enemy && enemy.health > 0) {
+          const d = Phaser.Math.Distance.Between(x, y, es.x, es.y);
+          if (d <= radius) {
+            const factor = 1 - (d / radius) * 0.5;
+            enemy.takeDamage(Math.floor(damage * factor), 'omegaBlast');
+            if (es.body) {
+              const ka = Math.atan2(es.y - y, es.x - x);
+              const kf = 360 * (1 - d / radius);
+              es.body.setVelocity(Math.cos(ka) * kf, Math.sin(ka) * kf - 120);
+            }
+          }
+        }
+      });
+    }
+
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(320, 0.032);
+    }
+  }
+
+  createOmegaBlastChargeEffect(x, y, theme) {
+    // Themed particles converging on the player.
+    for (let i = 0; i < 10; i++) {
+      const ang = (Math.PI * 2 * i) / 10;
+      const cols = [theme.primary, theme.secondary, theme.accent];
+      const p = this.scene.add.circle(
+        x + Math.cos(ang) * 55,
+        y + Math.sin(ang) * 55,
+        5,
+        cols[i % cols.length],
+        0.85
+      );
+      p.setDepth(103);
+      this.scene.tweens.add({
+        targets: p,
+        x: x,
+        y: y,
+        alpha: 0,
+        scale: 0.4,
+        duration: 220,
+        ease: 'Power2',
+        onComplete: () => p.destroy(),
+      });
+    }
+    const flash = this.scene.add.circle(x, y, 28, theme.secondary, 0.55);
+    flash.setDepth(102);
+    this.scene.tweens.add({
+      targets: flash,
+      scale: 2.2,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => flash.destroy(),
+    });
+  }
+
   handleTeleport() {
     // Safety check for controls
     if (!this.controls) {
@@ -1297,8 +1797,8 @@ class Player {
 
     // Check if player is wearing Earth Dragon costume
     const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-    if (currentOutfit !== 'earth') {
-      return; // Only Earth Dragon can teleport
+    if (currentOutfit !== 'earth' && currentOutfit !== 'omegaPrime') {
+      return; // Earth Dragon + Omega Prime can teleport
     }
 
     // Check for teleport key press (edge detection - only on press, not hold)
@@ -2249,7 +2749,7 @@ class Player {
   handleHotrodLaughter() {
     if (!this.controls) return;
     const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-    if (currentOutfit !== 'hotrod') return;
+    if (currentOutfit !== 'hotrod' && currentOutfit !== 'omegaPrime') return;
     const costume = this.getDragonCostume();
     if (!costume.laughterPowerEnabled) return;
     if (this.controls.isDuckLaser() && !this.previousInputs.duckLaser) {
@@ -2831,7 +3331,9 @@ class Player {
   handleBmwBouncerTransform() {
     if (!this.controls) return;
     const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-    if (currentOutfit !== 'bmwBouncer') return;
+    // Both BMW Bouncer and Omega Prime use the shared Transformer base
+    // and the Digit2 key. Route either through the active transformer.
+    if (currentOutfit !== 'bmwBouncer' && currentOutfit !== 'omegaPrime') return;
     if (!this.transformer) return;
     if (this.controls.isGrimlockTransform() && !this.previousInputs.grimlockTransform) {
       this.transformer.tryToggle();
@@ -3444,7 +3946,7 @@ class Player {
   handleBmwBouncerBounceSlam() {
     if (!this.controls) return;
     const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-    if (currentOutfit !== 'bmwBouncer') return;
+    if (currentOutfit !== 'bmwBouncer' && currentOutfit !== 'omegaPrime') return;
     const costume = this.getDragonCostume();
     if (!costume.bounceSlamEnabled) return;
     // Only in robot form - car mode uses nets. Form lives on the
@@ -3552,8 +4054,8 @@ class Player {
 
     // Check if player is wearing Grimlock costume
     const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-    if (currentOutfit !== 'grimlock') {
-      return; // Only Grimlock can use duck laser
+    if (currentOutfit !== 'grimlock' && currentOutfit !== 'omegaPrime') {
+      return; // Grimlock + Omega Prime can use duck laser
     }
 
     // Check for duck laser key press (edge detection)
@@ -3565,7 +4067,7 @@ class Player {
   handleDogLaser() {
     if (!this.controls) return;
     const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
-    if (currentOutfit !== 'bumblebee') return;
+    if (currentOutfit !== 'bumblebee' && currentOutfit !== 'omegaPrime') return;
     const costume = this.getDragonCostume();
     if (!costume.dogLaserEnabled) return;
     if (this.controls.isDuckLaser() && !this.previousInputs.dogLaser) {
@@ -4121,6 +4623,89 @@ class Player {
 
     // Check for enemies in punch range
     this.checkAttackHit('punch');
+  }
+
+  // Snake form (Omega Prime) primary attack — a dramatic fire-laser beam
+  // shot from the snake's mouth. High damage, long range, fast.
+  shootSnakeFireLaser() {
+    if (this.attackCooldown > 0) return;
+    this.attackCooldown = 250;
+    const dir = this.facingRight ? 1 : -1;
+    // Mouth-emitter position matches the snake's snout location (see
+    // OmegaPrimeTransformer.positionSnake — snout sits at ~ +dir*22, +py+6).
+    const startX = this.sprite.x + dir * 26;
+    const startY = this.sprite.y + 6;
+    const laserLength = 70;
+    const laserHeight = 10;
+    // Cyan-hot core (Portal Bot accent) with green outline (VibeCoder)
+    const core = this.scene.add.rectangle(startX, startY, laserLength, laserHeight, 0x00e5ff, 1.0);
+    core.setStrokeStyle(2, 0x00ff88);
+    core.setDepth(102);
+    // Outer violet plasma envelope (BMW M violet)
+    const flame = this.scene.add.rectangle(
+      startX,
+      startY,
+      laserLength + 14,
+      laserHeight + 8,
+      0x6e27c5,
+      0.55
+    );
+    flame.setDepth(101);
+    this.scene.physics.add.existing(core);
+    core.body.setVelocityX(dir * 900);
+    core.body.setAllowGravity(false);
+    this.scene.physics.add.existing(flame);
+    flame.body.setVelocityX(dir * 900);
+    flame.body.setAllowGravity(false);
+    // Sparks behind the laser — magenta + cyan trail
+    const sparkColors = [0xe040fb, 0x00e5ff, 0x00ff88];
+    for (let i = 0; i < 3; i++) {
+      const spark = this.scene.add.circle(
+        startX - dir * (8 + i * 6),
+        startY,
+        3 + i,
+        sparkColors[i],
+        0.85
+      );
+      spark.setDepth(100);
+      this.scene.tweens.add({
+        targets: spark,
+        alpha: 0,
+        scaleX: 2,
+        scaleY: 2,
+        duration: 250,
+        onComplete: () => spark.destroy(),
+      });
+    }
+    // Damage on enemy contact + auto-cleanup
+    if (this.scene.enemies) {
+      this.scene.physics.add.overlap(core, this.scene.enemies, (laser, enemy) => {
+        if (enemy && typeof enemy.takeDamage === 'function') {
+          enemy.takeDamage(50, 'snake-fire-laser');
+        }
+        if (laser && laser.destroy) laser.destroy();
+        if (flame && flame.destroy) flame.destroy();
+      });
+    }
+    // Cleanup after travel distance / time
+    this.scene.time.delayedCall(800, () => {
+      if (core && core.destroy) core.destroy();
+      if (flame && flame.destroy) flame.destroy();
+    });
+    // Mouth flash (cyan)
+    const flash = this.scene.add.circle(startX - dir * 6, startY, 10, 0x00e5ff, 0.9);
+    flash.setDepth(105);
+    this.scene.tweens.add({
+      targets: flash,
+      scaleX: 2.5,
+      scaleY: 2.5,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => flash.destroy(),
+    });
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(80, 0.005);
+    }
   }
 
   shootFireball() {
@@ -6262,6 +6847,8 @@ class Player {
     this.previousInputs.activate = this.controls.isActivate();
     this.previousInputs.teleport = this.controls.isTeleport();
     this.previousInputs.stoneBlast = this.controls.isStoneBlast();
+    this.previousInputs.omegaBlast =
+      typeof this.controls.isOmegaBlast === 'function' ? this.controls.isOmegaBlast() : false;
     this.previousInputs.grimlockTransform = this.controls.isGrimlockTransform();
     this.previousInputs.duckLaser = this.controls.isDuckLaser();
     this.previousInputs.dogLaser = this.controls.isDuckLaser();

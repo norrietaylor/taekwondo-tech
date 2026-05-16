@@ -563,6 +563,114 @@ class TaekwondoRobotBuilder {
         robotColors: { primary: 0x00ff88, secondary: 0x003311, accent: 0x00cc66 },
         computerColors: { primary: 0x111111, secondary: 0x00ff88, accent: 0x003311 },
       },
+      omegaPrime: {
+        name: 'Omega Prime',
+        icon: '🐍✨💜',
+        // CYBERPUNK NEON palette
+        primaryColor: 0xff2db4, // hot magenta
+        secondaryColor: 0x00e5ff, // electric cyan
+        beltColor: 0x6e27c5, // deep violet
+        description: 'Cyberpunk-neon serpent prime. Press 2 to become the magenta snake!',
+        unlockCondition: 'Complete Level 1',
+        effectColor: 0xff2db4,
+        unlocked: false,
+        hasWings: true,
+        wingColor: 0xff2db4,
+        wingStyle: 'legendary',
+        wingTipColor: 0x00e5ff,
+        // Inherit legendary fusion-sprite renderer + dragon body mapping
+        isLegendary: true,
+        // 4.0x normal: visually about 60% bigger than the previous
+        // 2.5x legendary, but still fits through level geometry and
+        // keeps body in sync with visual.
+        size: 4.0,
+        bodyPartMapping: {
+          leftLeg: 'ice',
+          rightLeg: 'fire',
+          leftArm: 'lightning',
+          rightArm: 'shadow',
+          body: 'default',
+          head: 'earth',
+        },
+        // Fusion fireball ultimate — Cyberpunk Neon palette
+        fireballEnabled: true,
+        fireballDamageMultiplier: 10,
+        fireballColors: [
+          0xff2db4, 0x00e5ff, 0x6e27c5, 0xffffff, 0xff66e0, 0x40ddff, 0xb388ff, 0xff2db4,
+        ],
+        fireballCooldown: 5,
+        // Primary projectile (cyan/magenta plasma)
+        projectileEnabled: true,
+        projectileType: 'fireball',
+        projectileColor: 0x00e5ff,
+        projectileSecondaryColor: 0xff2db4,
+        projectileDamage: 40,
+        projectileSpeed: 720,
+        projectileSize: 28,
+        projectileEffect: 'burnChain',
+        // Omega Prime identity flag
+        isOmegaPrime: true,
+        // Transformer pipeline — robot <-> red snake
+        canTransform: true,
+        transformKey: 'Digit2',
+        currentForm: 'robot',
+        robotSpeed: 360, // Powerful default — big robot, big speed
+        robotJump: 720, // Higher jump scales with bigger sprite
+        robotDamage: 1.5,
+        snakeSpeed: 480, // Fastest form in the game
+        snakeJump: 520,
+        snakeDamage: 1.3,
+        snakeSize: 1.4,
+        robotColors: { primary: 0xff2db4, secondary: 0x00e5ff, accent: 0x6e27c5 },
+        // Snake form stays RED regardless of robot theme — per spec the
+        // serpent is always a red snake.
+        snakeColors: { primary: 0xff0033, secondary: 0xcc0022, accent: 0xffd700 },
+        // Solar Forge alt skin — toggled with K key while in Omega Prime.
+        altThemeKey: 'KeyK',
+        altThemeName: 'Solar Forge',
+        altPalette: {
+          primaryColor: 0xff7a00, // molten orange
+          secondaryColor: 0xffd700, // gold
+          beltColor: 0xc81212, // crimson
+          effectColor: 0xff7a00,
+          wingColor: 0xff7a00,
+          wingTipColor: 0xffd700,
+          projectileColor: 0xffd700,
+          projectileSecondaryColor: 0xff7a00,
+          fireballColors: [
+            0xff7a00, 0xffd700, 0xc81212, 0xfff3b0, 0xff5500, 0xffae00, 0xff3300, 0xffd700,
+          ],
+          robotColors: { primary: 0xff7a00, secondary: 0xffd700, accent: 0xc81212 },
+          // No snakeColors override — the serpent form stays RED in
+          // every theme (handleOmegaPrimeAltTheme excludes it).
+        },
+        // Inherited transformer special-move arsenal
+        duckLaserEnabled: true, // Grimlock's L laser
+        duckLaserCooldown: 4000,
+        duckLaserKey: 'KeyL',
+        duckDuration: 10000,
+        dogLaserEnabled: true, // Bumblebee's L laser (fires alongside duck)
+        dogLaserCooldown: 4000,
+        dogLaserKey: 'KeyL',
+        dogDuration: 10000,
+        laughterPowerEnabled: true, // Hot Rod's sonic laughter
+        laughterCooldown: 5000,
+        laughterStunDuration: 3000,
+        laughterRange: 360,
+        bounceSlamEnabled: true, // BMW Bouncer's L slam
+        bounceSlamCooldown: 5000,
+        bounceSlamDamage: 60,
+        bounceSlamRange: 280,
+        bounceSlamLaunchVelocity: 700,
+        stoneBlastEnabled: true, // Stone Dragon T+S
+        stoneBlastCooldown: 2500,
+        laserDamage: 30,
+        boulderDamage: 80,
+        boulderRadius: 120,
+        // Festive ally summoning from Present Dragon
+        allyDuration: 12000,
+        allyDamage: 40,
+      },
     };
 
     this.config = {
@@ -885,6 +993,14 @@ class TaekwondoRobotBuilder {
     if (allPartsCollected && !this.gameData.outfits.unlocked.includes('legendary')) {
       if (this.unlockOutfit('legendary')) {
         newUnlocks.push('legendary');
+      }
+    }
+
+    // Omega Prime — Complete Level 1 (the ultimate fusion: all dragons +
+    // all transformers + red snake form).
+    if (this.gameData.currentLevel >= 2 && !this.gameData.outfits.unlocked.includes('omegaPrime')) {
+      if (this.unlockOutfit('omegaPrime')) {
+        newUnlocks.push('omegaPrime');
       }
     }
 
