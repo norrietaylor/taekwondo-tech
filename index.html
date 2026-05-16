@@ -27,7 +27,12 @@
         }
         
         canvas {
-            border: 2px solid #1a3d3b;
+            /* outline, not border: a border grows the canvas box so
+               getBoundingClientRect no longer matches the rendered game
+               area, offsetting every click (worst at screen edges in
+               fullscreen). outline is painted outside the box and leaves
+               input coordinate mapping exact. */
+            outline: 2px solid #1a3d3b;
             border-radius: 8px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             position: relative;
@@ -150,6 +155,51 @@
         <div style="font-size: 14px; margin-top: 10px;">Preparing your martial arts adventure</div>
     </div>
     
+    <!-- In-game key bindings overlay. Hidden by default — GameScene shows it
+         on create() and hides it on shutdown(), so it never appears on the
+         menu or craft screens. -->
+    <div id="keyBindingsPanel" style="
+        display: none;
+        position: fixed;
+        right: 10px;
+        bottom: 10px;
+        z-index: 9999;
+        background: rgba(0, 0, 0, 0.82);
+        color: #ffd700;
+        border: 2px solid #ffd700;
+        border-radius: 6px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+        padding: 8px 12px;
+        max-width: 360px;
+        pointer-events: none;
+        text-shadow: 1px 1px 2px #000;
+    ">
+        <div style="font-weight: bold; color: #ff3355; margin-bottom: 4px;">CONTROLS</div>
+        <div>←/→ &nbsp;or&nbsp; A/D &nbsp;&nbsp;&nbsp;Move</div>
+        <div>↑ / W / Space &nbsp;&nbsp;&nbsp;Jump</div>
+        <div>Z &nbsp;&nbsp;&nbsp;Punch (snake form: FIRE LASER)</div>
+        <div>X &nbsp;&nbsp;&nbsp;Kick (snake form: FIRE LASER)</div>
+        <div>E / Q &nbsp;&nbsp;&nbsp;Power-up</div>
+        <div>T &nbsp;&nbsp;&nbsp;Earth Teleport</div>
+        <div>T + S &nbsp;&nbsp;&nbsp;Stone Laser → Boulder</div>
+        <div>L &nbsp;&nbsp;&nbsp;Laser combo (Duck/Dog/Laugh/Slam)</div>
+        <div>2 &nbsp;&nbsp;&nbsp;Transform (Grimlock/Bumblebee/Hot Rod/Elita/BMW/Portal/Omega)</div>
+        <div>V &nbsp;&nbsp;&nbsp;VibeCoder transform (computer form)</div>
+        <div style="color:#ff66e0;">K &nbsp;&nbsp;&nbsp;Omega Prime: swap robot theme (Cyberpunk ↔ Solar Forge)</div>
+        <div style="color:#ff66e0;">O &nbsp;&nbsp;&nbsp;Omega Prime: O-MEGA BLAST (dual laser → vortex → blast)</div>
+        <div style="margin-top: 4px; font-size: 10px; color: #888;">Press H to hide</div>
+    </div>
+    <script>
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'KeyH') {
+                var p = document.getElementById('keyBindingsPanel');
+                if (p) p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+            }
+        });
+    </script>
+
     <div class="mobile-controls" id="mobileControls">
         <div class="control-pad">
             <div class="joystick" id="joystick">
@@ -173,6 +223,7 @@
     <script src="js/entities/Transformer.js"></script>
     <script src="js/entities/transformers/BMWBouncerTransformer.js"></script>
     <script src="js/entities/transformers/VibeCoderTransformer.js"></script>
+    <script src="js/entities/transformers/OmegaPrimeTransformer.js"></script>
     <script src="js/entities/VibeSpawn.js"></script>
     <script src="js/entities/Player.js"></script>
     <script src="js/entities/Enemy.js"></script>

@@ -640,7 +640,7 @@ class CraftScene extends Phaser.Scene {
         const newUnlocks = window.gameInstance.checkDragonUnlocks();
 
         // Available dragon costumes (banana is early unlock after Level 1 like fire, present unlocks after Level 3)
-        const dragonCostumes = ['default', 'bmwBouncer', 'vibeCoder', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary'];
+        const dragonCostumes = ['default', 'bmwBouncer', 'vibeCoder', 'fire', 'banana', 'stone', 'grimlock', 'bumblebee', 'hotrod', 'elita', 'portalbot', 'ice', 'lightning', 'present', 'shadow', 'earth', 'legendary', 'omegaPrime'];
         console.log('🐉 Loading dragon costumes:', dragonCostumes);
 
         // Calculate responsive overlay height and items per page
@@ -1069,6 +1069,9 @@ class CraftScene extends Phaser.Scene {
             case 'bmwBouncer':
                 // Available from start
                 return true;
+            case 'omegaPrime':
+                // Unlock after completing level 1
+                return gameData.currentLevel >= 2;
             case 'vibeCoder':
                 // Unlock after completing level 1
                 return gameData.currentLevel >= 2;
@@ -1121,6 +1124,8 @@ class CraftScene extends Phaser.Scene {
             case 'portalbot':
                 return `🔒 Complete Level 2 (Current: Level ${gameData.currentLevel})`;
             case 'vibeCoder':
+                return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
+            case 'omegaPrime':
                 return `🔒 Complete Level 1 (Current: Level ${gameData.currentLevel})`;
             case 'legendary':
                 const partTypes = ['head', 'body', 'arms', 'legs', 'powerCore'];

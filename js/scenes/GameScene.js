@@ -46,7 +46,16 @@ class GameScene extends Phaser.Scene {
     create() {
         try {
             console.log('GameScene create() started');
-            
+
+            // Show the in-game key bindings DOM panel (hidden on menu/craft).
+            const bindings = document.getElementById('keyBindingsPanel');
+            if (bindings) bindings.style.display = 'block';
+            // Hide it again when this scene shuts down (returning to menu etc.).
+            this.events.once('shutdown', () => {
+                const p = document.getElementById('keyBindingsPanel');
+                if (p) p.style.display = 'none';
+            });
+
             // Reset level completion state for new level
             this.levelComplete = false;
             
@@ -891,6 +900,8 @@ class GameScene extends Phaser.Scene {
         
         // Power-up queue UI
         this.createPowerUpQueueUI();
+        // (Key-bindings panel lives in index.html as a DOM overlay — see
+        // #keyBindingsPanel — so it's visible across all scenes.)
     }
 
     createHealthBar() {

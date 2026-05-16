@@ -16,7 +16,12 @@
         canvas {
             display: block;
             margin: 0 auto;
-            border: 2px solid #1a3d3b;
+            /* outline, not border: a border grows the canvas box so
+               getBoundingClientRect no longer matches the rendered game
+               area, offsetting every click (worst at screen edges in
+               fullscreen). outline is painted outside the box and leaves
+               input coordinate mapping exact. */
+            outline: 2px solid #1a3d3b;
             border-radius: 8px;
         }
         #loading {
@@ -48,6 +53,7 @@
             'js/entities/Transformer.js',
             'js/entities/transformers/BMWBouncerTransformer.js',
             'js/entities/transformers/VibeCoderTransformer.js',
+            'js/entities/transformers/OmegaPrimeTransformer.js',
             'js/entities/VibeSpawn.js',
             'js/entities/Player.js',
             'js/entities/Enemy.js',
