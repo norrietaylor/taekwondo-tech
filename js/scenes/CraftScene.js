@@ -666,6 +666,7 @@ class CraftScene extends Phaser.Scene {
     const dragonCostumes = [
       'default',
       'bmwBouncer',
+      'wingRocketSaver5',
       'vibeCoder',
       'fire',
       'banana',
@@ -1134,6 +1135,9 @@ class CraftScene extends Phaser.Scene {
         // Unlock after completing level 4
         return gameData.currentLevel >= 5;
       case 'bmwBouncer':
+        // Available from start
+        return true;
+      case 'wingRocketSaver5':
         // Available from start
         return true;
       case 'omegaPrime':

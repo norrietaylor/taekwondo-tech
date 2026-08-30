@@ -96,6 +96,7 @@ class Controls {
         'KeyS',
         'KeyX',
         'KeyZ',
+        'KeyM',
       ];
       if (gameKeys.includes(event.code)) {
         event.preventDefault();
@@ -456,6 +457,11 @@ class Controls {
   isVibeCoderTransform() {
     // VibeCoder transformation - Press V to toggle between robot and computer
     return this.keys['KeyV'];
+  }
+
+  isSummonMech() {
+    // Wing Rocket Saver 5 — press M to summon the mech into the world.
+    return this.keys['KeyM'];
   }
 
   isDuckLaser() {

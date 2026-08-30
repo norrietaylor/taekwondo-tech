@@ -453,6 +453,13 @@ class MenuScene extends Phaser.Scene {
       // Reset game data for new game
       window.gameInstance.resetGame();
 
+      // Honour the "start as Wing Rocket Saver 5" setting. resetGame()
+      // preserves settings, and the costume is unlocked from the start, so
+      // setOutfit() takes effect here.
+      if (window.gameInstance.gameData.settings.startAsWingRocketSaver5) {
+        window.gameInstance.setOutfit('wingRocketSaver5');
+      }
+
       // Request fullscreen
       if (window.gameInstance.requestFullscreen) {
         window.gameInstance.requestFullscreen();
@@ -539,6 +546,34 @@ class MenuScene extends Phaser.Scene {
       );
     });
 
+    const mechStartToggle = this.add
+      .text(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY + 20,
+        `Start as Wing Rocket Saver 5: ${
+          window.gameInstance.gameData.settings.startAsWingRocketSaver5 ? 'ON' : 'OFF'
+        }`,
+        {
+          fontSize: '16px',
+          fill: '#ffffff',
+          backgroundColor: '#3e8084',
+          padding: { x: 15, y: 8 },
+        }
+      )
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    mechStartToggle.on('pointerdown', () => {
+      window.gameInstance.gameData.settings.startAsWingRocketSaver5 =
+        !window.gameInstance.gameData.settings.startAsWingRocketSaver5;
+      window.gameInstance.saveGameData();
+      mechStartToggle.setText(
+        `Start as Wing Rocket Saver 5: ${
+          window.gameInstance.gameData.settings.startAsWingRocketSaver5 ? 'ON' : 'OFF'
+        }`
+      );
+    });
+
     const closeButton = this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY + 80, 'Close', {
         fontSize: '20px',
@@ -553,6 +588,7 @@ class MenuScene extends Phaser.Scene {
       overlay.destroy();
       settingsText.destroy();
       soundToggle.destroy();
+      mechStartToggle.destroy();
       closeButton.destroy();
     });
   }

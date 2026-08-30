@@ -671,6 +671,58 @@ class TaekwondoRobotBuilder {
         allyDuration: 12000,
         allyDamage: 40,
       },
+      wingRocketSaver5: {
+        name: 'Wing Rocket Saver 5',
+        icon: '🥷🤖',
+        // Ninja form is GREEN — this is the picker/base identity.
+        primaryColor: 0x2e8b57, // sea green gi
+        secondaryColor: 0x7cfc00, // lawn green trim
+        beltColor: 0x14532d, // deep forest belt
+        description: 'Green ninja! M summons the red mech, 2 boards it!',
+        unlockCondition: 'Available from start',
+        effectColor: 0x7cfc00,
+        unlocked: true,
+        // Wings belong to the MECH form only and are drawn by the transformer.
+        // Keeping this false makes the generic wing renderer short-circuit.
+        hasWings: false,
+        wingColor: null,
+        wingStyle: 'none',
+        // Identity flag used by the Player combat/ability branches
+        isWingRocketSaver5: true,
+        // Transformer traits — ninja <-> mech (see WingRocketSaver5Transformer.js)
+        canTransform: true,
+        transformKey: 'Digit2',
+        currentForm: 'ninja',
+        ninjaSpeed: 290, // fast and light on his feet
+        ninjaJump: 520,
+        ninjaDamage: 1.0,
+        mechSpeed: 200, // heavy, slower, hits far harder
+        mechJump: 400,
+        mechDamage: 1.6,
+        ninjaColors: { primary: 0x2e8b57, secondary: 0x7cfc00, accent: 0x14532d },
+        mechColors: { primary: 0xd62828, secondary: 0xff4500, accent: 0xffd700 },
+        // MECH punch — swords fired from the hands (ninja form fires nothing)
+        projectileEnabled: true,
+        projectileType: 'sword',
+        projectileColor: 0xe8eef5, // polished blade
+        projectileSecondaryColor: 0xffd700, // gold hilt
+        projectileDamage: 26,
+        projectileSpeed: 660,
+        projectileSize: 20,
+        projectileEffect: 'none',
+        // MECH kick — tethered dragon-arm rocket punch
+        dragonArmEnabled: true,
+        dragonArmCooldown: 1400,
+        dragonArmDamage: 45,
+        dragonArmRange: 300,
+        dragonArmSpeed: 1100, // px/sec of chain extension
+        // Summon / board tuning
+        summonKey: 'KeyM',
+        summonPoseMs: 600,
+        summonCooldown: 1200,
+        summonOffsetX: 110, // how far in front the mech materializes
+        boardRadius: 90,
+      },
     };
 
     this.config = {
@@ -732,7 +784,7 @@ class TaekwondoRobotBuilder {
       },
       outfits: {
         current: 'default',
-        unlocked: ['default', 'bmwBouncer'],
+        unlocked: ['default', 'bmwBouncer', 'wingRocketSaver5'],
       },
       powerUps: {
         fireBreath: false,
@@ -742,6 +794,8 @@ class TaekwondoRobotBuilder {
       settings: {
         soundEnabled: true,
         musicEnabled: true,
+        // Menu toggle: begin a New Game already wearing Wing Rocket Saver 5.
+        startAsWingRocketSaver5: false,
       },
     };
 
@@ -831,13 +885,14 @@ class TaekwondoRobotBuilder {
     if (savedData) {
       this.gameData = { ...this.gameData, ...savedData };
     }
-    // Ensure BMW Bouncer (from-start costume) is always in unlocked list
-    if (
-      this.gameData.outfits &&
-      Array.isArray(this.gameData.outfits.unlocked) &&
-      !this.gameData.outfits.unlocked.includes('bmwBouncer')
-    ) {
-      this.gameData.outfits.unlocked.push('bmwBouncer');
+    // Ensure the from-start costumes are always in the unlocked list, including
+    // for saves written before they existed.
+    if (this.gameData.outfits && Array.isArray(this.gameData.outfits.unlocked)) {
+      ['bmwBouncer', 'wingRocketSaver5'].forEach((key) => {
+        if (!this.gameData.outfits.unlocked.includes(key)) {
+          this.gameData.outfits.unlocked.push(key);
+        }
+      });
     }
   }
 
@@ -1067,6 +1122,10 @@ class TaekwondoRobotBuilder {
   }
 
   resetGame() {
+    // Settings are player preferences, not run progress — carry them across a
+    // reset so e.g. the "start as Wing Rocket Saver 5" toggle and the sound
+    // setting survive starting a New Game.
+    const preservedSettings = { ...(this.gameData && this.gameData.settings) };
     this.gameData = {
       currentLevel: 1,
       score: 0,
@@ -1079,7 +1138,7 @@ class TaekwondoRobotBuilder {
       },
       outfits: {
         current: 'default',
-        unlocked: ['default', 'bmwBouncer'],
+        unlocked: ['default', 'bmwBouncer', 'wingRocketSaver5'],
       },
       powerUps: {
         fireBreath: false,
@@ -1089,6 +1148,9 @@ class TaekwondoRobotBuilder {
       settings: {
         soundEnabled: true,
         musicEnabled: true,
+        // Menu toggle: begin a New Game already wearing Wing Rocket Saver 5.
+        startAsWingRocketSaver5: false,
+        ...preservedSettings,
       },
     };
     this.saveGameData();
