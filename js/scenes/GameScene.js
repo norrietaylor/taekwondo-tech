@@ -966,6 +966,13 @@ class GameScene extends Phaser.Scene {
         ? '2 Robot  •  Z Animal Laser  •  X Fire Laser  •  O O-MEGA BLAST'
         : '2 Serpent  •  Z Animal Laser  •  X Fireball  •  O O-MEGA BLAST  •  K Theme';
     }
+    if (outfit === 'wingRocketSaver5') {
+      const form = this.player?.transformer?.currentForm?.() || 'ninja';
+      if (form === 'mech') {
+        return '2 Eject  •  Z Sword  •  X Dragon Arm';
+      }
+      return this.player?.mechSuit ? 'M Summon  •  2 Board Mech (walk close)' : 'M Summon Mech';
+    }
     if (costume.isLegendary) {
       return 'Z/X Mega Fireball (rotates colors)';
     }

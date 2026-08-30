@@ -180,6 +180,15 @@ class Player {
       this.omegaPunchLaserIndex = 0;
       this.omegaPunchLaserCooldown = 0;
       this.omegaPunchLaserCooldownTime = 350; // ms between punch lasers
+      // Wing Rocket Saver 5 — the ninja summons a MechSuit into the world (M),
+      // then boards it (2). mechSuit holds the standing, unboarded mech; it is
+      // null both before summoning and while the player is piloting it.
+      this.mechSuit = null;
+      this.summonPoseMs = 0; // >0 while the hands-together charge is playing
+      this.summonCooldown = 0;
+      this.swordHandIndex = 0; // alternates the sword emit between both hands
+      this.dragonArm = null; // live tethered rocket-punch state, or null
+      this.dragonArmCooldown = 0;
       // Hot Rod transformation (sports car / robot) - unlocks after level 2
       this.hotrodForm = 'robot';
       this.hotrodVisuals = [];
@@ -240,6 +249,8 @@ class Player {
       if (scene && scene.events) {
         scene.events.once('shutdown', () => {
           this.cleanupVibeSpawns();
+          this.cleanupMechSuit();
+          this.cleanupDragonArm();
         });
       }
     } catch (error) {
@@ -592,6 +603,7 @@ class Player {
       vibeSpawn2: false,
       vibeSpawn3: false,
       vibeCharm: false,
+      summonMech: false,
     };
   }
 
@@ -649,6 +661,10 @@ class Player {
 
     // Tick all live VibeCoder ally spawns.
     this._updateVibeSpawns(delta);
+
+    // Tick the standing Wing Rocket Saver 5 mech + any in-flight dragon arm.
+    this._updateMechSuit(delta);
+    this._updateDragonArm(delta);
 
     // Update grounded state
     this.updateGroundedState();
@@ -744,6 +760,20 @@ class Player {
     if (this.omegaPunchLaserCooldown > 0) {
       this.omegaPunchLaserCooldown -= delta;
     }
+
+    // Wing Rocket Saver 5 — summon / dragon-arm cooldowns + the charge pose
+    if (this.summonCooldown > 0) {
+      this.summonCooldown -= delta;
+      if (this.summonCooldown < 0) this.summonCooldown = 0;
+    }
+    if (this.dragonArmCooldown > 0) {
+      this.dragonArmCooldown -= delta;
+      if (this.dragonArmCooldown < 0) this.dragonArmCooldown = 0;
+    }
+    if (this.summonPoseMs > 0) {
+      this.summonPoseMs -= delta;
+      if (this.summonPoseMs < 0) this.summonPoseMs = 0;
+    }
   }
 
   handleMovement() {
@@ -835,6 +865,27 @@ class Player {
       }
       if (this.controls.isPunch() && !this.previousInputs.punch) {
         this.fireOmegaPunchLaser();
+      }
+    }
+    // Wing Rocket Saver 5: only the MECH form has ranged attacks.
+    //  - Punch: fires a sword from alternating hands.
+    //  - Kick: launches the tethered dragon-arm rocket punch.
+    // The ninja form keeps plain melee — no projectile.
+    else if (costume.isWingRocketSaver5) {
+      const inMech =
+        this.transformer &&
+        typeof this.transformer.currentForm === 'function' &&
+        this.transformer.currentForm() === 'mech';
+      if (inMech) {
+        if (this.controls.isPunch() && !this.previousInputs.punch) {
+          // shootDragonProjectile owns the projectileType switch (incl. 'sword').
+          // shootFireball() is the LEGENDARY fusion attack and needs
+          // costume.fireballColors, which this costume does not define.
+          this.shootDragonProjectile();
+        }
+        if (this.controls.isKick() && !this.previousInputs.kick) {
+          this.fireDragonArm();
+        }
       }
     }
     // In legendary mode (non-snake forms), kick and punch shoot fireballs
@@ -944,6 +995,9 @@ class Player {
     this.handleVibeCoderCharm();
     // Omega Prime alt-theme K-key (Cyberpunk Neon <-> Solar Forge)
     this.handleOmegaPrimeAltTheme();
+    // Wing Rocket Saver 5 (M = summon mech, 2 = board/eject)
+    this.handleMechSummon();
+    this.handleMechBoard();
   }
 
   handleOmegaPrimeAltTheme() {
@@ -3545,6 +3599,379 @@ class Player {
     }
   }
 
+  // =======================================================================
+  // Wing Rocket Saver 5 — summon / board / eject + the dragon-arm rocket punch
+  // =======================================================================
+
+  /** True when the active outfit is Wing Rocket Saver 5. */
+  _isWingRocketSaver5() {
+    const currentOutfit = window.gameInstance?.gameData?.outfits?.current || 'default';
+    return currentOutfit === 'wingRocketSaver5';
+  }
+
+  /** True while the player is piloting the mech (as opposed to being the ninja). */
+  _isPilotingMech() {
+    return !!(
+      this.transformer &&
+      typeof this.transformer.currentForm === 'function' &&
+      this.transformer.currentForm() === 'mech'
+    );
+  }
+
+  /**
+   * M — the ninja throws his hands together and a mech materializes in front.
+   * Refused while piloting, while a mech already stands, or on cooldown:
+   * there is only ever one mech.
+   */
+  handleMechSummon() {
+    if (!this.controls || !this._isWingRocketSaver5()) return;
+    const pressed =
+      typeof this.controls.isSummonMech === 'function' ? this.controls.isSummonMech() : false;
+    if (!pressed || this.previousInputs.summonMech) return;
+    if (this._isPilotingMech()) return;
+    if (this.mechSuit && this.mechSuit.alive) return;
+    if (this.summonCooldown > 0 || this.summonPoseMs > 0) return;
+
+    const costume = this.getDragonCostume();
+    const poseMs = costume.summonPoseMs || 600;
+    this.summonPoseMs = poseMs;
+    this.summonCooldown = costume.summonCooldown || 1200;
+
+    // The pose itself is read by the transformer's positionNinja (arms come
+    // together); this adds the charging energy between the hands.
+    this.createSummonChargeEffect(poseMs);
+
+    const dir = this.facingRight ? 1 : -1;
+    const offsetX = costume.summonOffsetX || 110;
+    const spawnX = this.sprite.x + dir * offsetX;
+    const spawnY = this.sprite.y - 10;
+
+    this.scene.time.delayedCall(poseMs, () => {
+      // Guard: the player may have died, changed costume, or boarded another
+      // mech during the charge.
+      if (!this._isWingRocketSaver5() || this._isPilotingMech()) return;
+      if (this.mechSuit && this.mechSuit.alive) return;
+      this.summonMechSuit(spawnX, spawnY);
+    });
+  }
+
+  /** Charging glow between the ninja's palms during the hands-together pose. */
+  createSummonChargeEffect(poseMs) {
+    const dir = this.facingRight ? 1 : -1;
+    const cx = this.sprite.x + dir * 12;
+    const cy = this.sprite.y + 4;
+
+    const core = this.scene.add.circle(cx, cy, 5, 0x7cfc00, 0.9);
+    core.setDepth(70);
+    this.scene.tweens.add({
+      targets: core,
+      scaleX: 2.6,
+      scaleY: 2.6,
+      alpha: 0,
+      duration: poseMs,
+      onComplete: () => core.destroy(),
+    });
+
+    for (let i = 0; i < 3; i++) {
+      const ring = this.scene.add.circle(cx, cy, 8 + i * 4, 0xd62828, 0);
+      ring.setStrokeStyle(2, i % 2 === 0 ? 0x7cfc00 : 0xffd700);
+      ring.setDepth(69);
+      this.scene.tweens.add({
+        targets: ring,
+        scaleX: 0.2,
+        scaleY: 0.2,
+        alpha: 0,
+        duration: poseMs,
+        delay: i * 70,
+        onComplete: () => ring.destroy(),
+      });
+    }
+  }
+
+  /**
+   * 2 — board the standing mech (only when close enough), or eject from it.
+   * The proximity gate lives here rather than in the Transformer base, which
+   * has no "may I toggle?" predicate.
+   */
+  handleMechBoard() {
+    if (!this.controls || !this._isWingRocketSaver5()) return;
+    if (!this.transformer) return;
+    if (!this.controls.isGrimlockTransform() || this.previousInputs.grimlockTransform) return;
+
+    if (this._isPilotingMech()) {
+      // Ejecting is always allowed; onToggle leaves a mech standing behind.
+      this.transformer.tryToggle();
+      return;
+    }
+
+    // Boarding requires a live mech within reach.
+    if (!this.mechSuit || !this.mechSuit.alive) return;
+    const costume = this.getDragonCostume();
+    const radius = costume.boardRadius || 90;
+    if (!this.mechSuit.isNear(this.sprite.x, this.sprite.y, radius)) return;
+
+    // Step into the mech so the pilot and the shell line up on boarding.
+    // body.reset() moves the arcade body WITH the sprite — sprite.setPosition
+    // alone leaves the physics body behind at the old spot.
+    const pos = this.mechSuit.getPosition();
+    if (pos) {
+      if (this.body && typeof this.body.reset === 'function') {
+        this.body.reset(pos.x, pos.y);
+      } else {
+        this.sprite.setPosition(pos.x, pos.y);
+      }
+    }
+    this.transformer.tryToggle();
+  }
+
+  /**
+   * Create the standing mech entity. Mirrors spawnVibeAlly's guarded
+   * construction. Returns the MechSuit, or null if it could not be built.
+   */
+  summonMechSuit(x, y) {
+    const MechSuitCtor =
+      (typeof window !== 'undefined' && window.MechSuit) ||
+      (typeof MechSuit !== 'undefined' ? MechSuit : null);
+    if (!MechSuitCtor) {
+      console.error('summonMechSuit: MechSuit class not loaded');
+      return null;
+    }
+    let suit;
+    try {
+      suit = new MechSuitCtor(this.scene, x, y, this.getDragonCostume());
+    } catch (e) {
+      console.error('summonMechSuit: failed to create MechSuit', e);
+      return null;
+    }
+    this.mechSuit = suit;
+
+    // Arrival flourish
+    const flash = this.scene.add.circle(x, y, 30, 0xffd700, 0.6);
+    flash.setDepth(99);
+    this.scene.tweens.add({
+      targets: flash,
+      scaleX: 2.4,
+      scaleY: 2.4,
+      alpha: 0,
+      duration: 420,
+      onComplete: () => flash.destroy(),
+    });
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(220, 0.014);
+    }
+    return suit;
+  }
+
+  /** The player boarded — the standing entity is absorbed into the pilot. */
+  consumeStandingMech() {
+    if (this.mechSuit) {
+      try {
+        this.mechSuit.despawn();
+      } catch (e) {
+        /* noop */
+      }
+    }
+    this.mechSuit = null;
+  }
+
+  /** The player ejected — leave a mech standing right where they are. */
+  dropStandingMech() {
+    if (this.mechSuit && this.mechSuit.alive) return;
+    this.summonMechSuit(this.sprite.x, this.sprite.y);
+  }
+
+  /** Destroy the standing mech. Called on death, shutdown, and outfit change. */
+  cleanupMechSuit() {
+    if (this.mechSuit) {
+      try {
+        this.mechSuit.despawn();
+      } catch (e) {
+        /* noop */
+      }
+    }
+    this.mechSuit = null;
+  }
+
+  /** Per-frame tick for the standing mech; prunes it once dead. */
+  _updateMechSuit(delta) {
+    if (!this.mechSuit) return;
+    if (!this.mechSuit.alive) {
+      this.mechSuit = null;
+      return;
+    }
+    try {
+      this.mechSuit.update(typeof delta === 'number' ? delta : 16);
+    } catch (e) {
+      /* noop */
+    }
+  }
+
+  /**
+   * X in mech form — launch the dragon arm on a segmented chain. It extends to
+   * max range or the first enemy it bites, then retracts onto the shoulder.
+   */
+  fireDragonArm() {
+    if (!this._isWingRocketSaver5() || !this._isPilotingMech()) return;
+    if (this.dragonArmCooldown > 0 || this.dragonArm) return;
+    const costume = this.getDragonCostume();
+    if (!costume.dragonArmEnabled) return;
+    this.dragonArmCooldown = costume.dragonArmCooldown || 1400;
+
+    const pal = costume.mechColors || {};
+    const accent = pal.accent || 0xffd700;
+    const primary = pal.primary || 0xd62828;
+    const anchor = this.getDragonArmAnchor();
+
+    // Chain links, drawn between the shoulder and the head each frame.
+    const chain = [];
+    for (let i = 0; i < 8; i++) {
+      const link = this.scene.add.circle(anchor.x, anchor.y, 4, i % 2 === 0 ? primary : accent);
+      link.setStrokeStyle(1, 0x111111);
+      link.setDepth(58);
+      chain.push(link);
+    }
+
+    const head = this.scene.add.triangle(anchor.x, anchor.y, -10, -8, 10, -8, 0, 12, accent);
+    head.setStrokeStyle(2, 0x111111);
+    head.setDepth(60);
+    const eye = this.scene.add.circle(anchor.x, anchor.y - 2, 2, 0x111111);
+    eye.setDepth(61);
+
+    this.dragonArm = {
+      phase: 'extend',
+      dist: 0,
+      maxDist: costume.dragonArmRange || 300,
+      speed: costume.dragonArmSpeed || 1100,
+      damage: costume.dragonArmDamage || 45,
+      dir: this.facingRight ? 1 : -1,
+      head,
+      eye,
+      chain,
+      hitEnemy: false,
+    };
+
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(140, 0.01);
+    }
+  }
+
+  /**
+   * World point the dragon arm launches from — the mech's forward shoulder.
+   * Recomputed every frame so the chain stays attached while the player moves.
+   */
+  getDragonArmAnchor() {
+    const t = this.transformer;
+    const parts = t && t._parts;
+    if (parts && parts.dragonHead) {
+      return { x: parts.dragonHead.x, y: parts.dragonHead.y };
+    }
+    const dir = this.facingRight ? 1 : -1;
+    return { x: this.sprite.x + dir * 24, y: this.sprite.y - 16 };
+  }
+
+  /** Advance the rocket punch: extend → bite → retract → tear down. */
+  _updateDragonArm(delta) {
+    const arm = this.dragonArm;
+    if (!arm) return;
+
+    // Ejecting or swapping costume mid-flight cancels the punch.
+    if (!this._isWingRocketSaver5() || !this._isPilotingMech()) {
+      this.cleanupDragonArm();
+      return;
+    }
+
+    const dt = (typeof delta === 'number' ? delta : 16) / 1000;
+    const step = arm.speed * dt;
+
+    if (arm.phase === 'extend') {
+      arm.dist += step;
+      if (arm.dist >= arm.maxDist) {
+        arm.dist = arm.maxDist;
+        arm.phase = 'retract';
+      }
+    } else {
+      arm.dist -= step;
+      if (arm.dist <= 0) {
+        this.cleanupDragonArm();
+        return;
+      }
+    }
+
+    // Re-anchor to the shoulder every frame so movement keeps the chain glued.
+    const anchor = this.getDragonArmAnchor();
+    const headX = anchor.x + arm.dir * arm.dist;
+    const headY = anchor.y;
+    arm.head.x = headX;
+    arm.head.y = headY;
+    arm.head.setRotation(arm.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
+    arm.eye.x = headX - arm.dir * 3;
+    arm.eye.y = headY;
+
+    // Spread the links evenly between shoulder and head.
+    for (let i = 0; i < arm.chain.length; i++) {
+      const t = (i + 1) / (arm.chain.length + 1);
+      arm.chain[i].x = anchor.x + (headX - anchor.x) * t;
+      arm.chain[i].y = anchor.y + (headY - anchor.y) * t;
+    }
+
+    // Bite the first enemy the head reaches, once per launch.
+    if (arm.phase === 'extend' && !arm.hitEnemy && this.scene.enemies) {
+      const children =
+        typeof this.scene.enemies.getChildren === 'function'
+          ? this.scene.enemies.getChildren()
+          : [];
+      for (let i = 0; i < children.length; i++) {
+        const sprite = children[i];
+        if (!sprite || !sprite.active) continue;
+        const enemy = typeof sprite.getData === 'function' ? sprite.getData('enemy') : null;
+        if (!enemy || enemy.health <= 0) continue;
+        const dx = sprite.x - headX;
+        const dy = sprite.y - headY;
+        if (dx * dx + dy * dy <= 40 * 40) {
+          arm.hitEnemy = true;
+          arm.phase = 'retract';
+          try {
+            enemy.takeDamage(arm.damage);
+          } catch (e) {
+            /* noop */
+          }
+          this.createDragonBiteEffect(headX, headY);
+          break;
+        }
+      }
+    }
+  }
+
+  /** Chomp flash where the dragon head connects. */
+  createDragonBiteEffect(x, y) {
+    const burst = this.scene.add.circle(x, y, 18, 0xffd700, 0.75);
+    burst.setDepth(101);
+    this.scene.tweens.add({
+      targets: burst,
+      scaleX: 2,
+      scaleY: 2,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => burst.destroy(),
+    });
+    if (this.scene.cameras && this.scene.cameras.main) {
+      this.scene.cameras.main.shake(180, 0.016);
+    }
+  }
+
+  /** Destroy every GameObject the rocket punch owns. Safe to call twice. */
+  cleanupDragonArm() {
+    const arm = this.dragonArm;
+    if (!arm) return;
+    if (arm.head && typeof arm.head.destroy === 'function') arm.head.destroy();
+    if (arm.eye && typeof arm.eye.destroy === 'function') arm.eye.destroy();
+    if (arm.chain) {
+      arm.chain.forEach((l) => {
+        if (l && typeof l.destroy === 'function') l.destroy();
+      });
+    }
+    this.dragonArm = null;
+  }
   performPortalbotTransform() {
     if (this.portalbotTransformCooldown > 0) return;
     this.portalbotTransformCooldown = this.portalbotTransformCooldownTime;
@@ -5089,6 +5516,25 @@ class Player {
         // Grimlock's combined fire AND lightning breath!
         projectile = this.createGrimlockBreathProjectile(startX, startY, costume);
         break;
+      case 'sword': {
+        // Wing Rocket Saver 5 mech — a blade thrown from alternating hands.
+        // Deliberately a SINGLE GameObject: the shared pipeline below owns
+        // `glow` and reassigns it, so any extra object made here would leak.
+        // The gold hilt is expressed as the blade's stroke instead.
+        const handSign = this.swordHandIndex % 2 === 0 ? -1 : 1;
+        this.swordHandIndex++;
+        const blade = this.scene.add.rectangle(
+          startX,
+          startY + handSign * 10,
+          costume.projectileSize * 1.8,
+          5,
+          costume.projectileColor
+        );
+        blade.setStrokeStyle(2, costume.projectileSecondaryColor || 0xffd700);
+        blade.setDepth(60);
+        projectile = blade;
+        break;
+      }
       case 'bumblebeeStinger':
         // Bumblebee stinger blast - yellow/black
         projectile = this.scene.add.circle(
@@ -7098,6 +7544,8 @@ class Player {
     this.previousInputs.vibeSpawn2 = !!(this.controls.keys && this.controls.keys['Digit2']);
     this.previousInputs.vibeSpawn3 = !!(this.controls.keys && this.controls.keys['Digit3']);
     this.previousInputs.vibeCharm = !!(this.controls.keys && this.controls.keys['KeyX']);
+    this.previousInputs.summonMech =
+      typeof this.controls.isSummonMech === 'function' ? this.controls.isSummonMech() : false;
   }
 
   // Power-up queue methods
@@ -8325,6 +8773,10 @@ class Player {
   die() {
     // Reset player health and position instead of restarting entire scene
     this.health = this.maxHealth;
+    // die() teleports back to the level start, so a summoned mech left behind
+    // would be unreachable and would block re-summoning (only one may exist).
+    this.cleanupMechSuit();
+    this.cleanupDragonArm();
     this.sprite.setPosition(100, this.scene.levelHeight - 200); // Reset to start position
 
     // Check if legendary mode
@@ -8402,6 +8854,12 @@ class Player {
     }
     this.transformer = null;
     this._activeTransformerKey = currentOutfit;
+    // A summoned mech / in-flight rocket punch belongs to the outfit that made
+    // it — never let either survive an outfit swap.
+    if (currentOutfit !== 'wingRocketSaver5') {
+      this.cleanupMechSuit();
+      this.cleanupDragonArm();
+    }
     const registry = typeof window !== 'undefined' ? window.TransformerRegistry : null;
     const factory = registry ? registry[currentOutfit] : null;
     if (typeof factory === 'function') {
