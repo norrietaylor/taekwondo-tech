@@ -971,7 +971,10 @@ class GameScene extends Phaser.Scene {
       if (form === 'mech') {
         return '2 Eject  •  Z Sword  •  X Dragon Arm';
       }
-      return this.player?.mechSuit ? 'M Summon  •  2 Board Mech (walk close)' : 'M Summon Mech';
+      const base = 'Z Shuriken  •  X Dash Slash';
+      return this.player?.mechSuit
+        ? `${base}  •  2 Board Mech (walk close)`
+        : `${base}  •  M Summon Mech`;
     }
     if (costume.isLegendary) {
       return 'Z/X Mega Fireball (rotates colors)';

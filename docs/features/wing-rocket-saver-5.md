@@ -36,8 +36,8 @@ pop the player vertically. The mech's body is wider and taller.
 | ----- | -------------------------------------------------------------------- | ---------------------------------------- |
 | `M`   | Hands-together charge (~600 ms), then the mech materializes in front | —                                        |
 | `2`   | Board the mech, if you are standing close enough                     | Eject, leaving the mech standing         |
-| `Z`   | Plain melee                                                          | Fires a **sword** from alternating hands |
-| `X`   | Plain melee                                                          | Launches the **dragon arm** rocket punch |
+| `Z`   | Throws a **shuriken**                                                | Fires a **sword** from alternating hands |
+| `X`   | **Dash slash** — lunges forward, blade out                           | Launches the **dragon arm** rocket punch |
 
 The charge pose is a Street-Fighter hadouken stance: the positioner reads the countdown
 and brings both arms together in front of the chest, with an energy orb building between
@@ -48,6 +48,21 @@ Boarding is gated on proximity. Pressing `2` away from the mech does nothing, so
 `Transformer` base's blind toggle is fronted by an explicit check in the Player handler.
 
 ## Abilities
+
+### Ninja
+
+- **Shuriken** (`Z`) — a spinning four-point star, thrown fast and cheap. It rides the
+  shared dragon-projectile pipeline and overrides the usual 350 ms attack cooldown down to
+  180 ms, so it plays as a spammable poke rather than a commitment.
+- **Dash slash** (`X`) — the ninja lunges forward with the blade out, damaging everything
+  he passes through once each and trailing afterimages behind him. It doubles as a
+  movement tool, which is the ninja's reason to exist next to the far heavier mech.
+  Movement input is suppressed for its duration so the dash keeps its own velocity.
+
+Both hit for roughly a third of what the mech does. The ninja survives on speed and
+reach; the mech is the payoff for summoning it.
+
+### Mech
 
 - **Sword throw** (`Z`, mech only) — a blade with a gold edge, thrown from alternating
   hands. It rides the shared dragon-projectile pipeline, so it damages, knocks back, and
@@ -89,6 +104,11 @@ mech-only weapons, dragon-arm launch/retract/cancel, cleanup on death and costum
 and the start setting surviving `resetGame()`.
 
 ## Notes
+
+- The mech's feet sit 46px below its sprite centre while the player's sit 24px below, so
+  summoning, boarding and ejecting all align by **feet**, never by centre. Spawning the
+  mech centre-on-centre with the player buried it 22px in the floor, and a deeply embedded
+  arcade body tunnels straight through rather than being pushed out.
 
 - The mech draws its own wings, so the costume sets `hasWings: false` and the generic
   dragon-wing renderer short-circuits — no change to the hardcoded wing-hide list.

@@ -189,6 +189,8 @@ class Player {
       this.swordHandIndex = 0; // alternates the sword emit between both hands
       this.dragonArm = null; // live tethered rocket-punch state, or null
       this.dragonArmCooldown = 0;
+      this.dashSlash = null; // live ninja dash-slash state, or null
+      this.dashSlashCooldown = 0;
       // Hot Rod transformation (sports car / robot) - unlocks after level 2
       this.hotrodForm = 'robot';
       this.hotrodVisuals = [];
@@ -251,6 +253,7 @@ class Player {
           this.cleanupVibeSpawns();
           this.cleanupMechSuit();
           this.cleanupDragonArm();
+          this.cleanupDashSlash();
         });
       }
     } catch (error) {
@@ -665,6 +668,7 @@ class Player {
     // Tick the standing Wing Rocket Saver 5 mech + any in-flight dragon arm.
     this._updateMechSuit(delta);
     this._updateDragonArm(delta);
+    this._updateDashSlash(delta);
 
     // Update grounded state
     this.updateGroundedState();
@@ -770,6 +774,10 @@ class Player {
       this.dragonArmCooldown -= delta;
       if (this.dragonArmCooldown < 0) this.dragonArmCooldown = 0;
     }
+    if (this.dashSlashCooldown > 0) {
+      this.dashSlashCooldown -= delta;
+      if (this.dashSlashCooldown < 0) this.dashSlashCooldown = 0;
+    }
     if (this.summonPoseMs > 0) {
       this.summonPoseMs -= delta;
       if (this.summonPoseMs < 0) this.summonPoseMs = 0;
@@ -796,6 +804,13 @@ class Player {
 
     const horizontal = this.controls.getHorizontal();
     const vertical = this.controls.getVertical();
+
+    // A ninja dash-slash drives its own horizontal velocity. Movement input
+    // would otherwise overwrite it every frame and the dash would barely move.
+    if (this.dashSlash) {
+      if (Math.abs(horizontal) > 0.1) this.facingRight = horizontal > 0;
+      return;
+    }
 
     // Horizontal movement
     if (Math.abs(horizontal) > 0.1) {
@@ -876,15 +891,18 @@ class Player {
         this.transformer &&
         typeof this.transformer.currentForm === 'function' &&
         this.transformer.currentForm() === 'mech';
-      if (inMech) {
-        if (this.controls.isPunch() && !this.previousInputs.punch) {
-          // shootDragonProjectile owns the projectileType switch (incl. 'sword').
-          // shootFireball() is the LEGENDARY fusion attack and needs
-          // costume.fireballColors, which this costume does not define.
-          this.shootDragonProjectile();
-        }
-        if (this.controls.isKick() && !this.previousInputs.kick) {
+      // Punch throws a projectile in both forms — shootDragonProjectile swaps
+      // sword vs shuriken by form. Kick is the form's signature move.
+      // (shootFireball() is the LEGENDARY fusion attack and needs
+      // costume.fireballColors, which this costume does not define.)
+      if (this.controls.isPunch() && !this.previousInputs.punch) {
+        this.shootDragonProjectile();
+      }
+      if (this.controls.isKick() && !this.previousInputs.kick) {
+        if (inMech) {
           this.fireDragonArm();
+        } else {
+          this.ninjaDashSlash();
         }
       }
     }
@@ -3644,7 +3662,9 @@ class Player {
     const dir = this.facingRight ? 1 : -1;
     const offsetX = costume.summonOffsetX || 110;
     const spawnX = this.sprite.x + dir * offsetX;
-    const spawnY = this.sprite.y - 10;
+    const feetY = this.sprite.y + this._feetOffset();
+    // Materialize just above the player's feet line so it drops into place.
+    const spawnY = this._mechSpriteYForFeet(feetY) - 6;
 
     this.scene.time.delayedCall(poseMs, () => {
       // Guard: the player may have died, changed costume, or boarded another
@@ -3715,13 +3735,33 @@ class Player {
     // alone leaves the physics body behind at the old spot.
     const pos = this.mechSuit.getPosition();
     if (pos) {
+      // Match feet lines so climbing in doesn't drop the pilot into the floor
+      // or leave them hanging in the air above the shell.
+      const targetY = this.mechSuit.getFeetY() - this._feetOffset();
       if (this.body && typeof this.body.reset === 'function') {
-        this.body.reset(pos.x, pos.y);
+        this.body.reset(pos.x, targetY);
       } else {
-        this.sprite.setPosition(pos.x, pos.y);
+        this.sprite.setPosition(pos.x, targetY);
       }
     }
     this.transformer.tryToggle();
+  }
+
+  /**
+   * Distance from the player's sprite centre down to its feet.
+   * Derived from geometry, not from live body state: both Wing Rocket Saver 5
+   * forms are bottom-aligned to the sprite's own bottom edge, and body.bottom
+   * is stale until the next physics step after a body.reset().
+   */
+  _feetOffset() {
+    return (this.sprite && this.sprite.height ? this.sprite.height : 48) / 2;
+  }
+
+  /** Sprite Y at which the mech's FEET land on the given world feet line. */
+  _mechSpriteYForFeet(feetY) {
+    const off =
+      (typeof window !== 'undefined' && window.MechSuit && window.MechSuit.FEET_OFFSET) || 46;
+    return feetY - off;
   }
 
   /**
@@ -3777,7 +3817,13 @@ class Player {
   /** The player ejected — leave a mech standing right where they are. */
   dropStandingMech() {
     if (this.mechSuit && this.mechSuit.alive) return;
-    this.summonMechSuit(this.sprite.x, this.sprite.y);
+    // Align by FEET, not centre. The mech's feet sit much further below its
+    // sprite centre than the player's do, so spawning centre-on-centre buries
+    // it in the floor — and a deeply embedded body tunnels straight through.
+    const feetY = this.sprite.y + this._feetOffset();
+    const dir = this.facingRight ? 1 : -1;
+    // Step the ninja out in front so the two aren't drawn on top of each other.
+    this.summonMechSuit(this.sprite.x - dir * 34, this._mechSpriteYForFeet(feetY));
   }
 
   /** Destroy the standing mech. Called on death, shutdown, and outfit change. */
@@ -3972,6 +4018,154 @@ class Player {
     }
     this.dragonArm = null;
   }
+
+  /**
+   * X in ninja form — a short forward dash with the blade out, damaging
+   * anything passed through. Doubles as a movement tool, which is the ninja's
+   * reason to exist next to the much heavier mech.
+   */
+  ninjaDashSlash() {
+    if (!this._isWingRocketSaver5() || this._isPilotingMech()) return;
+    if (this.dashSlashCooldown > 0 || this.dashSlash) return;
+    const costume = this.getDragonCostume();
+    if (!costume.dashSlashEnabled) return;
+    this.dashSlashCooldown = costume.dashSlashCooldown || 700;
+
+    const dir = this.facingRight ? 1 : -1;
+    const speed = costume.dashSlashSpeed || 620;
+    this.body.setVelocityX(dir * speed);
+
+    const pal = costume.ninjaColors || {};
+    const trail = pal.secondary || 0x7cfc00;
+
+    // Crescent blade arc swept in front of the ninja.
+    const arc = this.scene.add.arc(
+      this.sprite.x + dir * 26,
+      this.sprite.y,
+      costume.dashSlashRadius || 48,
+      dir > 0 ? -60 : 120,
+      dir > 0 ? 60 : 240,
+      false,
+      0xffffff,
+      0.85
+    );
+    arc.setStrokeStyle(3, trail);
+    arc.setDepth(70);
+
+    this.dashSlash = {
+      msLeft: costume.dashSlashDurationMs || 190,
+      damage: costume.dashSlashDamage || 18,
+      radius: costume.dashSlashRadius || 48,
+      dir,
+      arc,
+      trails: [],
+      hitEnemies: [],
+    };
+
+    this.createDashSlashTrail(trail);
+  }
+
+  /** Afterimages left behind by the dash. */
+  createDashSlashTrail(color) {
+    for (let i = 0; i < 3; i++) {
+      const ghost = this.scene.add.rectangle(
+        this.sprite.x - this.dashSlash.dir * i * 16,
+        this.sprite.y,
+        20,
+        30,
+        color,
+        0.35 - i * 0.08
+      );
+      ghost.setDepth(52);
+      this.dashSlash.trails.push(ghost);
+      this.scene.tweens.add({
+        targets: ghost,
+        alpha: 0,
+        duration: 260,
+        delay: i * 40,
+        onComplete: () => ghost.destroy(),
+      });
+    }
+  }
+
+  /** Advance the dash: sweep the arc, damage once per enemy, then tear down. */
+  _updateDashSlash(delta) {
+    const dash = this.dashSlash;
+    if (!dash) return;
+
+    // Changing costume or boarding the mech cancels the dash.
+    if (!this._isWingRocketSaver5() || this._isPilotingMech()) {
+      this.cleanupDashSlash();
+      return;
+    }
+
+    dash.msLeft -= typeof delta === 'number' ? delta : 16;
+
+    // Keep the blade arc glued in front of the ninja for the whole dash.
+    if (dash.arc) {
+      dash.arc.x = this.sprite.x + dash.dir * 26;
+      dash.arc.y = this.sprite.y;
+      dash.arc.setAlpha(Math.max(0, dash.msLeft / 190) * 0.85);
+    }
+
+    // Damage everything swept through, once each.
+    if (this.scene.enemies) {
+      const children =
+        typeof this.scene.enemies.getChildren === 'function'
+          ? this.scene.enemies.getChildren()
+          : [];
+      for (let i = 0; i < children.length; i++) {
+        const sprite = children[i];
+        if (!sprite || !sprite.active) continue;
+        const enemy = typeof sprite.getData === 'function' ? sprite.getData('enemy') : null;
+        if (!enemy || enemy.health <= 0) continue;
+        if (dash.hitEnemies.indexOf(enemy) !== -1) continue;
+        const dx = sprite.x - this.sprite.x;
+        const dy = sprite.y - this.sprite.y;
+        if (dx * dx + dy * dy <= dash.radius * dash.radius) {
+          dash.hitEnemies.push(enemy);
+          try {
+            enemy.takeDamage(dash.damage);
+          } catch (e) {
+            /* noop */
+          }
+          this.createDashSlashHit(sprite.x, sprite.y);
+        }
+      }
+    }
+
+    if (dash.msLeft <= 0) {
+      this.cleanupDashSlash();
+    }
+  }
+
+  /** Slash spark where the blade connects. */
+  createDashSlashHit(x, y) {
+    const spark = this.scene.add.rectangle(x, y, 40, 4, 0xffffff, 0.9);
+    spark.setRotation(-Math.PI / 5);
+    spark.setDepth(101);
+    this.scene.tweens.add({
+      targets: spark,
+      scaleX: 1.7,
+      alpha: 0,
+      duration: 220,
+      onComplete: () => spark.destroy(),
+    });
+  }
+
+  /** Destroy every GameObject the dash owns. Safe to call twice. */
+  cleanupDashSlash() {
+    const dash = this.dashSlash;
+    if (!dash) return;
+    if (dash.arc && typeof dash.arc.destroy === 'function') dash.arc.destroy();
+    // Trail ghosts destroy themselves on tween completion, but tear down any
+    // that are still alive so nothing survives a scene shutdown.
+    dash.trails.forEach((g) => {
+      if (g && g.active && typeof g.destroy === 'function') g.destroy();
+    });
+    this.dashSlash = null;
+  }
+
   performPortalbotTransform() {
     if (this.portalbotTransformCooldown > 0) return;
     this.portalbotTransformCooldown = this.portalbotTransformCooldownTime;
@@ -5482,6 +5676,19 @@ class Player {
       projectileSecondaryColor = costume.carProjectileSecondaryColor || 0x0066b2;
     }
 
+    // Wing Rocket Saver 5 swaps its projectile by form the same way: the mech
+    // throws swords, the ninja on foot throws shuriken — faster, cheaper and
+    // much weaker.
+    if (costume.isWingRocketSaver5 && !this._isPilotingMech()) {
+      projectileType = 'shuriken';
+      projectileDamage = costume.shurikenDamage || 12;
+      projectileEffect = 'none';
+      projectileColor = costume.shurikenColor || 0xdfe7ef;
+      projectileSecondaryColor = costume.shurikenAccent || 0x7cfc00;
+      // A poke, not a commitment — override the shared 350ms attack cooldown.
+      this.attackCooldown = costume.shurikenAttackCooldown || 180;
+    }
+
     // Create projectile based on dragon type
     let projectile;
     let glow = null;
@@ -5516,6 +5723,30 @@ class Player {
         // Grimlock's combined fire AND lightning breath!
         projectile = this.createGrimlockBreathProjectile(startX, startY, costume);
         break;
+      case 'shuriken': {
+        // Ninja throwing star. Single GameObject for the same reason as the
+        // sword below: the pipeline reassigns `glow`, so extras would leak.
+        const size = costume.shurikenSize || 13;
+        const star = this.scene.add.star(
+          startX,
+          startY,
+          4,
+          size * 0.34,
+          size,
+          projectileColor || 0xdfe7ef
+        );
+        star.setStrokeStyle(2, projectileSecondaryColor || 0x7cfc00);
+        star.setDepth(60);
+        // Spin it for the whole flight; the tween dies with the object.
+        this.scene.tweens.add({
+          targets: star,
+          rotation: Math.PI * 8,
+          duration: 900,
+          repeat: -1,
+        });
+        projectile = star;
+        break;
+      }
       case 'sword': {
         // Wing Rocket Saver 5 mech — a blade thrown from alternating hands.
         // Deliberately a SINGLE GameObject: the shared pipeline below owns
@@ -7192,6 +7423,16 @@ class Player {
     const fireball = this.fireballs[index];
     if (!fireball) return;
 
+    // Phaser does NOT stop a tween when its target Game Object is destroyed —
+    // the TweenManager keeps its own reference. The shuriken spins on a
+    // `repeat: -1` tween, so without this every destroyed star would leave a
+    // live tween behind. Killing tweens for both objects covers the whole
+    // projectile family, not just the shuriken.
+    if (this.scene && this.scene.tweens) {
+      if (fireball.sprite) this.scene.tweens.killTweensOf(fireball.sprite);
+      if (fireball.glow) this.scene.tweens.killTweensOf(fireball.glow);
+    }
+
     if (fireball.sprite && !fireball.sprite.destroyed) {
       fireball.sprite.destroy();
     }
@@ -8859,6 +9100,7 @@ class Player {
     if (currentOutfit !== 'wingRocketSaver5') {
       this.cleanupMechSuit();
       this.cleanupDragonArm();
+      this.cleanupDashSlash();
     }
     const registry = typeof window !== 'undefined' ? window.TransformerRegistry : null;
     const factory = registry ? registry[currentOutfit] : null;

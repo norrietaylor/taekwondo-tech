@@ -716,6 +716,21 @@ class TaekwondoRobotBuilder {
         dragonArmDamage: 45,
         dragonArmRange: 300,
         dragonArmSpeed: 1100, // px/sec of chain extension
+        // Ninja-form attacks. Deliberately much weaker than the mech's sword
+        // (26) and dragon arm (45) — the ninja survives on speed and reach,
+        // and the mech is the payoff for summoning it.
+        shurikenDamage: 12,
+        shurikenSpeed: 620,
+        shurikenSize: 13,
+        shurikenColor: 0xdfe7ef, // polished steel
+        shurikenAccent: 0x7cfc00, // green cord wrap
+        shurikenAttackCooldown: 180, // spammable poke
+        dashSlashEnabled: true,
+        dashSlashDamage: 18,
+        dashSlashSpeed: 620,
+        dashSlashDurationMs: 190,
+        dashSlashCooldown: 700,
+        dashSlashRadius: 48,
         // Summon / board tuning
         summonKey: 'KeyM',
         summonPoseMs: 600,
