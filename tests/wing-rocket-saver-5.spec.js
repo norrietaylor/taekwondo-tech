@@ -418,6 +418,117 @@ test.describe('Wing Rocket Saver 5 — summon, board, eject', () => {
     expect(feet.drawnLowest - feet.bodyBottom).toBeLessThanOrEqual(8);
   });
 
+  // Regression: the mech's feet sit 46px below its sprite centre while the
+  // player's sit 24px below, so spawning the mech centre-on-centre with the
+  // player on eject buried it 22px in the floor — and a deeply embedded
+  // arcade body tunnels straight through instead of being pushed out.
+  test('repeated board/eject cycles never sink the player or the mech', async ({ page }) => {
+    const cycles = await page.evaluate(async () => {
+      const gs = window.gameInstance.game.scene.getScene('GameScene');
+      const p = gs.player;
+      // Wait until the player's vertical position stops changing. Settling
+      // rides Phaser's frame loop, which throttles under parallel test load,
+      // so poll for stability rather than trusting a wall-clock delay.
+      const settle = async (maxMs) => {
+        const deadline = Date.now() + (maxMs || 4000);
+        let last = null;
+        let stable = 0;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 100));
+          const y = Math.round(p.sprite.y);
+          stable = y === last ? stable + 1 : 0;
+          last = y;
+          if (stable >= 3) break;
+        }
+        return last;
+      };
+      const out = [];
+      for (let i = 0; i < 4; i++) {
+        // Pin to known-safe ground so the loop tests the mechanic, not the level.
+        p.cleanupMechSuit();
+        p.body.reset(160, 400);
+        await settle();
+        const startFeet = Math.round(p.body.bottom);
+
+        p.summonCooldown = 0;
+        p.summonPoseMs = 0;
+        p.controls.keys['KeyM'] = true;
+        p.previousInputs.summonMech = false;
+        p.handleMechSummon();
+        p.controls.keys['KeyM'] = false;
+        // The mech materializes after the charge pose — poll for it.
+        const summonDeadline = Date.now() + 6000;
+        while (!p.mechSuit && Date.now() < summonDeadline) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
+        if (!p.mechSuit) {
+          out.push({ i, failed: 'no summon' });
+          continue;
+        }
+        await settle();
+        const mechFeet = Math.round(p.mechSuit.getFeetY());
+
+        // Walk over (it deliberately spawns outside the board radius).
+        p.body.reset(p.mechSuit.sprite.x, p.sprite.y);
+        await new Promise((r) => setTimeout(r, 250));
+        p.transformer.cooldownMs = 0;
+        p.controls.keys['Digit2'] = true;
+        p.previousInputs.grimlockTransform = false;
+        p.handleMechBoard();
+        p.controls.keys['Digit2'] = false;
+        await settle();
+        const boardedFeet = Math.round(p.body.bottom);
+
+        p.transformer.cooldownMs = 0;
+        p.controls.keys['Digit2'] = true;
+        p.previousInputs.grimlockTransform = false;
+        p.handleMechBoard();
+        p.controls.keys['Digit2'] = false;
+        await settle();
+
+        out.push({
+          i,
+          startFeet,
+          mechFeet,
+          boardedFeet,
+          ejectedFeet: Math.round(p.body.bottom),
+          ejectedMechFeet: p.mechSuit ? Math.round(p.mechSuit.getFeetY()) : null,
+          form: p.transformer.currentForm(),
+          mechLeftStanding: !!p.mechSuit,
+          playerBelowLevel: p.sprite.y > gs.levelHeight,
+          mechBelowLevel: p.mechSuit ? p.mechSuit.sprite.y > gs.levelHeight : false,
+        });
+      }
+      return out;
+    });
+
+    expect(cycles).toHaveLength(4);
+    for (const c of cycles) {
+      expect(c.failed, `cycle ${c.i}`).toBeUndefined();
+      expect(c.form, `cycle ${c.i} ends as ninja`).toBe('ninja');
+      expect(c.mechLeftStanding, `cycle ${c.i} leaves a mech`).toBe(true);
+      expect(c.playerBelowLevel, `cycle ${c.i} player fell through`).toBe(false);
+      expect(c.mechBelowLevel, `cycle ${c.i} mech fell through`).toBe(false);
+      // Everything stays on the same feet line it started on.
+      expect(
+        Math.abs(c.mechFeet - c.startFeet),
+        `cycle ${c.i} summoned mech feet`
+      ).toBeLessThanOrEqual(4);
+      expect(
+        Math.abs(c.boardedFeet - c.startFeet),
+        `cycle ${c.i} boarded feet`
+      ).toBeLessThanOrEqual(4);
+      expect(
+        Math.abs(c.ejectedFeet - c.startFeet),
+        `cycle ${c.i} ejected feet`
+      ).toBeLessThanOrEqual(4);
+      expect(
+        Math.abs(c.ejectedMechFeet - c.startFeet),
+        `cycle ${c.i} left mech feet`
+      ).toBeLessThanOrEqual(4);
+    }
+  });
+
   test('the physics body grows for the mech and keeps a shared bottom edge', async ({ page }) => {
     // Toggle the transformer directly, with no intervening teleport, so this
     // measures the body-sizing contract itself. The boarding flow (which does
@@ -543,7 +654,7 @@ test.describe('Wing Rocket Saver 5 — mech weapons', () => {
     expect(state.arm).toBe(false);
   });
 
-  test('the ninja form fires no projectile', async ({ page }) => {
+  test('the ninja throws a shuriken on punch, not a sword', async ({ page }) => {
     const result = await page.evaluate(() => {
       const p = window.gameInstance.game.scene.getScene('GameScene').player;
       // Eject back to the ninja
@@ -559,15 +670,84 @@ test.describe('Wing Rocket Saver 5 — mech weapons', () => {
       p.previousInputs.punch = false;
       p.handleCombat();
       p.controls.keys['KeyZ'] = false;
+      const shot = p.fireballs[p.fireballs.length - 1];
+      return {
+        form: p.transformer.currentForm(),
+        added: p.fireballs.length - before,
+        type: shot && shot.type,
+        damage: shot && shot.damage,
+        attackCooldown: p.attackCooldown,
+      };
+    });
+    expect(result.form).toBe('ninja');
+    expect(result.added).toBe(1);
+    expect(result.type).toBe('shuriken');
+    // Clearly weaker than the mech's sword — the mech is the payoff.
+    expect(result.damage).toBeLessThan(20);
+    // And far more spammable than the shared 350ms attack cooldown.
+    expect(result.attackCooldown).toBeLessThan(300);
+  });
+
+  test('the ninja dash-slashes on kick and the dash actually travels', async ({ page }) => {
+    const result = await page.evaluate(async () => {
+      const p = window.gameInstance.game.scene.getScene('GameScene').player;
+      p.transformer.cooldownMs = 0;
+      p.controls.keys['Digit2'] = true;
+      p.previousInputs.grimlockTransform = false;
+      p.handleMechBoard();
+      p.controls.keys['Digit2'] = false;
+      await new Promise((r) => setTimeout(r, 200));
+
+      const startX = p.sprite.x;
+      p.attackCooldown = 0;
+      p.dashSlashCooldown = 0;
+      p.controls.keys['KeyX'] = true;
+      p.previousInputs.kick = false;
+      p.handleCombat();
+      p.controls.keys['KeyX'] = false;
+
+      const live = !!p.dashSlash;
+      const launchVx = Math.abs(Math.round(p.body.velocity.x));
+      // A second dash while one is running is refused.
+      p.dashSlashCooldown = 0;
+      const same = p.dashSlash;
+      p.ninjaDashSlash();
+      const refused = p.dashSlash === same;
+
+      await new Promise((r) => setTimeout(r, 900));
+      return {
+        form: p.transformer.currentForm(),
+        live,
+        launchVx,
+        refused,
+        travelled: Math.abs(Math.round(p.sprite.x - startX)),
+        cleared: !p.dashSlash,
+      };
+    });
+    expect(result.form).toBe('ninja');
+    expect(result.live).toBe(true);
+    expect(result.refused).toBe(true);
+    // Movement input must not cancel the dash's own velocity.
+    expect(result.launchVx).toBeGreaterThan(300);
+    expect(result.travelled).toBeGreaterThan(60);
+    // And it tears itself down — no leaked arc or afterimages.
+    expect(result.cleared).toBe(true);
+  });
+
+  test('kick does the dragon arm in the mech and the dash on foot', async ({ page }) => {
+    const mech = await page.evaluate(() => {
+      const p = window.gameInstance.game.scene.getScene('GameScene').player;
+      p.dragonArmCooldown = 0;
       p.attackCooldown = 0;
       p.controls.keys['KeyX'] = true;
       p.previousInputs.kick = false;
       p.handleCombat();
       p.controls.keys['KeyX'] = false;
-      return { form: p.transformer.currentForm(), added: p.fireballs.length - before };
+      return { form: p.transformer.currentForm(), arm: !!p.dragonArm, dash: !!p.dashSlash };
     });
-    expect(result.form).toBe('ninja');
-    expect(result.added).toBe(0);
+    expect(mech.form).toBe('mech');
+    expect(mech.arm).toBe(true);
+    expect(mech.dash).toBe(false);
   });
 });
 

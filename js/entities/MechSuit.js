@@ -233,6 +233,16 @@ class MechSuit {
     return dx * dx + dy * dy <= r * r;
   }
 
+  /**
+   * Y of the mech's feet (the bottom of its physics body) relative to the
+   * sprite centre. The drawn mech is far taller than its 40x46 torso
+   * rectangle, so callers must align by FEET, not by centre — spawning it
+   * centre-on-centre with the player buries it 22px in the floor.
+   */
+  getFeetY() {
+    return this.sprite ? this.sprite.y + MechSuit.FEET_OFFSET : 0;
+  }
+
   /** Position of the mech, used to place the player when boarding. */
   getPosition() {
     if (!this.sprite) return null;
@@ -253,6 +263,11 @@ class MechSuit {
     this.body = null;
   }
 }
+
+// Distance from the sprite centre down to the mech's feet (its body bottom).
+// Kept in sync with the body set up in _buildVisuals: setSize(40, 86) with
+// offset (0, -17) on a 40x46 rectangle => bottom edge at sprite.y + 46.
+MechSuit.FEET_OFFSET = 46;
 
 // Expose as a global (matches the rest of the codebase's no-module convention).
 if (typeof window !== 'undefined') {
