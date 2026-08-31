@@ -7423,6 +7423,16 @@ class Player {
     const fireball = this.fireballs[index];
     if (!fireball) return;
 
+    // Phaser does NOT stop a tween when its target Game Object is destroyed —
+    // the TweenManager keeps its own reference. The shuriken spins on a
+    // `repeat: -1` tween, so without this every destroyed star would leave a
+    // live tween behind. Killing tweens for both objects covers the whole
+    // projectile family, not just the shuriken.
+    if (this.scene && this.scene.tweens) {
+      if (fireball.sprite) this.scene.tweens.killTweensOf(fireball.sprite);
+      if (fireball.glow) this.scene.tweens.killTweensOf(fireball.glow);
+    }
+
     if (fireball.sprite && !fireball.sprite.destroyed) {
       fireball.sprite.destroy();
     }

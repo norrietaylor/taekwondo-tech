@@ -426,6 +426,12 @@ test.describe('Wing Rocket Saver 5 — summon, board, eject', () => {
     const cycles = await page.evaluate(async () => {
       const gs = window.gameInstance.game.scene.getScene('GameScene');
       const p = gs.player;
+      // This test is about board/eject geometry, not survival. Dying
+      // legitimately clears the standing mech (covered by its own test), and
+      // on a slow single-worker CI box the player can fall off level geometry
+      // mid-cycle. Neutralise death so the loop measures only what it claims to.
+      const realDie = p.die.bind(p);
+      p.die = () => {};
       // Wait until the player's vertical position stops changing. Settling
       // rides Phaser's frame loop, which throttles under parallel test load,
       // so poll for stability rather than trusting a wall-clock delay.
@@ -466,6 +472,10 @@ test.describe('Wing Rocket Saver 5 — summon, board, eject', () => {
           continue;
         }
         await settle();
+        if (!p.mechSuit) {
+          out.push({ i, failed: 'mech vanished while settling' });
+          continue;
+        }
         const mechFeet = Math.round(p.mechSuit.getFeetY());
 
         // Walk over (it deliberately spawns outside the board radius).
@@ -499,6 +509,7 @@ test.describe('Wing Rocket Saver 5 — summon, board, eject', () => {
           mechBelowLevel: p.mechSuit ? p.mechSuit.sprite.y > gs.levelHeight : false,
         });
       }
+      p.die = realDie;
       return out;
     });
 
@@ -732,6 +743,51 @@ test.describe('Wing Rocket Saver 5 — mech weapons', () => {
     expect(result.travelled).toBeGreaterThan(60);
     // And it tears itself down — no leaked arc or afterimages.
     expect(result.cleared).toBe(true);
+  });
+
+  // Phaser does not stop a tween when its target Game Object is destroyed, and
+  // the shuriken spins on a `repeat: -1` tween. Without an explicit kill in
+  // destroyFireball(), every star fired would leave a live tween behind.
+  // Verified to fail without the fix: 12 shots => 12 orphaned tweens.
+  test('destroyed shuriken leave no tweens behind', async ({ page }) => {
+    const result = await page.evaluate(async () => {
+      const gs = window.gameInstance.game.scene.getScene('GameScene');
+      const p = gs.player;
+      // Back to the ninja so punch throws shuriken.
+      if (p.transformer.currentForm() === 'mech') {
+        p.transformer.cooldownMs = 0;
+        p.controls.keys['Digit2'] = true;
+        p.previousInputs.grimlockTransform = false;
+        p.handleMechBoard();
+        p.controls.keys['Digit2'] = false;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+
+      const count = () => gs.tweens.getTweens().length;
+      const before = count();
+      const SHOTS = 12;
+      for (let i = 0; i < SHOTS; i++) {
+        p.attackCooldown = 0;
+        p.controls.keys['KeyZ'] = true;
+        p.previousInputs.punch = false;
+        p.handleCombat();
+        p.controls.keys['KeyZ'] = false;
+        await new Promise((r) => setTimeout(r, 60));
+      }
+      const peak = count();
+
+      // Tear every projectile down through the real teardown path.
+      while (p.fireballs.length) p.destroyFireball(p.fireballs.length - 1);
+      await new Promise((r) => setTimeout(r, 1200));
+
+      return { before, peak, after: count(), remaining: p.fireballs.length };
+    });
+
+    expect(result.remaining).toBe(0);
+    // The shots really did create tweens...
+    expect(result.peak).toBeGreaterThan(result.before);
+    // ...and teardown reclaimed every one of them.
+    expect(result.after).toBeLessThanOrEqual(result.before);
   });
 
   test('kick does the dragon arm in the mech and the dash on foot', async ({ page }) => {
